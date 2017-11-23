@@ -30,17 +30,13 @@ tasks.withType(JavaCompile) {
 
 task('prepareFlac') {
     doFirst {
-        println("#####")
         File flacArchive = new File("$projectDir/src/main/jni/flac-1.3.1.tar.xz")
-        println(flacArchive.exists())
         File flacDestination = new File("$projectDir/src/main/jni/flac")
         exec {
             executable 'sh'
             args '-c', "tar -xvf \"${flacArchive.absolutePath}\" -C \"${flacArchive.parentFile.absolutePath}\""
         }
         new File("$projectDir/src/main/jni/flac-1.3.1").renameTo(flacDestination)
-        println(flacArchive)
-        println(flacArchive.exists())
     }
 }
 

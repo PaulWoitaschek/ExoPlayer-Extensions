@@ -1,1 +1,1 @@
-include ':flac'
+include ':flac', ':opus'

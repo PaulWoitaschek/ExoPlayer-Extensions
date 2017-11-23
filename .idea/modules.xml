@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/ExoplayerPrebuilt.iml" filepath="$PROJECT_DIR$/ExoplayerPrebuilt.iml" />
       <module fileurl="file://$PROJECT_DIR$/flac/app.iml" filepath="$PROJECT_DIR$/flac/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/opus/opus.iml" filepath="$PROJECT_DIR$/opus/opus.iml" />
     </modules>
   </component>
 </project>

@@ -1,0 +1,61 @@
+apply plugin: 'com.android.library'
+
+android {
+
+    compileSdkVersion versions.compileSdk
+
+    defaultConfig {
+        minSdkVersion versions.minSdk
+        targetSdkVersion versions.targetSdk
+        versionCode versions.versionCode
+        versionName versions.versionName
+        consumerProguardFiles 'proguard-rules.txt'
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    sourceSets.main {
+        jniLibs.srcDir 'src/main/libs'
+        jni.srcDirs = []
+    }
+}
+
+// make sure that opus is set up before ndk compiling starts
+tasks.withType(JavaCompile) {
+    compileTask -> compileTask.dependsOn(prepareOpus)
+}
+
+task('prepareOpus') {
+    doFirst {
+        File source = new File("$projectDir/src/main/jni/opus-1.2.1.tar.gz")
+        File extractedFile = new File("$projectDir/src/main/jni/opus-1.2.1")
+        File opusDestination = new File("$projectDir/src/main/jni/libopus")
+        extractedFile.delete()
+        opusDestination.delete()
+        exec {
+            executable 'sh'
+            args '-c', "tar -xzf \"${source.absolutePath}\" -C \"${source.parentFile.absolutePath}\""
+        }
+        extractedFile.renameTo(opusDestination)
+        exec {
+            executable 'sh'
+            args '-c', "cd $projectDir/src/main/jni/ && ./convert_android_asm.sh"
+        }
+        def ndkDir = project.extensions.findByName("android").ndkDirectory
+        exec {
+            executable 'sh'
+            args '-c', "cd $projectDir/src/main/jni/ && $ndkDir/ndk-build APP_ABI=\"mips64 mips x86_64 x86 arm64-v8a armeabi-v7a\" -j4"
+        }
+    }
+}
+
+dependencies {
+    api libraries.exoPlayer
+}
+
+clean {
+    delete ".externalNativeBuild/"
+}

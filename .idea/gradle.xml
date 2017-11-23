@@ -9,6 +9,7 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/flac" />
+            <option value="$PROJECT_DIR$/opus" />
           </set>
         </option>
         <option name="resolveModulePerSourceSet" value="false" />
