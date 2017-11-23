@@ -6,7 +6,7 @@ This is primarily used by [Voice](https://github.com/PaulWoitaschek/Voice)
 
 # Install
 
-```groovy
+```gradle
 repositories {
   maven { url "https://jitpack.io" }
 }
