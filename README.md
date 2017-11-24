@@ -13,11 +13,11 @@ repositories {
   
 dependencies {
   // all extensions
-  implementation "com.github.PaulWoitaschek.ExoPlayer-Extensions-Autobuild:X.Y.Z"
+  implementation "com.github.PaulWoitaschek.ExoPlayer-Extensions:X.Y.Z"
 
   // import only the extension you need
-  implementation "com.github.PaulWoitaschek.ExoPlayer-Extensions-Autobuild:opus:X.Y.Z"
-  implementation "com.github.PaulWoitaschek.ExoPlayer-Extensions-Autobuild:flac:X.Y.Z"
+  implementation "com.github.PaulWoitaschek.ExoPlayer-Extensions:opus:X.Y.Z"
+  implementation "com.github.PaulWoitaschek.ExoPlayer-Extensions:flac:X.Y.Z"
  
   // where X.Y.Z is the latest exoplayer version
 }
