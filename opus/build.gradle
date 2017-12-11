@@ -28,18 +28,8 @@ tasks.withType(JavaCompile) {
     compileTask -> compileTask.dependsOn(prepareOpus)
 }
 
-task('prepareOpus') {
+task prepareOpus(dependsOn: "downloadAndExtract") {
     doFirst {
-        File source = new File("$projectDir/src/main/jni/opus-1.2.1.tar.gz")
-        File extractedFile = new File("$projectDir/src/main/jni/opus-1.2.1")
-        File opusDestination = new File("$projectDir/src/main/jni/libopus")
-        extractedFile.delete()
-        opusDestination.delete()
-        exec {
-            executable 'sh'
-            args '-c', "tar -xzf \"${source.absolutePath}\" -C \"${source.parentFile.absolutePath}\""
-        }
-        extractedFile.renameTo(opusDestination)
         exec {
             executable 'sh'
             args '-c', "cd $projectDir/src/main/jni/ && ./convert_android_asm.sh"
@@ -51,6 +41,26 @@ task('prepareOpus') {
         }
     }
 }
+
+task downloadAndExtract {
+    File source = new File("$projectDir/src/main/jni/opus.tar.gz")
+    download {
+        src "https://archive.mozilla.org/pub/opus/opus-1.2.1.tar.gz"
+        dest source
+    }
+
+    copy {
+        from tarTree(source.absolutePath)
+        into source.parentFile
+    }
+
+    File opusDestination = new File("$projectDir/src/main/jni/libopus")
+    opusDestination.delete()
+    File extractedFile = new File("$projectDir/src/main/jni/opus-1.2.1")
+    extractedFile.delete()
+    extractedFile.renameTo(opusDestination)
+}
+
 
 dependencies {
     api libraries.exoPlayer
