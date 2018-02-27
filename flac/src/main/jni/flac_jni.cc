@@ -15,7 +15,6 @@
  */
 
 #include <jni.h>
-#include <android/log.h>
 #include <cstdlib>
 #include "include/flac_parser.h"
 
@@ -50,7 +49,8 @@ class JavaDataSource : public DataSource {
   ssize_t readAt(off64_t offset, void *const data, size_t size) {
     jobject byteBuffer = env->NewDirectByteBuffer(data, size);
     int result = env->CallIntMethod(flacDecoderJni, mid, byteBuffer);
-    if (env->ExceptionOccurred()) {
+    if (env->ExceptionCheck()) {
+      // Exception is thrown in Java when returning from the native call.
       result = -1;
     }
     env->DeleteLocalRef(byteBuffer);

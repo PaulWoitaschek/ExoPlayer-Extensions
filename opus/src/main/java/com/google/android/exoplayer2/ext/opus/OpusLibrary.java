@@ -23,7 +23,7 @@ import com.google.android.exoplayer2.util.LibraryLoader;
  */
 public final class OpusLibrary {
 
-  private static final LibraryLoader LOADER = new LibraryLoader("opus", "opusJNI");
+  private static final LibraryLoader LOADER = new LibraryLoader("opusJNI");
 
   static {
     ExoPlayerLibraryInfo.registerModule("goog.exo.opus");
@@ -57,6 +57,5 @@ public final class OpusLibrary {
   }
 
   public static native String opusGetVersion();
-
   public static native boolean opusIsSecureDecodeSupported();
 }

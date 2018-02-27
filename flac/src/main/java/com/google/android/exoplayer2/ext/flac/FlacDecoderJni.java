@@ -48,7 +48,6 @@ import java.nio.ByteBuffer;
 
   /**
    * Sets data to be parsed by libflac.
-   *
    * @param byteBufferData Source {@link ByteBuffer}
    */
   public void setData(ByteBuffer byteBufferData) {
@@ -59,7 +58,6 @@ import java.nio.ByteBuffer;
 
   /**
    * Sets data to be parsed by libflac.
-   *
    * @param extractorInput Source {@link ExtractorInput}
    */
   public void setData(ExtractorInput extractorInput) {
@@ -125,8 +123,8 @@ import java.nio.ByteBuffer;
 
   public int decodeSample(ByteBuffer output) throws IOException, InterruptedException {
     return output.isDirect()
-      ? flacDecodeToBuffer(nativeDecoderContext, output)
-      : flacDecodeToArray(nativeDecoderContext, output.array());
+            ? flacDecodeToBuffer(nativeDecoderContext, output)
+            : flacDecodeToArray(nativeDecoderContext, output.array());
   }
 
   /**
@@ -174,7 +172,7 @@ import java.nio.ByteBuffer;
   }
 
   private int readFromExtractorInput(int offset, int length)
-    throws IOException, InterruptedException {
+          throws IOException, InterruptedException {
     int read = extractorInput.read(tempBuffer, offset, length);
     if (read == C.RESULT_END_OF_INPUT) {
       endOfExtractorInput = true;
@@ -184,28 +182,18 @@ import java.nio.ByteBuffer;
   }
 
   private native long flacInit();
-
   private native FlacStreamInfo flacDecodeMetadata(long context)
-    throws IOException, InterruptedException;
-
+          throws IOException, InterruptedException;
   private native int flacDecodeToBuffer(long context, ByteBuffer outputBuffer)
-    throws IOException, InterruptedException;
-
+          throws IOException, InterruptedException;
   private native int flacDecodeToArray(long context, byte[] outputArray)
-    throws IOException, InterruptedException;
-
+          throws IOException, InterruptedException;
   private native long flacGetDecodePosition(long context);
-
   private native long flacGetLastTimestamp(long context);
-
   private native long flacGetSeekPosition(long context, long timeUs);
-
   private native String flacGetStateString(long context);
-
   private native void flacFlush(long context);
-
   private native void flacReset(long context, long newPosition);
-
   private native void flacRelease(long context);
 
 }

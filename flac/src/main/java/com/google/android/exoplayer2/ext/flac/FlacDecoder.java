@@ -28,7 +28,7 @@ import java.util.List;
  * Flac decoder.
  */
 /* package */ final class FlacDecoder extends
-  SimpleDecoder<DecoderInputBuffer, SimpleOutputBuffer, FlacDecoderException> {
+        SimpleDecoder<DecoderInputBuffer, SimpleOutputBuffer, FlacDecoderException> {
 
   private final int maxOutputBufferSize;
   private final FlacDecoderJni decoderJni;
@@ -36,14 +36,14 @@ import java.util.List;
   /**
    * Creates a Flac decoder.
    *
-   * @param numInputBuffers    The number of input buffers.
-   * @param numOutputBuffers   The number of output buffers.
+   * @param numInputBuffers The number of input buffers.
+   * @param numOutputBuffers The number of output buffers.
    * @param initializationData Codec-specific initialization data. It should contain only one entry
-   *                           which is the flac file header.
+   *    which is the flac file header.
    * @throws FlacDecoderException Thrown if an exception occurs when initializing the decoder.
    */
   public FlacDecoder(int numInputBuffers, int numOutputBuffers, List<byte[]> initializationData)
-    throws FlacDecoderException {
+          throws FlacDecoderException {
     super(new DecoderInputBuffer[numInputBuffers], new SimpleOutputBuffer[numOutputBuffers]);
     if (initializationData.size() != 1) {
       throw new FlacDecoderException("Initialization data must be of length 1");
@@ -71,18 +71,23 @@ import java.util.List;
   }
 
   @Override
-  public DecoderInputBuffer createInputBuffer() {
+  protected DecoderInputBuffer createInputBuffer() {
     return new DecoderInputBuffer(DecoderInputBuffer.BUFFER_REPLACEMENT_MODE_NORMAL);
   }
 
   @Override
-  public SimpleOutputBuffer createOutputBuffer() {
+  protected SimpleOutputBuffer createOutputBuffer() {
     return new SimpleOutputBuffer(this);
   }
 
   @Override
-  public FlacDecoderException decode(DecoderInputBuffer inputBuffer,
-                                     SimpleOutputBuffer outputBuffer, boolean reset) {
+  protected FlacDecoderException createUnexpectedDecodeException(Throwable error) {
+    return new FlacDecoderException("Unexpected decode error", error);
+  }
+
+  @Override
+  protected FlacDecoderException decode(
+          DecoderInputBuffer inputBuffer, SimpleOutputBuffer outputBuffer, boolean reset) {
     if (reset) {
       decoderJni.flush();
     }

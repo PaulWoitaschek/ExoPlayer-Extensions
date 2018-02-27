@@ -1,10 +1,10 @@
 ext.versions = [
         minSdk     : 14,
-        targetSdk  : 26,
-        compileSdk : 26,
+        targetSdk  : 27,
+        compileSdk : 27,
         versionCode: 1,
-        versionName: "2.6.0"
+        versionName: "2.7.0"
 ]
 ext.libraries = [
-        exoPlayer: "com.google.android.exoplayer:exoplayer-core:2.6.0"
+        exoPlayer: "com.google.android.exoplayer:exoplayer-core:2.7.0"
 ]
