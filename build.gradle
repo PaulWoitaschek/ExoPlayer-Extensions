@@ -7,12 +7,8 @@ buildscript {
 
     dependencies {
         classpath 'com.android.tools.build:gradle:3.0.1'
+        classpath 'de.undercouch:gradle-download-task:3.3.0'
     }
-}
-
-plugins {
-    id "de.undercouch.download" version "3.3.0"
-    id "com.github.dcendents.android-maven" version "2.0"
 }
 
 allprojects {
@@ -22,8 +18,8 @@ allprojects {
     }
 }
 
-apply from: 'dependencies.gradle'
-
-clean {
+task clean(type: Delete) {
     delete rootProject.buildDir
 }
+
+apply from: 'dependencies.gradle'
