@@ -7,7 +7,6 @@ buildscript {
 
     dependencies {
         classpath 'com.android.tools.build:gradle:3.0.1'
-        apply from: 'dependencies.gradle'
     }
 }
 
@@ -22,6 +21,8 @@ allprojects {
         jcenter()
     }
 }
+
+apply from: 'dependencies.gradle'
 
 clean {
     delete rootProject.buildDir
