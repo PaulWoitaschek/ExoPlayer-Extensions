@@ -37,7 +37,7 @@ task prepareOpus(dependsOn: "downloadAndExtract") {
         def ndkDir = project.extensions.findByName("android").ndkDirectory
         exec {
             executable 'sh'
-            args '-c', "cd $projectDir/src/main/jni/ && $ndkDir/ndk-build APP_ABI=\"mips64 mips x86_64 x86 arm64-v8a armeabi-v7a\" -j4"
+            args '-c', "cd $projectDir/src/main/jni/ && $ndkDir/ndk-build APP_ABI=\"x86_64 x86 arm64-v8a armeabi-v7a\" -j4"
         }
     }
 }
