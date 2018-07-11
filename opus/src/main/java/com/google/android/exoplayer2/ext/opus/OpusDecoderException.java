@@ -22,12 +22,12 @@ import com.google.android.exoplayer2.audio.AudioDecoderException;
  */
 public final class OpusDecoderException extends AudioDecoderException {
 
-  /* package */ OpusDecoderException(String message) {
-    super(message);
-  }
+    /* package */ OpusDecoderException(String message) {
+        super(message);
+    }
 
-  /* package */ OpusDecoderException(String message, Throwable cause) {
-    super(message, cause);
-  }
+    /* package */ OpusDecoderException(String message, Throwable cause) {
+        super(message, cause);
+    }
 
 }
