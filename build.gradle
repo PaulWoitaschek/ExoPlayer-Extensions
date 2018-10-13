@@ -6,15 +6,32 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.0.1'
-        classpath 'de.undercouch:gradle-download-task:3.3.0'
+        classpath 'com.android.tools.build:gradle:3.2.1'
+        classpath 'de.undercouch:gradle-download-task:3.4.3'
     }
+}
+
+plugins {
+    id "com.github.ben-manes.versions" version "0.20.0"
 }
 
 allprojects {
     repositories {
         google()
         jcenter()
+    }
+}
+
+dependencyUpdates.resolutionStrategy {
+    componentSelection { rules ->
+        rules.all { ComponentSelection selection ->
+            boolean rejected = ['alpha', 'beta', 'rc', 'cr', 'm', 'preview'].any { qualifier ->
+                selection.candidate.version ==~ /(?i).*[.-]${qualifier}[.\d-]*/
+            }
+            if (rejected) {
+                selection.reject('Release candidate')
+            }
+        }
     }
 }
 
