@@ -23,11 +23,11 @@ import com.google.android.exoplayer2.util.LibraryLoader;
  */
 public final class FlacLibrary {
 
-    private static final LibraryLoader LOADER = new LibraryLoader("flacJNI");
-
     static {
         ExoPlayerLibraryInfo.registerModule("goog.exo.flac");
     }
+
+    private static final LibraryLoader LOADER = new LibraryLoader("flacJNI");
 
     private FlacLibrary() {
     }

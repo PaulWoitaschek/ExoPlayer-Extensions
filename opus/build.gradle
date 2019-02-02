@@ -48,10 +48,12 @@ task prepareOpus(dependsOn: "downloadAndExtract") {
 }
 
 task downloadAndExtract {
-    File source = new File("$projectDir/src/main/jni/opus.tar.gz")
-    download {
-        src "https://archive.mozilla.org/pub/opus/opus-1.2.1.tar.gz"
-        dest source
+    File source = new File("$projectDir/src/main/jni/opus-1.2.1.tar.gz")
+    if (!source.exists()) {
+        download {
+            src "https://archive.mozilla.org/pub/opus/opus-1.2.1.tar.gz"
+            dest source
+        }
     }
 
     copy {

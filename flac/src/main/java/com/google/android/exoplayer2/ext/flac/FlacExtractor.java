@@ -37,6 +37,7 @@ import com.google.android.exoplayer2.util.MimeTypes;
 import com.google.android.exoplayer2.util.ParsableByteArray;
 
 import java.io.IOException;
+import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.nio.ByteBuffer;
@@ -53,28 +54,48 @@ public final class FlacExtractor implements Extractor {
      * Factory that returns one extractor which is a {@link FlacExtractor}.
      */
     public static final ExtractorsFactory FACTORY = () -> new Extractor[]{new FlacExtractor()};
+
+    /**
+     * Flags controlling the behavior of the extractor. Possible flag value is {@link
+     * #FLAG_DISABLE_ID3_METADATA}.
+     */
+    @Documented
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef(
+            flag = true,
+            value = {FLAG_DISABLE_ID3_METADATA})
+    public @interface Flags {
+    }
+
     /**
      * Flag to disable parsing of ID3 metadata. Can be set to save memory if ID3 metadata is not
      * required.
      */
     public static final int FLAG_DISABLE_ID3_METADATA = 1;
+
     /**
      * FLAC signature: first 4 is the signature word, second 4 is the sizeof STREAMINFO. 0x22 is the
      * mandatory STREAMINFO.
      */
     private static final byte[] FLAC_SIGNATURE = {'f', 'L', 'a', 'C', 0, 0, 0, 0x22};
+
     private final Id3Peeker id3Peeker;
     private final boolean isId3MetadataDisabled;
+
     private FlacDecoderJni decoderJni;
+
     private ExtractorOutput extractorOutput;
     private TrackOutput trackOutput;
+
     private ParsableByteArray outputBuffer;
     private ByteBuffer outputByteBuffer;
     private BinarySearchSeeker.OutputFrameHolder outputFrameHolder;
     private FlacStreamInfo streamInfo;
+
     private Metadata id3Metadata;
     private @Nullable
     FlacBinarySearchSeeker flacBinarySearchSeeker;
+
     private boolean readPastStreamInfo;
 
     /**
@@ -283,17 +304,6 @@ public final class FlacExtractor implements Extractor {
         outputBuffer.setPosition(0);
         trackOutput.sampleData(outputBuffer, size);
         trackOutput.sampleMetadata(lastSampleTimestamp, C.BUFFER_FLAG_KEY_FRAME, size, 0, null);
-    }
-
-    /**
-     * Flags controlling the behavior of the extractor. Possible flag value is {@link
-     * #FLAG_DISABLE_ID3_METADATA}.
-     */
-    @Retention(RetentionPolicy.SOURCE)
-    @IntDef(
-            flag = true,
-            value = {FLAG_DISABLE_ID3_METADATA})
-    public @interface Flags {
     }
 
     /**

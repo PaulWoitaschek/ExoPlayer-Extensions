@@ -15,6 +15,7 @@
  */
 
 #include <jni.h>
+#include <android/log.h>
 #include <cstdlib>
 #include "include/flac_parser.h"
 

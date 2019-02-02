@@ -23,11 +23,11 @@ import com.google.android.exoplayer2.util.LibraryLoader;
  */
 public final class OpusLibrary {
 
-    private static final LibraryLoader LOADER = new LibraryLoader("opusJNI");
-
     static {
         ExoPlayerLibraryInfo.registerModule("goog.exo.opus");
     }
+
+    private static final LibraryLoader LOADER = new LibraryLoader("opusJNI");
 
     private OpusLibrary() {
     }

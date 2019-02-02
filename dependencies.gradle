@@ -5,5 +5,5 @@ ext.versions = [
         versionName: "2.9.0"
 ]
 ext.libraries = [
-        exoPlayer: "com.google.android.exoplayer:exoplayer-core:2.9.0"
+        exoPlayer: "com.google.android.exoplayer:exoplayer-core:2.9.4"
 ]

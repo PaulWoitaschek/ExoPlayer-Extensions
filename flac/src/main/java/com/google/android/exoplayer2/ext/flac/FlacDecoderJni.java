@@ -27,8 +27,23 @@ import java.nio.ByteBuffer;
  */
 /* package */ final class FlacDecoderJni {
 
+    /**
+     * Exception to be thrown if {@link #decodeSample(ByteBuffer)} fails to decode a frame.
+     */
+    public static final class FlacFrameDecodeException extends Exception {
+
+        public final int errorCode;
+
+        public FlacFrameDecodeException(String message, int errorCode) {
+            super(message);
+            this.errorCode = errorCode;
+        }
+    }
+
     private static final int TEMP_BUFFER_SIZE = 8192; // The same buffer size which libflac has
+
     private final long nativeDecoderContext;
+
     private ByteBuffer byteBufferData;
     private ExtractorInput extractorInput;
     private boolean endOfExtractorInput;
@@ -276,18 +291,5 @@ import java.nio.ByteBuffer;
     private native void flacReset(long context, long newPosition);
 
     private native void flacRelease(long context);
-
-    /**
-     * Exception to be thrown if {@link #decodeSample(ByteBuffer)} fails to decode a frame.
-     */
-    public static final class FlacFrameDecodeException extends Exception {
-
-        public final int errorCode;
-
-        public FlacFrameDecodeException(String message, int errorCode) {
-            super(message);
-            this.errorCode = errorCode;
-        }
-    }
 
 }

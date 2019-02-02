@@ -58,7 +58,7 @@ import java.nio.ByteBuffer;
             // If we can't find the target frame (sample), we need to reset the decoder jni so that
             // it can continue from the result position.
             decoderJni.reset(resultPosition);
-    }
+        }
     }
 
     private static final class FlacTimestampSeeker implements TimestampSeeker {

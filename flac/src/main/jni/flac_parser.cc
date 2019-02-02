@@ -321,7 +321,7 @@ bool FLACParser::decodeMetadata() {
       case 96000:
       case 176400:
       case 192000:
-          break;
+        break;
       default:
         ALOGE("unsupported sample rate %u", getSampleRate());
         return false;
