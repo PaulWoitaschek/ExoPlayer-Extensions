@@ -1,0 +1,4 @@
+include ':opus'
+project(':opus').projectDir = new  File("extensions/opus")
+include ':flac'
+project(':flac').projectDir = new  File("extensions/flac")

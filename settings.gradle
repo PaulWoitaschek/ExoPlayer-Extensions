@@ -28,3 +28,4 @@ project(modulePrefix + 'demo-ima').projectDir = new File(rootDir, 'demos/ima')
 project(modulePrefix + 'playbacktests').projectDir = new File(rootDir, 'playbacktests')
 
 apply from: 'core_settings.gradle'
+apply from: 'build-settings.gradle'

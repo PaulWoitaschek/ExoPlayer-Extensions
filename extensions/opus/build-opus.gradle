@@ -1,0 +1,43 @@
+task prepareOpus(dependsOn: "downloadAndExtract") {
+    doFirst {
+        exec {
+            executable 'sh'
+            args '-c', "cd $projectDir/src/main/jni/ && ./convert_android_asm.sh"
+        }
+        def ndkDir = project.extensions.findByName("android").ndkDirectory
+        exec {
+            executable 'sh'
+            args '-c', "cd $projectDir/src/main/jni/ && $ndkDir/ndk-build APP_ABI=\"x86_64 x86 arm64-v8a armeabi-v7a\" -j4"
+        }
+    }
+}
+
+task downloadAndExtract {
+    File source = new File("$buildDir/opus-1.2.1.tar.gz")
+    if (!source.exists()) {
+        download {
+            src "https://archive.mozilla.org/pub/opus/opus-1.2.1.tar.gz"
+            dest source
+        }
+    }
+
+    copy {
+        from tarTree(source.absolutePath)
+        into source.parentFile
+    }
+
+    File opusDestination = new File("$projectDir/src/main/jni/libopus")
+    opusDestination.delete()
+    File extractedFile = new File("$buildDir/opus-1.2.1")
+    extractedFile.delete()
+    extractedFile.renameTo(opusDestination)
+}
+
+clean {
+    delete ".externalNativeBuild/"
+}
+
+// make sure that opus is set up before ndk compiling starts
+tasks.withType(JavaCompile) {
+    compileTask -> compileTask.dependsOn(prepareOpus)
+}
