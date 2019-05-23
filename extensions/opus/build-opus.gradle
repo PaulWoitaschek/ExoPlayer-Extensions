@@ -41,3 +41,6 @@ clean {
 tasks.withType(JavaCompile) {
     compileTask -> compileTask.dependsOn(prepareOpus)
 }
+
+apply from: '../../publish.gradle'
+

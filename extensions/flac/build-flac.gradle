@@ -30,3 +30,5 @@ task prepareFlac {
 clean {
     delete ".externalNativeBuild/"
 }
+
+apply from: '../../publish.gradle'
