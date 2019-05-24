@@ -8,11 +8,17 @@ This is primarily used by [Voice](https://github.com/PaulWoitaschek/Voice)
 
 ```gradle
 repositories {
-  maven { url "https://jitpack.io" }
+    maven { url "https://jitpack.io" }
 }
-  
+
 dependencies {
-  implementation "com.github.PaulWoitaschek.ExoPlayer-Extensions:extension-opus:X.Y.Z"
-  implementation "com.github.PaulWoitaschek.ExoPlayer-Extensions:extension-flac:X.Y.Z"
+    // important: add the core dependency and set transitive to false on the extensions
+    implementation 'com.google.android.exoplayer:exoplayer-core:2.X.X'
+    implementation "com.github.PaulWoitaschek.ExoPlayer-Extensions:extension-opus:X.Y.Z" {
+        transitive = false
+    }
+    implementation "com.github.PaulWoitaschek.ExoPlayer-Extensions:extension-flac:X.Y.Z" {
+        transitive = false
+    }
 }
 ```
