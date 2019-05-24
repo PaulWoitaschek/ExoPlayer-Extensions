@@ -43,7 +43,7 @@ android {
 }
 
 dependencies {
-    implementation "com.google.android.exoplayer:exoplayer-core:$releaseVersion"
+    implementation project(modulePrefix + 'library-core')
     testImplementation project(modulePrefix + 'testutils-robolectric')
     androidTestImplementation 'androidx.test:runner:' + androidXTestVersion
     androidTestImplementation 'androidx.test.ext:junit:' + androidXTestVersion
