@@ -31,4 +31,9 @@ clean {
     delete ".externalNativeBuild/"
 }
 
+ext {
+    releaseArtifact = 'extension-flac'
+    releaseDescription = 'Flac extension for ExoPlayer.'
+}
+
 apply from: '../../publish.gradle'

@@ -42,5 +42,10 @@ tasks.withType(JavaCompile) {
     compileTask -> compileTask.dependsOn(prepareOpus)
 }
 
+ext {
+    releaseArtifact = 'extension-opus'
+    releaseDescription = 'Opus extension for ExoPlayer.'
+}
+
 apply from: '../../publish.gradle'
 
