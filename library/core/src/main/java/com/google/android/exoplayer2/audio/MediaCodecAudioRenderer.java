@@ -45,6 +45,7 @@ import com.google.android.exoplayer2.util.MediaClock;
 import com.google.android.exoplayer2.util.MimeTypes;
 import com.google.android.exoplayer2.util.Util;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -364,8 +365,18 @@ public class MediaCodecAudioRenderer extends MediaCodecRenderer implements Media
         return Collections.singletonList(passthroughDecoderInfo);
       }
     }
-    return mediaCodecSelector.getDecoderInfos(
-        format.sampleMimeType, requiresSecureDecoder, /* requiresTunnelingDecoder= */ false);
+    List<MediaCodecInfo> decoderInfos =
+        mediaCodecSelector.getDecoderInfos(
+            format.sampleMimeType, requiresSecureDecoder, /* requiresTunnelingDecoder= */ false);
+    if (MimeTypes.AUDIO_E_AC3_JOC.equals(format.sampleMimeType)) {
+      // E-AC3 decoders can decode JOC streams, but in 2-D rather than 3-D.
+      List<MediaCodecInfo> decoderInfosWithEac3 = new ArrayList<>(decoderInfos);
+      decoderInfosWithEac3.addAll(
+          mediaCodecSelector.getDecoderInfos(
+              MimeTypes.AUDIO_E_AC3, requiresSecureDecoder, /* requiresTunnelingDecoder= */ false));
+      decoderInfos = decoderInfosWithEac3;
+    }
+    return Collections.unmodifiableList(decoderInfos);
   }
 
   /**
@@ -393,7 +404,7 @@ public class MediaCodecAudioRenderer extends MediaCodecRenderer implements Media
     codecNeedsDiscardChannelsWorkaround = codecNeedsDiscardChannelsWorkaround(codecInfo.name);
     codecNeedsEosBufferTimestampWorkaround = codecNeedsEosBufferTimestampWorkaround(codecInfo.name);
     passthroughEnabled = codecInfo.passthrough;
-    String codecMimeType = passthroughEnabled ? MimeTypes.AUDIO_RAW : codecInfo.mimeType;
+    String codecMimeType = passthroughEnabled ? MimeTypes.AUDIO_RAW : codecInfo.codecMimeType;
     MediaFormat mediaFormat =
         getMediaFormat(format, codecMimeType, codecMaxInputSize, codecOperatingRate);
     codec.configure(mediaFormat, /* surface= */ null, crypto, /* flags= */ 0);
@@ -695,7 +706,8 @@ public class MediaCodecAudioRenderer extends MediaCodecRenderer implements Media
       int bufferIndex,
       int bufferFlags,
       long bufferPresentationTimeUs,
-      boolean shouldSkip,
+      boolean isDecodeOnlyBuffer,
+      boolean isLastBuffer,
       Format format)
       throws ExoPlaybackException {
     if (codecNeedsEosBufferTimestampWorkaround
@@ -711,7 +723,7 @@ public class MediaCodecAudioRenderer extends MediaCodecRenderer implements Media
       return true;
     }
 
-    if (shouldSkip) {
+    if (isDecodeOnlyBuffer) {
       codec.releaseOutputBuffer(bufferIndex, false);
       decoderCounters.skippedOutputBufferCount++;
       audioSink.handleDiscontinuity();

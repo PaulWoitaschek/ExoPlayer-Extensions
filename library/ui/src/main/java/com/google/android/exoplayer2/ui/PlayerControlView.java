@@ -238,7 +238,7 @@ public class PlayerControlView extends FrameLayout {
   private final View fastForwardButton;
   private final View rewindButton;
   private final ImageView repeatToggleButton;
-  private final View shuffleButton;
+  private final ImageView shuffleButton;
   private final View vrButton;
   private final TextView durationView;
   private final TextView positionView;
@@ -256,6 +256,12 @@ public class PlayerControlView extends FrameLayout {
   private final String repeatOffButtonContentDescription;
   private final String repeatOneButtonContentDescription;
   private final String repeatAllButtonContentDescription;
+  private final Drawable shuffleOnButtonDrawable;
+  private final Drawable shuffleOffButtonDrawable;
+  private final float buttonAlphaEnabled;
+  private final float buttonAlphaDisabled;
+  private final String shuffleOnContentDescription;
+  private final String shuffleOffContentDescription;
 
   @Nullable private Player player;
   private com.google.android.exoplayer2.ControlDispatcher controlDispatcher;
@@ -281,19 +287,22 @@ public class PlayerControlView extends FrameLayout {
   private long currentWindowOffset;
 
   public PlayerControlView(Context context) {
-    this(context, null);
+    this(context, /* attrs= */ null);
   }
 
-  public PlayerControlView(Context context, AttributeSet attrs) {
+  public PlayerControlView(Context context, @Nullable AttributeSet attrs) {
     this(context, attrs, 0);
   }
 
-  public PlayerControlView(Context context, AttributeSet attrs, int defStyleAttr) {
+  public PlayerControlView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
     this(context, attrs, defStyleAttr, attrs);
   }
 
   public PlayerControlView(
-      Context context, AttributeSet attrs, int defStyleAttr, AttributeSet playbackAttrs) {
+      Context context,
+      @Nullable AttributeSet attrs,
+      int defStyleAttr,
+      @Nullable AttributeSet playbackAttrs) {
     super(context, attrs, defStyleAttr);
     int controllerLayoutId = R.layout.exo_player_control_view;
     rewindMs = DEFAULT_REWIND_MS;
@@ -400,16 +409,28 @@ public class PlayerControlView extends FrameLayout {
     }
     vrButton = findViewById(R.id.exo_vr);
     setShowVrButton(false);
+
     Resources resources = context.getResources();
+
+    buttonAlphaEnabled =
+        (float) resources.getInteger(R.integer.exo_media_button_opacity_percentage_enabled) / 100;
+    buttonAlphaDisabled =
+        (float) resources.getInteger(R.integer.exo_media_button_opacity_percentage_disabled) / 100;
+
     repeatOffButtonDrawable = resources.getDrawable(R.drawable.exo_controls_repeat_off);
     repeatOneButtonDrawable = resources.getDrawable(R.drawable.exo_controls_repeat_one);
     repeatAllButtonDrawable = resources.getDrawable(R.drawable.exo_controls_repeat_all);
+    shuffleOnButtonDrawable = resources.getDrawable(R.drawable.exo_controls_shuffle_on);
+    shuffleOffButtonDrawable = resources.getDrawable(R.drawable.exo_controls_shuffle_off);
     repeatOffButtonContentDescription =
         resources.getString(R.string.exo_controls_repeat_off_description);
     repeatOneButtonContentDescription =
         resources.getString(R.string.exo_controls_repeat_one_description);
     repeatAllButtonContentDescription =
         resources.getString(R.string.exo_controls_repeat_all_description);
+    shuffleOnContentDescription = resources.getString(R.string.exo_controls_shuffle_on_description);
+    shuffleOffContentDescription =
+        resources.getString(R.string.exo_controls_shuffle_off_description);
   }
 
   @SuppressWarnings("ResourceType")
@@ -782,6 +803,8 @@ public class PlayerControlView extends FrameLayout {
     }
     if (player == null) {
       setButtonEnabled(false, repeatToggleButton);
+      repeatToggleButton.setImageDrawable(repeatOffButtonDrawable);
+      repeatToggleButton.setContentDescription(repeatOffButtonContentDescription);
       return;
     }
     setButtonEnabled(true, repeatToggleButton);
@@ -812,10 +835,16 @@ public class PlayerControlView extends FrameLayout {
       shuffleButton.setVisibility(GONE);
     } else if (player == null) {
       setButtonEnabled(false, shuffleButton);
+      shuffleButton.setImageDrawable(shuffleOffButtonDrawable);
+      shuffleButton.setContentDescription(shuffleOffContentDescription);
     } else {
-      shuffleButton.setAlpha(player.getShuffleModeEnabled() ? 1f : 0.3f);
-      shuffleButton.setEnabled(true);
-      shuffleButton.setVisibility(VISIBLE);
+      setButtonEnabled(true, shuffleButton);
+      shuffleButton.setImageDrawable(
+          player.getShuffleModeEnabled() ? shuffleOnButtonDrawable : shuffleOffButtonDrawable);
+      shuffleButton.setContentDescription(
+          player.getShuffleModeEnabled()
+              ? shuffleOnContentDescription
+              : shuffleOffContentDescription);
     }
   }
 
@@ -949,7 +978,7 @@ public class PlayerControlView extends FrameLayout {
       return;
     }
     view.setEnabled(enabled);
-    view.setAlpha(enabled ? 1f : 0.3f);
+    view.setAlpha(enabled ? buttonAlphaEnabled : buttonAlphaDisabled);
     view.setVisibility(VISIBLE);
   }
 

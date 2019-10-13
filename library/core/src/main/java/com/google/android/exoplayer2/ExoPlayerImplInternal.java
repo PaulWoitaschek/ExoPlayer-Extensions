@@ -1304,8 +1304,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
       Pair<Object, Long> defaultPosition =
           getPeriodPosition(
               timeline, timeline.getFirstWindowIndex(shuffleModeEnabled), C.TIME_UNSET);
-      newContentPositionUs = defaultPosition.second;
-      newPeriodId = queue.resolveMediaPeriodIdForAds(defaultPosition.first, newContentPositionUs);
+      newPeriodId = queue.resolveMediaPeriodIdForAds(defaultPosition.first, defaultPosition.second);
+      if (!newPeriodId.isAd()) {
+        // Keep unset start position if we need to play an ad first.
+        newContentPositionUs = defaultPosition.second;
+      }
     } else if (timeline.getIndexOfPeriod(newPeriodId.periodUid) == C.INDEX_UNSET) {
       // The current period isn't in the new timeline. Attempt to resolve a subsequent period whose
       // window we can restart from.
@@ -1321,9 +1324,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
               timeline, timeline.getPeriodByUid(newPeriodUid, period).windowIndex, C.TIME_UNSET);
       newContentPositionUs = defaultPosition.second;
       newPeriodId = queue.resolveMediaPeriodIdForAds(defaultPosition.first, newContentPositionUs);
-    } else if (newPeriodId.isAd()) {
-      // Recheck if the current ad still needs to be played.
-      newPeriodId = queue.resolveMediaPeriodIdForAds(newPeriodId.periodUid, newContentPositionUs);
+    } else {
+      // Recheck if the current ad still needs to be played or if we need to start playing an ad.
+      newPeriodId =
+          queue.resolveMediaPeriodIdForAds(playbackInfo.periodId.periodUid, newContentPositionUs);
+      if (!playbackInfo.periodId.isAd() && !newPeriodId.isAd()) {
+        // Drop update if we keep playing the same content (MediaPeriod.periodUid are identical) and
+        // only MediaPeriodId.nextAdGroupIndex may have changed. This postpones a potential
+        // discontinuity until we reach the former next ad group position.
+        newPeriodId = playbackInfo.periodId;
+      }
     }
 
     if (playbackInfo.periodId.equals(newPeriodId) && oldContentPositionUs == newContentPositionUs) {

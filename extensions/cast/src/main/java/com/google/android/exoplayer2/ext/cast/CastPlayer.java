@@ -83,8 +83,6 @@ public final class CastPlayer extends BasePlayer {
   private final CastTimelineTracker timelineTracker;
   private final Timeline.Period period;
 
-  private RemoteMediaClient remoteMediaClient;
-
   // Result callbacks.
   private final StatusListener statusListener;
   private final SeekResultCallback seekResultCallback;
@@ -93,9 +91,10 @@ public final class CastPlayer extends BasePlayer {
   private final CopyOnWriteArrayList<ListenerHolder> listeners;
   private final ArrayList<ListenerNotificationTask> notificationsBatch;
   private final ArrayDeque<ListenerNotificationTask> ongoingNotificationsTasks;
-  private SessionAvailabilityListener sessionAvailabilityListener;
+  @Nullable private SessionAvailabilityListener sessionAvailabilityListener;
 
   // Internal state.
+  @Nullable private RemoteMediaClient remoteMediaClient;
   private CastTimeline currentTimeline;
   private TrackGroupArray currentTrackGroups;
   private TrackSelectionArray currentTrackSelection;
@@ -148,6 +147,7 @@ public final class CastPlayer extends BasePlayer {
    *     starts at position 0.
    * @return The Cast {@code PendingResult}, or null if no session is available.
    */
+  @Nullable
   public PendingResult<MediaChannelResult> loadItem(MediaQueueItem item, long positionMs) {
     return loadItems(new MediaQueueItem[] {item}, 0, positionMs, REPEAT_MODE_OFF);
   }
@@ -163,8 +163,9 @@ public final class CastPlayer extends BasePlayer {
    * @param repeatMode The repeat mode for the created media queue.
    * @return The Cast {@code PendingResult}, or null if no session is available.
    */
-  public PendingResult<MediaChannelResult> loadItems(MediaQueueItem[] items, int startIndex,
-      long positionMs, @RepeatMode int repeatMode) {
+  @Nullable
+  public PendingResult<MediaChannelResult> loadItems(
+      MediaQueueItem[] items, int startIndex, long positionMs, @RepeatMode int repeatMode) {
     if (remoteMediaClient != null) {
       positionMs = positionMs != C.TIME_UNSET ? positionMs : 0;
       waitingForInitialTimeline = true;
@@ -180,6 +181,7 @@ public final class CastPlayer extends BasePlayer {
    * @param items The items to append.
    * @return The Cast {@code PendingResult}, or null if no media queue exists.
    */
+  @Nullable
   public PendingResult<MediaChannelResult> addItems(MediaQueueItem... items) {
     return addItems(MediaQueueItem.INVALID_ITEM_ID, items);
   }
@@ -194,6 +196,7 @@ public final class CastPlayer extends BasePlayer {
    * @return The Cast {@code PendingResult}, or null if no media queue or no period with id {@code
    *     periodId} exist.
    */
+  @Nullable
   public PendingResult<MediaChannelResult> addItems(int periodId, MediaQueueItem... items) {
     if (getMediaStatus() != null && (periodId == MediaQueueItem.INVALID_ITEM_ID
         || currentTimeline.getIndexOfPeriod(periodId) != C.INDEX_UNSET)) {
@@ -211,6 +214,7 @@ public final class CastPlayer extends BasePlayer {
    * @return The Cast {@code PendingResult}, or null if no media queue or no period with id {@code
    *     periodId} exist.
    */
+  @Nullable
   public PendingResult<MediaChannelResult> removeItem(int periodId) {
     if (getMediaStatus() != null && currentTimeline.getIndexOfPeriod(periodId) != C.INDEX_UNSET) {
       return remoteMediaClient.queueRemoveItem(periodId, null);
@@ -229,6 +233,7 @@ public final class CastPlayer extends BasePlayer {
    * @return The Cast {@code PendingResult}, or null if no media queue or no period with id {@code
    *     periodId} exist.
    */
+  @Nullable
   public PendingResult<MediaChannelResult> moveItem(int periodId, int newIndex) {
     Assertions.checkArgument(newIndex >= 0 && newIndex < currentTimeline.getPeriodCount());
     if (getMediaStatus() != null && currentTimeline.getIndexOfPeriod(periodId) != C.INDEX_UNSET) {
@@ -246,6 +251,7 @@ public final class CastPlayer extends BasePlayer {
    * @return The item that corresponds to the period with the given id, or null if no media queue or
    *     period with id {@code periodId} exist.
    */
+  @Nullable
   public MediaQueueItem getItem(int periodId) {
     MediaStatus mediaStatus = getMediaStatus();
     return mediaStatus != null && currentTimeline.getIndexOfPeriod(periodId) != C.INDEX_UNSET
@@ -264,9 +270,9 @@ public final class CastPlayer extends BasePlayer {
   /**
    * Sets a listener for updates on the cast session availability.
    *
-   * @param listener The {@link SessionAvailabilityListener}.
+   * @param listener The {@link SessionAvailabilityListener}, or null to clear the listener.
    */
-  public void setSessionAvailabilityListener(SessionAvailabilityListener listener) {
+  public void setSessionAvailabilityListener(@Nullable SessionAvailabilityListener listener) {
     sessionAvailabilityListener = listener;
   }
 
@@ -322,6 +328,13 @@ public final class CastPlayer extends BasePlayer {
   }
 
   @Override
+  @PlaybackSuppressionReason
+  public int getPlaybackSuppressionReason() {
+    return Player.PLAYBACK_SUPPRESSION_REASON_NONE;
+  }
+
+  @Override
+  @Nullable
   public ExoPlaybackException getPlaybackError() {
     return null;
   }
@@ -529,12 +542,13 @@ public final class CastPlayer extends BasePlayer {
 
   // Internal methods.
 
-  public void updateInternalState() {
+  private void updateInternalState() {
     if (remoteMediaClient == null) {
       // There is no session. We leave the state of the player as it is now.
       return;
     }
 
+    boolean wasPlaying = playbackState == Player.STATE_READY && playWhenReady;
     int playbackState = fetchPlaybackState(remoteMediaClient);
     boolean playWhenReady = !remoteMediaClient.isPaused();
     if (this.playbackState != playbackState
@@ -544,6 +558,11 @@ public final class CastPlayer extends BasePlayer {
       notificationsBatch.add(
           new ListenerNotificationTask(
               listener -> listener.onPlayerStateChanged(this.playWhenReady, this.playbackState)));
+    }
+    boolean isPlaying = playbackState == Player.STATE_READY && playWhenReady;
+    if (wasPlaying != isPlaying) {
+      notificationsBatch.add(
+          new ListenerNotificationTask(listener -> listener.onIsPlayingChanged(isPlaying)));
     }
     @RepeatMode int repeatMode = fetchRepeatMode(remoteMediaClient);
     if (this.repeatMode != repeatMode) {
@@ -675,7 +694,8 @@ public final class CastPlayer extends BasePlayer {
     }
   }
 
-  private @Nullable MediaStatus getMediaStatus() {
+  @Nullable
+  private MediaStatus getMediaStatus() {
     return remoteMediaClient != null ? remoteMediaClient.getMediaStatus() : null;
   }
 
