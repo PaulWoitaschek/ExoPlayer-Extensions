@@ -15,14 +15,15 @@
  */
 package com.google.android.exoplayer2.analytics;
 
-import androidx.annotation.Nullable;
 import android.view.Surface;
+import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.Player.DiscontinuityReason;
+import com.google.android.exoplayer2.Player.PlaybackSuppressionReason;
 import com.google.android.exoplayer2.Player.TimelineChangeReason;
 import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.audio.AudioAttributes;
@@ -68,7 +69,7 @@ public interface AnalyticsListener {
      * Media period identifier for the media period this event belongs to, or {@code null} if the
      * event is not associated with a specific media period.
      */
-    public final @Nullable MediaPeriodId mediaPeriodId;
+    @Nullable public final MediaPeriodId mediaPeriodId;
 
     /**
      * Position in the window or ad this event belongs to at the time of the event, in milliseconds.
@@ -127,10 +128,27 @@ public interface AnalyticsListener {
    *
    * @param eventTime The event time.
    * @param playWhenReady Whether the playback will proceed when ready.
-   * @param playbackState One of the {@link Player}.STATE constants.
+   * @param playbackState The new {@link Player.State playback state}.
    */
   default void onPlayerStateChanged(
-      EventTime eventTime, boolean playWhenReady, int playbackState) {}
+      EventTime eventTime, boolean playWhenReady, @Player.State int playbackState) {}
+
+  /**
+   * Called when playback suppression reason changed.
+   *
+   * @param eventTime The event time.
+   * @param playbackSuppressionReason The new {@link PlaybackSuppressionReason}.
+   */
+  default void onPlaybackSuppressionReasonChanged(
+      EventTime eventTime, @PlaybackSuppressionReason int playbackSuppressionReason) {}
+
+  /**
+   * Called when the player starts or stops playing.
+   *
+   * @param eventTime The event time.
+   * @param isPlaying Whether the player is playing.
+   */
+  default void onIsPlayingChanged(EventTime eventTime, boolean isPlaying) {}
 
   /**
    * Called when the timeline changed.

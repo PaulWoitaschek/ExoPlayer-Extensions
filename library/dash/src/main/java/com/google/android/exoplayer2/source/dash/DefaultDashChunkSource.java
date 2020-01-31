@@ -67,7 +67,7 @@ public class DefaultDashChunkSource implements DashChunkSource {
     private final int maxSegmentsPerLoad;
 
     public Factory(DataSource.Factory dataSourceFactory) {
-      this(dataSourceFactory, 1);
+      this(dataSourceFactory, /* maxSegmentsPerLoad= */ 1);
     }
 
     public Factory(DataSource.Factory dataSourceFactory, int maxSegmentsPerLoad) {
@@ -622,7 +622,7 @@ public class DefaultDashChunkSource implements DashChunkSource {
     /* package */ final @Nullable ChunkExtractorWrapper extractorWrapper;
 
     public final Representation representation;
-    public final @Nullable DashSegmentIndex segmentIndex;
+    @Nullable public final DashSegmentIndex segmentIndex;
 
     private final long periodDurationUs;
     private final long segmentNumShift;
@@ -633,7 +633,7 @@ public class DefaultDashChunkSource implements DashChunkSource {
         Representation representation,
         boolean enableEventMessageTrack,
         List<Format> closedCaptionFormats,
-        TrackOutput playerEmsgTrackOutput) {
+        @Nullable TrackOutput playerEmsgTrackOutput) {
       this(
           periodDurationUs,
           representation,
@@ -686,7 +686,9 @@ public class DefaultDashChunkSource implements DashChunkSource {
             newPeriodDurationUs, newRepresentation, extractorWrapper, segmentNumShift, newIndex);
       }
 
-      long oldIndexLastSegmentNum = oldIndex.getFirstSegmentNum() + oldIndexSegmentCount - 1;
+      long oldIndexFirstSegmentNum = oldIndex.getFirstSegmentNum();
+      long oldIndexStartTimeUs = oldIndex.getTimeUs(oldIndexFirstSegmentNum);
+      long oldIndexLastSegmentNum = oldIndexFirstSegmentNum + oldIndexSegmentCount - 1;
       long oldIndexEndTimeUs =
           oldIndex.getTimeUs(oldIndexLastSegmentNum)
               + oldIndex.getDurationUs(oldIndexLastSegmentNum, newPeriodDurationUs);
@@ -700,8 +702,14 @@ public class DefaultDashChunkSource implements DashChunkSource {
         // There's a gap between the old index and the new one which means we've slipped behind the
         // live window and can't proceed.
         throw new BehindLiveWindowException();
+      } else if (newIndexStartTimeUs < oldIndexStartTimeUs) {
+        // The new index overlaps with (but does not have a start position contained within) the old
+        // index. This can only happen if extra segments have been added to the start of the index.
+        newSegmentNumShift -=
+            newIndex.getSegmentNum(oldIndexStartTimeUs, newPeriodDurationUs)
+                - oldIndexFirstSegmentNum;
       } else {
-        // The new index overlaps with the old one.
+        // The new index overlaps with (and has a start position contained within) the old index.
         newSegmentNumShift +=
             oldIndex.getSegmentNum(newIndexStartTimeUs, newPeriodDurationUs)
                 - newIndexFirstSegmentNum;
@@ -787,7 +795,7 @@ public class DefaultDashChunkSource implements DashChunkSource {
         Representation representation,
         boolean enableEventMessageTrack,
         List<Format> closedCaptionFormats,
-        TrackOutput playerEmsgTrackOutput) {
+        @Nullable TrackOutput playerEmsgTrackOutput) {
       String containerMimeType = representation.format.containerMimeType;
       if (mimeTypeIsRawText(containerMimeType)) {
         return null;
