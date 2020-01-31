@@ -82,3 +82,4 @@ cast_receiver_app/bazel-cast_receiver_app
 # Custom Build
 /flac
 /opus
+/extensions/flac/.cxx/
