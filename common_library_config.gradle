@@ -11,9 +11,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 apply from: "$gradle.ext.exoplayerSettingsDir/constants.gradle"
 apply plugin: 'com.android.library'
+apply plugin: 'maven-publish'
 
 android {
     compileSdkVersion project.ext.compileSdkVersion
@@ -31,4 +31,14 @@ android {
     }
 
     testOptions.unitTests.includeAndroidResources = true
+}
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+              from components.release
+              version = project.ext.releaseVersion
+            }
+        }
+    }
 }
