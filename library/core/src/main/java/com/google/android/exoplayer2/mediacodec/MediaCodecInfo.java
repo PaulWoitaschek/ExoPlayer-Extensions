@@ -15,7 +15,20 @@
  */
 package com.google.android.exoplayer2.mediacodec;
 
-import android.annotation.TargetApi;
+import static com.google.android.exoplayer2.decoder.DecoderReuseEvaluation.DISCARD_REASON_AUDIO_CHANNEL_COUNT_CHANGED;
+import static com.google.android.exoplayer2.decoder.DecoderReuseEvaluation.DISCARD_REASON_AUDIO_ENCODING_CHANGED;
+import static com.google.android.exoplayer2.decoder.DecoderReuseEvaluation.DISCARD_REASON_AUDIO_SAMPLE_RATE_CHANGED;
+import static com.google.android.exoplayer2.decoder.DecoderReuseEvaluation.DISCARD_REASON_INITIALIZATION_DATA_CHANGED;
+import static com.google.android.exoplayer2.decoder.DecoderReuseEvaluation.DISCARD_REASON_MIME_TYPE_CHANGED;
+import static com.google.android.exoplayer2.decoder.DecoderReuseEvaluation.DISCARD_REASON_VIDEO_COLOR_INFO_CHANGED;
+import static com.google.android.exoplayer2.decoder.DecoderReuseEvaluation.DISCARD_REASON_VIDEO_RESOLUTION_CHANGED;
+import static com.google.android.exoplayer2.decoder.DecoderReuseEvaluation.DISCARD_REASON_VIDEO_ROTATION_CHANGED;
+import static com.google.android.exoplayer2.decoder.DecoderReuseEvaluation.DISCARD_REASON_WORKAROUND;
+import static com.google.android.exoplayer2.decoder.DecoderReuseEvaluation.REUSE_RESULT_NO;
+import static com.google.android.exoplayer2.decoder.DecoderReuseEvaluation.REUSE_RESULT_YES_WITHOUT_RECONFIGURATION;
+import static com.google.android.exoplayer2.decoder.DecoderReuseEvaluation.REUSE_RESULT_YES_WITH_FLUSH;
+import static com.google.android.exoplayer2.decoder.DecoderReuseEvaluation.REUSE_RESULT_YES_WITH_RECONFIGURATION;
+
 import android.graphics.Point;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo.AudioCapabilities;
@@ -24,7 +37,12 @@ import android.media.MediaCodecInfo.CodecProfileLevel;
 import android.media.MediaCodecInfo.VideoCapabilities;
 import android.util.Pair;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
+import androidx.annotation.VisibleForTesting;
 import com.google.android.exoplayer2.Format;
+import com.google.android.exoplayer2.decoder.DecoderReuseEvaluation;
+import com.google.android.exoplayer2.decoder.DecoderReuseEvaluation.DecoderDiscardReasons;
+import com.google.android.exoplayer2.decoder.DecoderReuseEvaluation.DecoderReuseResult;
 import com.google.android.exoplayer2.util.Assertions;
 import com.google.android.exoplayer2.util.Log;
 import com.google.android.exoplayer2.util.MimeTypes;
@@ -44,21 +62,20 @@ public final class MediaCodecInfo {
 
   /**
    * The name of the decoder.
-   * <p>
-   * May be passed to {@link MediaCodec#createByCodecName(String)} to create an instance of the
+   *
+   * <p>May be passed to {@link MediaCodec#createByCodecName(String)} to create an instance of the
    * decoder.
    */
   public final String name;
 
-  /** The MIME type handled by the codec, or {@code null} if this is a passthrough codec. */
-  @Nullable public final String mimeType;
+  /** The MIME type handled by the codec. */
+  public final String mimeType;
 
   /**
-   * The MIME type that the codec uses for media of type {@link #mimeType}, or {@code null} if this
-   * is a passthrough codec. Equal to {@link #mimeType} unless the codec is known to use a
-   * non-standard MIME type alias.
+   * The MIME type that the codec uses for media of type {@link #mimeType}. Equal to {@link
+   * #mimeType} unless the codec is known to use a non-standard MIME type alias.
    */
-  @Nullable public final String codecMimeType;
+  public final String codecMimeType;
 
   /**
    * The capabilities of the decoder, like the profiles/levels it supports, or {@code null} if not
@@ -90,9 +107,6 @@ public final class MediaCodecInfo {
    */
   public final boolean secure;
 
-  /** Whether this instance describes a passthrough codec. */
-  public final boolean passthrough;
-
   /**
    * Whether the codec is hardware accelerated.
    *
@@ -121,26 +135,6 @@ public final class MediaCodecInfo {
   public final boolean vendor;
 
   private final boolean isVideo;
-
-  /**
-   * Creates an instance representing an audio passthrough decoder.
-   *
-   * @param name The name of the {@link MediaCodec}.
-   * @return The created instance.
-   */
-  public static MediaCodecInfo newPassthroughInstance(String name) {
-    return new MediaCodecInfo(
-        name,
-        /* mimeType= */ null,
-        /* codecMimeType= */ null,
-        /* capabilities= */ null,
-        /* passthrough= */ true,
-        /* hardwareAccelerated= */ false,
-        /* softwareOnly= */ true,
-        /* vendor= */ false,
-        /* forceDisableAdaptive= */ false,
-        /* forceSecure= */ false);
-  }
 
   /**
    * Creates an instance.
@@ -173,36 +167,39 @@ public final class MediaCodecInfo {
         mimeType,
         codecMimeType,
         capabilities,
-        /* passthrough= */ false,
         hardwareAccelerated,
         softwareOnly,
         vendor,
-        forceDisableAdaptive,
-        forceSecure);
+        /* adaptive= */ !forceDisableAdaptive
+            && capabilities != null
+            && isAdaptive(capabilities)
+            && !needsDisableAdaptationWorkaround(name),
+        /* tunneling= */ capabilities != null && isTunneling(capabilities),
+        /* secure= */ forceSecure || (capabilities != null && isSecure(capabilities)));
   }
 
-  private MediaCodecInfo(
+  @VisibleForTesting
+  /* package */ MediaCodecInfo(
       String name,
-      @Nullable String mimeType,
-      @Nullable String codecMimeType,
+      String mimeType,
+      String codecMimeType,
       @Nullable CodecCapabilities capabilities,
-      boolean passthrough,
       boolean hardwareAccelerated,
       boolean softwareOnly,
       boolean vendor,
-      boolean forceDisableAdaptive,
-      boolean forceSecure) {
+      boolean adaptive,
+      boolean tunneling,
+      boolean secure) {
     this.name = Assertions.checkNotNull(name);
     this.mimeType = mimeType;
     this.codecMimeType = codecMimeType;
     this.capabilities = capabilities;
-    this.passthrough = passthrough;
     this.hardwareAccelerated = hardwareAccelerated;
     this.softwareOnly = softwareOnly;
     this.vendor = vendor;
-    adaptive = !forceDisableAdaptive && capabilities != null && isAdaptive(capabilities);
-    tunneling = capabilities != null && isTunneling(capabilities);
-    secure = forceSecure || (capabilities != null && isSecure(capabilities));
+    this.adaptive = adaptive;
+    this.tunneling = tunneling;
+    this.secure = secure;
     isVideo = MimeTypes.isVideo(mimeType);
   }
 
@@ -229,9 +226,10 @@ public final class MediaCodecInfo {
    * @see CodecCapabilities#getMaxSupportedInstances()
    */
   public int getMaxSupportedInstances() {
-    return (Util.SDK_INT < 23 || capabilities == null)
-        ? MAX_SUPPORTED_INSTANCES_UNKNOWN
-        : getMaxSupportedInstancesV23(capabilities);
+    if (Util.SDK_INT < 23 || capabilities == null) {
+      return MAX_SUPPORTED_INSTANCES_UNKNOWN;
+    }
+    return getMaxSupportedInstancesV23(capabilities);
   }
 
   /**
@@ -300,8 +298,16 @@ public final class MediaCodecInfo {
       // which may not be widely supported. See https://github.com/google/ExoPlayer/issues/5145.
       return true;
     }
-    for (CodecProfileLevel capabilities : getProfileLevels()) {
-      if (capabilities.profile == profile && capabilities.level >= level) {
+
+    CodecProfileLevel[] profileLevels = getProfileLevels();
+    if (Util.SDK_INT <= 23 && MimeTypes.VIDEO_VP9.equals(mimeType) && profileLevels.length == 0) {
+      // Some older devices don't report profile levels for VP9. Estimate them using other data in
+      // the codec capabilities.
+      profileLevels = estimateLegacyVp9ProfileLevels(capabilities);
+    }
+
+    for (CodecProfileLevel profileLevel : profileLevels) {
+      if (profileLevel.profile == profile && profileLevel.level >= level) {
         return true;
       }
     }
@@ -322,11 +328,12 @@ public final class MediaCodecInfo {
   }
 
   /**
-   * Returns whether it may be possible to adapt to playing a different format when the codec is
-   * configured to play media in the specified {@code format}. For adaptation to succeed, the codec
-   * must also be configured with appropriate maximum values and {@link
-   * #isSeamlessAdaptationSupported(Format, Format, boolean)} must return {@code true} for the
-   * old/new formats.
+   * Returns whether it may be possible to adapt an instance of this decoder to playing a different
+   * format when the codec is configured to play media in the specified {@code format}.
+   *
+   * <p>For adaptation to succeed, the codec must also be configured with appropriate maximum values
+   * and {@link #isSeamlessAdaptationSupported(Format, Format, boolean)} must return {@code true}
+   * for the old/new formats.
    *
    * @param format The format of media for which the decoder will be configured.
    * @return Whether adaptation may be possible
@@ -335,51 +342,129 @@ public final class MediaCodecInfo {
     if (isVideo) {
       return adaptive;
     } else {
-      Pair<Integer, Integer> codecProfileLevel = MediaCodecUtil.getCodecProfileAndLevel(format);
-      return codecProfileLevel != null && codecProfileLevel.first == CodecProfileLevel.AACObjectXHE;
+      Pair<Integer, Integer> profileLevel = MediaCodecUtil.getCodecProfileAndLevel(format);
+      return profileLevel != null && profileLevel.first == CodecProfileLevel.AACObjectXHE;
     }
   }
 
   /**
-   * Returns whether it is possible to adapt the decoder seamlessly from {@code oldFormat} to {@code
-   * newFormat}. If {@code newFormat} may not be completely populated, pass {@code false} for {@code
-   * isNewFormatComplete}.
+   * Returns whether it is possible to adapt an instance of this decoder seamlessly from {@code
+   * oldFormat} to {@code newFormat}. If {@code newFormat} may not be completely populated, pass
+   * {@code false} for {@code isNewFormatComplete}.
+   *
+   * <p>For adaptation to succeed, the codec must also be configured with maximum values that are
+   * compatible with the new format.
    *
    * @param oldFormat The format being decoded.
    * @param newFormat The new format.
    * @param isNewFormatComplete Whether {@code newFormat} is populated with format-specific
    *     metadata.
    * @return Whether it is possible to adapt the decoder seamlessly.
+   * @deprecated Use {@link #canReuseCodec}.
    */
+  @Deprecated
   public boolean isSeamlessAdaptationSupported(
       Format oldFormat, Format newFormat, boolean isNewFormatComplete) {
-    if (isVideo) {
-      return oldFormat.sampleMimeType.equals(newFormat.sampleMimeType)
-          && oldFormat.rotationDegrees == newFormat.rotationDegrees
-          && (adaptive
-              || (oldFormat.width == newFormat.width && oldFormat.height == newFormat.height))
-          && ((!isNewFormatComplete && newFormat.colorInfo == null)
-              || Util.areEqual(oldFormat.colorInfo, newFormat.colorInfo));
-    } else {
-      if (!MimeTypes.AUDIO_AAC.equals(mimeType)
-          || !oldFormat.sampleMimeType.equals(newFormat.sampleMimeType)
-          || oldFormat.channelCount != newFormat.channelCount
-          || oldFormat.sampleRate != newFormat.sampleRate) {
-        return false;
-      }
-      // Check the codec profile levels support adaptation.
-      Pair<Integer, Integer> oldCodecProfileLevel =
-          MediaCodecUtil.getCodecProfileAndLevel(oldFormat);
-      Pair<Integer, Integer> newCodecProfileLevel =
-          MediaCodecUtil.getCodecProfileAndLevel(newFormat);
-      if (oldCodecProfileLevel == null || newCodecProfileLevel == null) {
-        return false;
-      }
-      int oldProfile = oldCodecProfileLevel.first;
-      int newProfile = newCodecProfileLevel.first;
-      return oldProfile == CodecProfileLevel.AACObjectXHE
-          && newProfile == CodecProfileLevel.AACObjectXHE;
+    if (!isNewFormatComplete && oldFormat.colorInfo != null && newFormat.colorInfo == null) {
+      newFormat = newFormat.buildUpon().setColorInfo(oldFormat.colorInfo).build();
     }
+    @DecoderReuseResult int reuseResult = canReuseCodec(oldFormat, newFormat).result;
+    return reuseResult == REUSE_RESULT_YES_WITH_RECONFIGURATION
+        || reuseResult == REUSE_RESULT_YES_WITHOUT_RECONFIGURATION;
+  }
+
+  /**
+   * Evaluates whether it's possible to reuse an instance of this decoder that's currently decoding
+   * {@code oldFormat} to decode {@code newFormat} instead.
+   *
+   * <p>For adaptation to succeed, the codec must also be configured with maximum values that are
+   * compatible with the new format.
+   *
+   * @param oldFormat The format being decoded.
+   * @param newFormat The new format.
+   * @return The result of the evaluation.
+   */
+  public DecoderReuseEvaluation canReuseCodec(Format oldFormat, Format newFormat) {
+    @DecoderDiscardReasons int discardReasons = 0;
+    if (!Util.areEqual(oldFormat.sampleMimeType, newFormat.sampleMimeType)) {
+      discardReasons |= DISCARD_REASON_MIME_TYPE_CHANGED;
+    }
+
+    if (isVideo) {
+      if (oldFormat.rotationDegrees != newFormat.rotationDegrees) {
+        discardReasons |= DISCARD_REASON_VIDEO_ROTATION_CHANGED;
+      }
+      if (!adaptive
+          && (oldFormat.width != newFormat.width || oldFormat.height != newFormat.height)) {
+        discardReasons |= DISCARD_REASON_VIDEO_RESOLUTION_CHANGED;
+      }
+      if (!Util.areEqual(oldFormat.colorInfo, newFormat.colorInfo)) {
+        discardReasons |= DISCARD_REASON_VIDEO_COLOR_INFO_CHANGED;
+      }
+      if (needsAdaptationReconfigureWorkaround(name)
+          && !oldFormat.initializationDataEquals(newFormat)) {
+        discardReasons |= DISCARD_REASON_WORKAROUND;
+      }
+
+      if (discardReasons == 0) {
+        return new DecoderReuseEvaluation(
+            name,
+            oldFormat,
+            newFormat,
+            oldFormat.initializationDataEquals(newFormat)
+                ? REUSE_RESULT_YES_WITHOUT_RECONFIGURATION
+                : REUSE_RESULT_YES_WITH_RECONFIGURATION,
+            /* discardReasons= */ 0);
+      }
+    } else {
+      if (oldFormat.channelCount != newFormat.channelCount) {
+        discardReasons |= DISCARD_REASON_AUDIO_CHANNEL_COUNT_CHANGED;
+      }
+      if (oldFormat.sampleRate != newFormat.sampleRate) {
+        discardReasons |= DISCARD_REASON_AUDIO_SAMPLE_RATE_CHANGED;
+      }
+      if (oldFormat.pcmEncoding != newFormat.pcmEncoding) {
+        discardReasons |= DISCARD_REASON_AUDIO_ENCODING_CHANGED;
+      }
+
+      // Check whether we're adapting between two xHE-AAC formats, for which adaptation is possible
+      // without reconfiguration or flushing.
+      if (discardReasons == 0 && MimeTypes.AUDIO_AAC.equals(mimeType)) {
+        @Nullable
+        Pair<Integer, Integer> oldCodecProfileLevel =
+            MediaCodecUtil.getCodecProfileAndLevel(oldFormat);
+        @Nullable
+        Pair<Integer, Integer> newCodecProfileLevel =
+            MediaCodecUtil.getCodecProfileAndLevel(newFormat);
+        if (oldCodecProfileLevel != null && newCodecProfileLevel != null) {
+          int oldProfile = oldCodecProfileLevel.first;
+          int newProfile = newCodecProfileLevel.first;
+          if (oldProfile == CodecProfileLevel.AACObjectXHE
+              && newProfile == CodecProfileLevel.AACObjectXHE) {
+            return new DecoderReuseEvaluation(
+                name,
+                oldFormat,
+                newFormat,
+                REUSE_RESULT_YES_WITHOUT_RECONFIGURATION,
+                /* discardReasons= */ 0);
+          }
+        }
+      }
+
+      if (!oldFormat.initializationDataEquals(newFormat)) {
+        discardReasons |= DISCARD_REASON_INITIALIZATION_DATA_CHANGED;
+      }
+      if (needsAdaptationFlushWorkaround(mimeType)) {
+        discardReasons |= DISCARD_REASON_WORKAROUND;
+      }
+
+      if (discardReasons == 0) {
+        return new DecoderReuseEvaluation(
+            name, oldFormat, newFormat, REUSE_RESULT_YES_WITH_FLUSH, /* discardReasons= */ 0);
+      }
+    }
+
+    return new DecoderReuseEvaluation(name, oldFormat, newFormat, REUSE_RESULT_NO, discardReasons);
   }
 
   /**
@@ -393,7 +478,7 @@ public final class MediaCodecInfo {
    *     Format#NO_VALUE} or any value less than or equal to 0.
    * @return Whether the decoder supports video with the given width, height and frame rate.
    */
-  @TargetApi(21)
+  @RequiresApi(21)
   public boolean isVideoSizeAndRateSupportedV21(int width, int height, double frameRate) {
     if (capabilities == null) {
       logNoSupport("sizeAndRate.caps");
@@ -406,7 +491,7 @@ public final class MediaCodecInfo {
     }
     if (!areSizeAndRateSupportedV21(videoCapabilities, width, height, frameRate)) {
       if (width >= height
-          || !enableRotatedVerticalResolutionWorkaround(name)
+          || !needsRotatedVerticalResolutionWorkaround(name)
           || !areSizeAndRateSupportedV21(videoCapabilities, height, width, frameRate)) {
         logNoSupport("sizeAndRate.support, " + width + "x" + height + "x" + frameRate);
         return false;
@@ -419,8 +504,8 @@ public final class MediaCodecInfo {
   /**
    * Returns the smallest video size greater than or equal to a specified size that also satisfies
    * the {@link MediaCodec}'s width and height alignment requirements.
-   * <p>
-   * Must not be called if the device SDK version is less than 21.
+   *
+   * <p>Must not be called if the device SDK version is less than 21.
    *
    * @param width Width in pixels.
    * @param height Height in pixels.
@@ -428,7 +513,8 @@ public final class MediaCodecInfo {
    *     the {@link MediaCodec}'s width and height alignment requirements, or null if not a video
    *     codec.
    */
-  @TargetApi(21)
+  @Nullable
+  @RequiresApi(21)
   public Point alignVideoSizeV21(int width, int height) {
     if (capabilities == null) {
       return null;
@@ -442,13 +528,13 @@ public final class MediaCodecInfo {
 
   /**
    * Whether the decoder supports audio with a given sample rate.
-   * <p>
-   * Must not be called if the device SDK version is less than 21.
+   *
+   * <p>Must not be called if the device SDK version is less than 21.
    *
    * @param sampleRate The sample rate in Hz.
    * @return Whether the decoder supports audio with the given sample rate.
    */
-  @TargetApi(21)
+  @RequiresApi(21)
   public boolean isAudioSampleRateSupportedV21(int sampleRate) {
     if (capabilities == null) {
       logNoSupport("sampleRate.caps");
@@ -468,13 +554,13 @@ public final class MediaCodecInfo {
 
   /**
    * Whether the decoder supports audio with a given channel count.
-   * <p>
-   * Must not be called if the device SDK version is less than 21.
+   *
+   * <p>Must not be called if the device SDK version is less than 21.
    *
    * @param channelCount The channel count.
    * @return Whether the decoder supports audio with the given channel count.
    */
-  @TargetApi(21)
+  @RequiresApi(21)
   public boolean isAudioChannelCountSupportedV21(int channelCount) {
     if (capabilities == null) {
       logNoSupport("channelCount.caps");
@@ -542,7 +628,7 @@ public final class MediaCodecInfo {
     return Util.SDK_INT >= 19 && isAdaptiveV19(capabilities);
   }
 
-  @TargetApi(19)
+  @RequiresApi(19)
   private static boolean isAdaptiveV19(CodecCapabilities capabilities) {
     return capabilities.isFeatureSupported(CodecCapabilities.FEATURE_AdaptivePlayback);
   }
@@ -551,7 +637,7 @@ public final class MediaCodecInfo {
     return Util.SDK_INT >= 21 && isTunnelingV21(capabilities);
   }
 
-  @TargetApi(21)
+  @RequiresApi(21)
   private static boolean isTunnelingV21(CodecCapabilities capabilities) {
     return capabilities.isFeatureSupported(CodecCapabilities.FEATURE_TunneledPlayback);
   }
@@ -560,20 +646,22 @@ public final class MediaCodecInfo {
     return Util.SDK_INT >= 21 && isSecureV21(capabilities);
   }
 
-  @TargetApi(21)
+  @RequiresApi(21)
   private static boolean isSecureV21(CodecCapabilities capabilities) {
     return capabilities.isFeatureSupported(CodecCapabilities.FEATURE_SecurePlayback);
   }
 
-  @TargetApi(21)
-  private static boolean areSizeAndRateSupportedV21(VideoCapabilities capabilities, int width,
-      int height, double frameRate) {
+  @RequiresApi(21)
+  private static boolean areSizeAndRateSupportedV21(
+      VideoCapabilities capabilities, int width, int height, double frameRate) {
     // Don't ever fail due to alignment. See: https://github.com/google/ExoPlayer/issues/6551.
     Point alignedSize = alignVideoSizeV21(capabilities, width, height);
     width = alignedSize.x;
     height = alignedSize.y;
 
-    if (frameRate == Format.NO_VALUE || frameRate <= 0) {
+    // VideoCapabilities.areSizeAndRateSupported incorrectly returns false if frameRate < 1 on some
+    // versions of Android, so we only check the size in this case [Internal ref: b/153940404].
+    if (frameRate == Format.NO_VALUE || frameRate < 1) {
       return capabilities.isSizeSupported(width, height);
     } else {
       // The signaled frame rate may be slightly higher than the actual frame rate, so we take the
@@ -584,7 +672,7 @@ public final class MediaCodecInfo {
     }
   }
 
-  @TargetApi(21)
+  @RequiresApi(21)
   private static Point alignVideoSizeV21(VideoCapabilities capabilities, int width, int height) {
     int widthAlignment = capabilities.getWidthAlignment();
     int heightAlignment = capabilities.getHeightAlignment();
@@ -593,9 +681,103 @@ public final class MediaCodecInfo {
         Util.ceilDivide(height, heightAlignment) * heightAlignment);
   }
 
-  @TargetApi(23)
+  @RequiresApi(23)
   private static int getMaxSupportedInstancesV23(CodecCapabilities capabilities) {
     return capabilities.getMaxSupportedInstances();
+  }
+
+  /**
+   * Called on devices with {@link Util#SDK_INT} 23 and below, for VP9 decoders whose {@link
+   * CodecCapabilities} do not correctly report profile levels. The returned {@link
+   * CodecProfileLevel CodecProfileLevels} are estimated based on other data in the {@link
+   * CodecCapabilities}.
+   *
+   * @param capabilities The {@link CodecCapabilities} for a VP9 decoder, or {@code null} if not
+   *     known.
+   * @return The estimated {@link CodecProfileLevel CodecProfileLevels} for the decoder.
+   */
+  private static CodecProfileLevel[] estimateLegacyVp9ProfileLevels(
+      @Nullable CodecCapabilities capabilities) {
+    int maxBitrate = 0;
+    if (capabilities != null) {
+      @Nullable VideoCapabilities videoCapabilities = capabilities.getVideoCapabilities();
+      if (videoCapabilities != null) {
+        maxBitrate = videoCapabilities.getBitrateRange().getUpper();
+      }
+    }
+
+    // Values taken from https://www.webmproject.org/vp9/levels.
+    int level;
+    if (maxBitrate >= 180_000_000) {
+      level = CodecProfileLevel.VP9Level52;
+    } else if (maxBitrate >= 120_000_000) {
+      level = CodecProfileLevel.VP9Level51;
+    } else if (maxBitrate >= 60_000_000) {
+      level = CodecProfileLevel.VP9Level5;
+    } else if (maxBitrate >= 30_000_000) {
+      level = CodecProfileLevel.VP9Level41;
+    } else if (maxBitrate >= 18_000_000) {
+      level = CodecProfileLevel.VP9Level4;
+    } else if (maxBitrate >= 12_000_000) {
+      level = CodecProfileLevel.VP9Level31;
+    } else if (maxBitrate >= 7_200_000) {
+      level = CodecProfileLevel.VP9Level3;
+    } else if (maxBitrate >= 3_600_000) {
+      level = CodecProfileLevel.VP9Level21;
+    } else if (maxBitrate >= 1_800_000) {
+      level = CodecProfileLevel.VP9Level2;
+    } else if (maxBitrate >= 800_000) {
+      level = CodecProfileLevel.VP9Level11;
+    } else { // Assume level 1 is always supported.
+      level = CodecProfileLevel.VP9Level1;
+    }
+
+    CodecProfileLevel profileLevel = new CodecProfileLevel();
+    // Since this method is for legacy devices only, assume that only profile 0 is supported.
+    profileLevel.profile = CodecProfileLevel.VP9Profile0;
+    profileLevel.level = level;
+
+    return new CodecProfileLevel[] {profileLevel};
+  }
+
+  /**
+   * Returns whether the decoder is known to fail when adapting, despite advertising itself as an
+   * adaptive decoder.
+   *
+   * @param name The decoder name.
+   * @return True if the decoder is known to fail when adapting.
+   */
+  private static boolean needsDisableAdaptationWorkaround(String name) {
+    return Util.SDK_INT <= 22
+        && ("ODROID-XU3".equals(Util.MODEL) || "Nexus 10".equals(Util.MODEL))
+        && ("OMX.Exynos.AVC.Decoder".equals(name) || "OMX.Exynos.AVC.Decoder.secure".equals(name));
+  }
+
+  /**
+   * Returns whether the decoder is known to fail when an attempt is made to reconfigure it with a
+   * new format's configuration data.
+   *
+   * @param name The name of the decoder.
+   * @return Whether the decoder is known to fail when an attempt is made to reconfigure it with a
+   *     new format's configuration data.
+   */
+  private static boolean needsAdaptationReconfigureWorkaround(String name) {
+    return Util.MODEL.startsWith("SM-T230") && "OMX.MARVELL.VIDEO.HW.CODA7542DECODER".equals(name);
+  }
+
+  /**
+   * Returns whether the decoder is known to behave incorrectly if flushed to adapt to a new format.
+   *
+   * @param mimeType The name of the MIME type.
+   * @return Whether the decoder is known to to behave incorrectly if flushed to adapt to a new
+   *     format.
+   */
+  private static boolean needsAdaptationFlushWorkaround(String mimeType) {
+    // For Opus, we don't flush and reuse the codec because the decoder may discard samples after
+    // flushing, which would result in audio being dropped just after a stream change (see
+    // [Internal: b/143450854]). For other formats, we allow reuse after flushing if the codec
+    // initialization data is unchanged.
+    return MimeTypes.AUDIO_OPUS.equals(mimeType);
   }
 
   /**
@@ -607,7 +789,7 @@ public final class MediaCodecInfo {
    * @param name The name of the codec.
    * @return Whether to enable the workaround.
    */
-  private static final boolean enableRotatedVerticalResolutionWorkaround(String name) {
+  private static final boolean needsRotatedVerticalResolutionWorkaround(String name) {
     if ("OMX.MTK.VIDEO.DECODER.HEVC".equals(name) && "mcv5a".equals(Util.DEVICE)) {
       // See https://github.com/google/ExoPlayer/issues/6612.
       return false;

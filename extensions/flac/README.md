@@ -29,7 +29,7 @@ FLAC_EXT_PATH="${EXOPLAYER_ROOT}/extensions/flac/src/main"
 ```
 
 * Download the [Android NDK][] and set its location in an environment variable.
-  This build configuration has been tested on NDK r20.
+  This build configuration has been tested on NDK r21.
 
 ```
 NDK_PATH="<path to Android NDK>"
@@ -68,7 +68,7 @@ renderer.
 
 ### Using `FlacExtractor` ###
 
-`FlacExtractor` is used via `ExtractorMediaSource`. If you're using
+`FlacExtractor` is used via `ProgressiveMediaSource`. If you're using
 `DefaultExtractorsFactory`, `FlacExtractor` will automatically be used to read
 `.flac` files. If you're not using `DefaultExtractorsFactory`, return a
 `FlacExtractor` from your `ExtractorsFactory.createExtractors` implementation.

@@ -17,16 +17,22 @@
 package com.google.android.exoplayer2.text.ssa;
 
 import static com.google.android.exoplayer2.text.ssa.SsaDecoder.STYLE_LINE_PREFIX;
+import static com.google.android.exoplayer2.util.Assertions.checkArgument;
 import static java.lang.annotation.RetentionPolicy.SOURCE;
 
+import android.graphics.Color;
 import android.graphics.PointF;
 import android.text.TextUtils;
+import androidx.annotation.ColorInt;
 import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.C;
+import com.google.android.exoplayer2.text.Cue;
 import com.google.android.exoplayer2.util.Assertions;
 import com.google.android.exoplayer2.util.Log;
 import com.google.android.exoplayer2.util.Util;
+import com.google.common.base.Ascii;
+import com.google.common.primitives.Ints;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.util.regex.Matcher;
@@ -85,15 +91,35 @@ import java.util.regex.Pattern;
 
   public final String name;
   @SsaAlignment public final int alignment;
+  @Nullable @ColorInt public final Integer primaryColor;
+  public final float fontSize;
+  public final boolean bold;
+  public final boolean italic;
+  public final boolean underline;
+  public final boolean strikeout;
 
-  private SsaStyle(String name, @SsaAlignment int alignment) {
+  private SsaStyle(
+      String name,
+      @SsaAlignment int alignment,
+      @Nullable @ColorInt Integer primaryColor,
+      float fontSize,
+      boolean bold,
+      boolean italic,
+      boolean underline,
+      boolean strikeout) {
     this.name = name;
     this.alignment = alignment;
+    this.primaryColor = primaryColor;
+    this.fontSize = fontSize;
+    this.bold = bold;
+    this.italic = italic;
+    this.underline = underline;
+    this.strikeout = strikeout;
   }
 
   @Nullable
   public static SsaStyle fromStyleLine(String styleLine, Format format) {
-    Assertions.checkArgument(styleLine.startsWith(STYLE_LINE_PREFIX));
+    checkArgument(styleLine.startsWith(STYLE_LINE_PREFIX));
     String[] styleValues = TextUtils.split(styleLine.substring(STYLE_LINE_PREFIX.length()), ",");
     if (styleValues.length != format.length) {
       Log.w(
@@ -105,7 +131,28 @@ import java.util.regex.Pattern;
     }
     try {
       return new SsaStyle(
-          styleValues[format.nameIndex].trim(), parseAlignment(styleValues[format.alignmentIndex]));
+          styleValues[format.nameIndex].trim(),
+          format.alignmentIndex != C.INDEX_UNSET
+              ? parseAlignment(styleValues[format.alignmentIndex].trim())
+              : SSA_ALIGNMENT_UNKNOWN,
+          format.primaryColorIndex != C.INDEX_UNSET
+              ? parseColor(styleValues[format.primaryColorIndex].trim())
+              : null,
+          format.fontSizeIndex != C.INDEX_UNSET
+              ? parseFontSize(styleValues[format.fontSizeIndex].trim())
+              : Cue.DIMEN_UNSET,
+          format.boldIndex != C.INDEX_UNSET
+              ? parseBooleanValue(styleValues[format.boldIndex].trim())
+              : false,
+          format.italicIndex != C.INDEX_UNSET
+              ? parseBooleanValue(styleValues[format.italicIndex].trim())
+              : false,
+          format.underlineIndex != C.INDEX_UNSET
+              ? parseBooleanValue(styleValues[format.underlineIndex].trim())
+              : false,
+          format.strikeoutIndex != C.INDEX_UNSET
+              ? parseBooleanValue(styleValues[format.strikeoutIndex].trim())
+              : false);
     } catch (RuntimeException e) {
       Log.w(TAG, "Skipping malformed 'Style:' line: '" + styleLine + "'", e);
       return null;
@@ -145,6 +192,63 @@ import java.util.regex.Pattern;
   }
 
   /**
+   * Parses a SSA V4+ color expression.
+   *
+   * <p>A SSA V4+ color can be represented in hex {@code ("&HAABBGGRR")} or in 64-bit decimal format
+   * (byte order AABBGGRR). In both cases the alpha channel's value needs to be inverted because in
+   * SSA the 0xFF alpha value means transparent and 0x00 means opaque which is the opposite from the
+   * Android {@link ColorInt} representation.
+   *
+   * @param ssaColorExpression A SSA V4+ color expression.
+   * @return The parsed color value, or null if parsing failed.
+   */
+  @Nullable
+  @ColorInt
+  public static Integer parseColor(String ssaColorExpression) {
+    // We use a long because the value is an unsigned 32-bit number, so can be larger than
+    // Integer.MAX_VALUE.
+    long abgr;
+    try {
+      abgr =
+          ssaColorExpression.startsWith("&H")
+              // Parse color from hex format (&HAABBGGRR).
+              ? Long.parseLong(ssaColorExpression.substring(2), /* radix= */ 16)
+              // Parse color from decimal format (bytes order AABBGGRR).
+              : Long.parseLong(ssaColorExpression);
+      // Ensure only the bottom 4 bytes of abgr are set.
+      checkArgument(abgr <= 0xFFFFFFFFL);
+    } catch (IllegalArgumentException e) {
+      Log.w(TAG, "Failed to parse color expression: '" + ssaColorExpression + "'", e);
+      return null;
+    }
+    // Convert ABGR to ARGB.
+    int a = Ints.checkedCast(((abgr >> 24) & 0xFF) ^ 0xFF); // Flip alpha.
+    int b = Ints.checkedCast((abgr >> 16) & 0xFF);
+    int g = Ints.checkedCast((abgr >> 8) & 0xFF);
+    int r = Ints.checkedCast(abgr & 0xFF);
+    return Color.argb(a, r, g, b);
+  }
+
+  private static float parseFontSize(String fontSize) {
+    try {
+      return Float.parseFloat(fontSize);
+    } catch (NumberFormatException e) {
+      Log.w(TAG, "Failed to parse font size: '" + fontSize + "'", e);
+      return Cue.DIMEN_UNSET;
+    }
+  }
+
+  private static boolean parseBooleanValue(String booleanValue) {
+    try {
+      int value = Integer.parseInt(booleanValue);
+      return value == 1 || value == -1;
+    } catch (NumberFormatException e) {
+      Log.w(TAG, "Failed to parse boolean value: '" + booleanValue + "'", e);
+      return false;
+    }
+  }
+
+  /**
    * Represents a {@code Format:} line from the {@code [V4+ Styles]} section
    *
    * <p>The indices are used to determine the location of particular properties in each {@code
@@ -154,11 +258,32 @@ import java.util.regex.Pattern;
 
     public final int nameIndex;
     public final int alignmentIndex;
+    public final int primaryColorIndex;
+    public final int fontSizeIndex;
+    public final int boldIndex;
+    public final int italicIndex;
+    public final int underlineIndex;
+    public final int strikeoutIndex;
     public final int length;
 
-    private Format(int nameIndex, int alignmentIndex, int length) {
+    private Format(
+        int nameIndex,
+        int alignmentIndex,
+        int primaryColorIndex,
+        int fontSizeIndex,
+        int boldIndex,
+        int italicIndex,
+        int underlineIndex,
+        int strikeoutIndex,
+        int length) {
       this.nameIndex = nameIndex;
       this.alignmentIndex = alignmentIndex;
+      this.primaryColorIndex = primaryColorIndex;
+      this.fontSizeIndex = fontSizeIndex;
+      this.boldIndex = boldIndex;
+      this.italicIndex = italicIndex;
+      this.underlineIndex = underlineIndex;
+      this.strikeoutIndex = strikeoutIndex;
       this.length = length;
     }
 
@@ -171,19 +296,54 @@ import java.util.regex.Pattern;
     public static Format fromFormatLine(String styleFormatLine) {
       int nameIndex = C.INDEX_UNSET;
       int alignmentIndex = C.INDEX_UNSET;
+      int primaryColorIndex = C.INDEX_UNSET;
+      int fontSizeIndex = C.INDEX_UNSET;
+      int boldIndex = C.INDEX_UNSET;
+      int italicIndex = C.INDEX_UNSET;
+      int underlineIndex = C.INDEX_UNSET;
+      int strikeoutIndex = C.INDEX_UNSET;
       String[] keys =
           TextUtils.split(styleFormatLine.substring(SsaDecoder.FORMAT_LINE_PREFIX.length()), ",");
       for (int i = 0; i < keys.length; i++) {
-        switch (Util.toLowerInvariant(keys[i].trim())) {
+        switch (Ascii.toLowerCase(keys[i].trim())) {
           case "name":
             nameIndex = i;
             break;
           case "alignment":
             alignmentIndex = i;
             break;
+          case "primarycolour":
+            primaryColorIndex = i;
+            break;
+          case "fontsize":
+            fontSizeIndex = i;
+            break;
+          case "bold":
+            boldIndex = i;
+            break;
+          case "italic":
+            italicIndex = i;
+            break;
+          case "underline":
+            underlineIndex = i;
+            break;
+          case "strikeout":
+            strikeoutIndex = i;
+            break;
         }
       }
-      return nameIndex != C.INDEX_UNSET ? new Format(nameIndex, alignmentIndex, keys.length) : null;
+      return nameIndex != C.INDEX_UNSET
+          ? new Format(
+              nameIndex,
+              alignmentIndex,
+              primaryColorIndex,
+              fontSizeIndex,
+              boldIndex,
+              italicIndex,
+              underlineIndex,
+              strikeoutIndex,
+              keys.length)
+          : null;
     }
   }
 
@@ -227,7 +387,7 @@ import java.util.regex.Pattern;
       PointF position = null;
       Matcher matcher = BRACES_PATTERN.matcher(text);
       while (matcher.find()) {
-        String braceContents = matcher.group(1);
+        String braceContents = Assertions.checkNotNull(matcher.group(1));
         try {
           PointF parsedPosition = parsePosition(braceContents);
           if (parsedPosition != null) {
@@ -295,7 +455,9 @@ import java.util.regex.Pattern;
     @SsaAlignment
     private static int parseAlignmentOverride(String braceContents) {
       Matcher matcher = ALIGNMENT_OVERRIDE_PATTERN.matcher(braceContents);
-      return matcher.find() ? parseAlignment(matcher.group(1)) : SSA_ALIGNMENT_UNKNOWN;
+      return matcher.find()
+          ? parseAlignment(Assertions.checkNotNull(matcher.group(1)))
+          : SSA_ALIGNMENT_UNKNOWN;
     }
   }
 }

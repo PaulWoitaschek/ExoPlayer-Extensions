@@ -17,112 +17,125 @@
 package com.google.android.exoplayer2.ext.okhttp;
 
 import static com.google.common.truth.Truth.assertThat;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertThrows;
 
-import android.net.Uri;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import com.google.android.exoplayer2.upstream.DataSpec;
 import com.google.android.exoplayer2.upstream.HttpDataSource;
+import com.google.common.base.Charsets;
 import java.util.HashMap;
 import java.util.Map;
-import okhttp3.Call;
-import okhttp3.MediaType;
-import okhttp3.Protocol;
-import okhttp3.Request;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
+import okhttp3.Headers;
+import okhttp3.OkHttpClient;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentMatchers;
-import org.mockito.Mockito;
 
 /** Unit tests for {@link OkHttpDataSource}. */
 @RunWith(AndroidJUnit4.class)
 public class OkHttpDataSourceTest {
 
+  /**
+   * This test will set HTTP default request parameters (1) in the OkHttpDataSource, (2) via
+   * OkHttpDataSource.setRequestProperty() and (3) in the DataSpec instance according to the table
+   * below. Values wrapped in '*' are the ones that should be set in the connection request.
+   *
+   * <pre>{@code
+   * +---------------+-----+-----+-----+-----+-----+-----+-----+
+   * |               |               Header Key                |
+   * +---------------+-----+-----+-----+-----+-----+-----+-----+
+   * |   Location    |  0  |  1  |  2  |  3  |  4  |  5  |  6  |
+   * +---------------+-----+-----+-----+-----+-----+-----+-----+
+   * | Constructor   | *Y* |  Y  |  Y  |     |  Y  |     |     |
+   * | Setter        |     | *Y* |  Y  |  Y  |     | *Y* |     |
+   * | DataSpec      |     |     | *Y* | *Y* | *Y* |     | *Y* |
+   * +---------------+-----+-----+-----+-----+-----+-----+-----+
+   * }</pre>
+   */
   @Test
-  public void open_setsCorrectHeaders() throws HttpDataSource.HttpDataSourceException {
-    /*
-     * This test will set HTTP default request parameters (1) in the OkHttpDataSource, (2) via
-     * OkHttpDataSource.setRequestProperty() and (3) in the DataSpec instance according to the table
-     * below. Values wrapped in '*' are the ones that should be set in the connection request.
-     *
-     * +-----------------------+---+-----+-----+-----+-----+-----+
-     * |                       |            Header Key           |
-     * +-----------------------+---+-----+-----+-----+-----+-----+
-     * |       Location        | 0 |  1  |  2  |  3  |  4  |  5  |
-     * +-----------------------+---+-----+-----+-----+-----+-----+
-     * | Default               |*Y*|  Y  |  Y  |     |     |     |
-     * | OkHttpDataSource      |   | *Y* |  Y  |  Y  | *Y* |     |
-     * | DataSpec              |   |     | *Y* | *Y* |     | *Y* |
-     * +-----------------------+---+-----+-----+-----+-----+-----+
-     */
+  public void open_setsCorrectHeaders() throws Exception {
+    MockWebServer mockWebServer = new MockWebServer();
+    mockWebServer.enqueue(new MockResponse());
 
-    String defaultValue = "Default";
-    String okHttpDataSourceValue = "OkHttpDataSource";
-    String dataSpecValue = "DataSpec";
+    String propertyFromFactory = "fromFactory";
+    Map<String, String> defaultRequestProperties = new HashMap<>();
+    defaultRequestProperties.put("0", propertyFromFactory);
+    defaultRequestProperties.put("1", propertyFromFactory);
+    defaultRequestProperties.put("2", propertyFromFactory);
+    defaultRequestProperties.put("4", propertyFromFactory);
+    HttpDataSource dataSource =
+        new OkHttpDataSource.Factory(new OkHttpClient())
+            .setDefaultRequestProperties(defaultRequestProperties)
+            .createDataSource();
 
-    // 1. Default properties on OkHttpDataSource
-    HttpDataSource.RequestProperties defaultRequestProperties =
-        new HttpDataSource.RequestProperties();
-    defaultRequestProperties.set("0", defaultValue);
-    defaultRequestProperties.set("1", defaultValue);
-    defaultRequestProperties.set("2", defaultValue);
+    String propertyFromSetter = "fromSetter";
+    dataSource.setRequestProperty("1", propertyFromSetter);
+    dataSource.setRequestProperty("2", propertyFromSetter);
+    dataSource.setRequestProperty("3", propertyFromSetter);
+    dataSource.setRequestProperty("5", propertyFromSetter);
 
-    Call.Factory mockCallFactory = Mockito.mock(Call.Factory.class);
-    OkHttpDataSource okHttpDataSource =
-        new OkHttpDataSource(
-            mockCallFactory, "testAgent", /* cacheControl= */ null, defaultRequestProperties);
-
-    // 2. Additional properties set with setRequestProperty().
-    okHttpDataSource.setRequestProperty("1", okHttpDataSourceValue);
-    okHttpDataSource.setRequestProperty("2", okHttpDataSourceValue);
-    okHttpDataSource.setRequestProperty("3", okHttpDataSourceValue);
-    okHttpDataSource.setRequestProperty("4", okHttpDataSourceValue);
-
-    // 3. DataSpec properties
+    String propertyFromDataSpec = "fromDataSpec";
     Map<String, String> dataSpecRequestProperties = new HashMap<>();
-    dataSpecRequestProperties.put("2", dataSpecValue);
-    dataSpecRequestProperties.put("3", dataSpecValue);
-    dataSpecRequestProperties.put("5", dataSpecValue);
+    dataSpecRequestProperties.put("2", propertyFromDataSpec);
+    dataSpecRequestProperties.put("3", propertyFromDataSpec);
+    dataSpecRequestProperties.put("4", propertyFromDataSpec);
+    dataSpecRequestProperties.put("6", propertyFromDataSpec);
 
     DataSpec dataSpec =
-        new DataSpec(
-            /* uri= */ Uri.parse("http://www.google.com"),
-            /* httpMethod= */ 1,
-            /* httpBody= */ null,
-            /* absoluteStreamPosition= */ 1000,
-            /* position= */ 1000,
-            /* length= */ 5000,
-            /* key= */ null,
-            /* flags= */ 0,
-            dataSpecRequestProperties);
+        new DataSpec.Builder()
+            .setUri(mockWebServer.url("/test-path").toString())
+            .setHttpRequestHeaders(dataSpecRequestProperties)
+            .build();
 
-    Mockito.doAnswer(
-            invocation -> {
-              Request request = invocation.getArgument(0);
-              assertThat(request.header("0")).isEqualTo(defaultValue);
-              assertThat(request.header("1")).isEqualTo(okHttpDataSourceValue);
-              assertThat(request.header("2")).isEqualTo(dataSpecValue);
-              assertThat(request.header("3")).isEqualTo(dataSpecValue);
-              assertThat(request.header("4")).isEqualTo(okHttpDataSourceValue);
-              assertThat(request.header("5")).isEqualTo(dataSpecValue);
+    dataSource.open(dataSpec);
 
-              // return a Call whose .execute() will return a mock Response
-              Call returnValue = Mockito.mock(Call.class);
-              Mockito.doReturn(
-                      new Response.Builder()
-                          .request(request)
-                          .protocol(Protocol.HTTP_1_1)
-                          .code(200)
-                          .message("OK")
-                          .body(ResponseBody.create(MediaType.parse("text/plain"), ""))
-                          .build())
-                  .when(returnValue)
-                  .execute();
-              return returnValue;
-            })
-        .when(mockCallFactory)
-        .newCall(ArgumentMatchers.any());
-    okHttpDataSource.open(dataSpec);
+    Headers headers = mockWebServer.takeRequest(10, SECONDS).getHeaders();
+    assertThat(headers.get("0")).isEqualTo(propertyFromFactory);
+    assertThat(headers.get("1")).isEqualTo(propertyFromSetter);
+    assertThat(headers.get("2")).isEqualTo(propertyFromDataSpec);
+    assertThat(headers.get("3")).isEqualTo(propertyFromDataSpec);
+    assertThat(headers.get("4")).isEqualTo(propertyFromDataSpec);
+    assertThat(headers.get("5")).isEqualTo(propertyFromSetter);
+    assertThat(headers.get("6")).isEqualTo(propertyFromDataSpec);
+  }
+
+  @Test
+  public void open_invalidResponseCode() {
+    MockWebServer mockWebServer = new MockWebServer();
+    mockWebServer.enqueue(new MockResponse().setResponseCode(404).setBody("failure msg"));
+
+    HttpDataSource okHttpDataSource =
+        new OkHttpDataSource.Factory(new OkHttpClient()).createDataSource();
+
+    DataSpec dataSpec =
+        new DataSpec.Builder().setUri(mockWebServer.url("/test-path").toString()).build();
+
+    HttpDataSource.InvalidResponseCodeException exception =
+        assertThrows(
+            HttpDataSource.InvalidResponseCodeException.class,
+            () -> okHttpDataSource.open(dataSpec));
+
+    assertThat(exception.responseCode).isEqualTo(404);
+    assertThat(exception.responseBody).isEqualTo("failure msg".getBytes(Charsets.UTF_8));
+  }
+
+  @Test
+  public void factory_setRequestPropertyAfterCreation_setsCorrectHeaders() throws Exception {
+    MockWebServer mockWebServer = new MockWebServer();
+    mockWebServer.enqueue(new MockResponse());
+    DataSpec dataSpec =
+        new DataSpec.Builder().setUri(mockWebServer.url("/test-path").toString()).build();
+    OkHttpDataSource.Factory factory = new OkHttpDataSource.Factory(new OkHttpClient());
+    OkHttpDataSource dataSource = factory.createDataSource();
+
+    Map<String, String> defaultRequestProperties = new HashMap<>();
+    defaultRequestProperties.put("0", "afterCreation");
+    factory.setDefaultRequestProperties(defaultRequestProperties);
+    dataSource.open(dataSpec);
+
+    Headers headers = mockWebServer.takeRequest(10, SECONDS).getHeaders();
+    assertThat(headers.get("0")).isEqualTo("afterCreation");
   }
 }

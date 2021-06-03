@@ -15,6 +15,8 @@
  */
 package com.google.android.exoplayer2.audio;
 
+import static java.lang.Math.min;
+
 import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.util.Assertions;
@@ -77,6 +79,11 @@ public final class TeeAudioProcessor extends BaseAudioProcessor {
     }
     audioBufferSink.handleBuffer(inputBuffer.asReadOnlyBuffer());
     replaceOutputBuffer(remaining).put(inputBuffer).flip();
+  }
+
+  @Override
+  protected void onFlush() {
+    flushSinkIfActive();
   }
 
   @Override
@@ -193,7 +200,7 @@ public final class TeeAudioProcessor extends BaseAudioProcessor {
     private void writeBuffer(ByteBuffer buffer) throws IOException {
       RandomAccessFile randomAccessFile = Assertions.checkNotNull(this.randomAccessFile);
       while (buffer.hasRemaining()) {
-        int bytesToWrite = Math.min(buffer.remaining(), scratchBuffer.length);
+        int bytesToWrite = min(buffer.remaining(), scratchBuffer.length);
         buffer.get(scratchBuffer, 0, bytesToWrite);
         randomAccessFile.write(scratchBuffer, 0, bytesToWrite);
         bytesWritten += bytesToWrite;
@@ -201,7 +208,7 @@ public final class TeeAudioProcessor extends BaseAudioProcessor {
     }
 
     private void reset() throws IOException {
-      RandomAccessFile randomAccessFile = this.randomAccessFile;
+      @Nullable RandomAccessFile randomAccessFile = this.randomAccessFile;
       if (randomAccessFile == null) {
         return;
       }

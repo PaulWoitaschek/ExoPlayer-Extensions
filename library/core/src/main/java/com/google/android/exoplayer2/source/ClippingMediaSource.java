@@ -15,9 +15,13 @@
  */
 package com.google.android.exoplayer2.source;
 
+import static java.lang.Math.max;
+import static java.lang.Math.min;
+
 import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.C;
+import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.upstream.Allocator;
 import com.google.android.exoplayer2.upstream.TransferListener;
@@ -184,10 +188,20 @@ public final class ClippingMediaSource extends CompositeMediaSource<Void> {
     window = new Timeline.Window();
   }
 
+  /**
+   * @deprecated Use {@link #getMediaItem()} and {@link MediaItem.PlaybackProperties#tag} instead.
+   */
+  @SuppressWarnings("deprecation")
+  @Deprecated
   @Override
   @Nullable
   public Object getTag() {
     return mediaSource.getTag();
+  }
+
+  @Override
+  public MediaItem getMediaItem() {
+    return mediaSource.getMediaItem();
   }
 
   @Override
@@ -279,19 +293,6 @@ public final class ClippingMediaSource extends CompositeMediaSource<Void> {
     refreshSourceInfo(clippingTimeline);
   }
 
-  @Override
-  protected long getMediaTimeForChildMediaTime(Void id, long mediaTimeMs) {
-    if (mediaTimeMs == C.TIME_UNSET) {
-      return C.TIME_UNSET;
-    }
-    long startMs = C.usToMs(startUs);
-    long clippedTimeMs = Math.max(0, mediaTimeMs - startMs);
-    if (endUs != C.TIME_END_OF_SOURCE) {
-      clippedTimeMs = Math.min(C.usToMs(endUs) - startMs, clippedTimeMs);
-    }
-    return clippedTimeMs;
-  }
-
   /**
    * Provides a clipped view of a specified timeline.
    */
@@ -318,14 +319,14 @@ public final class ClippingMediaSource extends CompositeMediaSource<Void> {
         throw new IllegalClippingException(IllegalClippingException.REASON_INVALID_PERIOD_COUNT);
       }
       Window window = timeline.getWindow(0, new Window());
-      startUs = Math.max(0, startUs);
-      long resolvedEndUs = endUs == C.TIME_END_OF_SOURCE ? window.durationUs : Math.max(0, endUs);
+      startUs = max(0, startUs);
+      if (!window.isPlaceholder && startUs != 0 && !window.isSeekable) {
+        throw new IllegalClippingException(IllegalClippingException.REASON_NOT_SEEKABLE_TO_START);
+      }
+      long resolvedEndUs = endUs == C.TIME_END_OF_SOURCE ? window.durationUs : max(0, endUs);
       if (window.durationUs != C.TIME_UNSET) {
         if (resolvedEndUs > window.durationUs) {
           resolvedEndUs = window.durationUs;
-        }
-        if (startUs != 0 && !window.isSeekable) {
-          throw new IllegalClippingException(IllegalClippingException.REASON_NOT_SEEKABLE_TO_START);
         }
         if (startUs > resolvedEndUs) {
           throw new IllegalClippingException(IllegalClippingException.REASON_START_EXCEEDS_END);
@@ -347,9 +348,9 @@ public final class ClippingMediaSource extends CompositeMediaSource<Void> {
       window.durationUs = durationUs;
       window.isDynamic = isDynamic;
       if (window.defaultPositionUs != C.TIME_UNSET) {
-        window.defaultPositionUs = Math.max(window.defaultPositionUs, startUs);
-        window.defaultPositionUs = endUs == C.TIME_UNSET ? window.defaultPositionUs
-            : Math.min(window.defaultPositionUs, endUs);
+        window.defaultPositionUs = max(window.defaultPositionUs, startUs);
+        window.defaultPositionUs =
+            endUs == C.TIME_UNSET ? window.defaultPositionUs : min(window.defaultPositionUs, endUs);
         window.defaultPositionUs -= startUs;
       }
       long startMs = C.usToMs(startUs);

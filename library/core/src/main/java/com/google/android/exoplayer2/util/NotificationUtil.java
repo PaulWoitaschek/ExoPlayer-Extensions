@@ -15,6 +15,8 @@
  */
 package com.google.android.exoplayer2.util;
 
+import static com.google.android.exoplayer2.util.Assertions.checkNotNull;
+
 import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -61,14 +63,6 @@ public final class NotificationUtil {
   /** @see NotificationManager#IMPORTANCE_HIGH */
   public static final int IMPORTANCE_HIGH = NotificationManager.IMPORTANCE_HIGH;
 
-  /** @deprecated Use {@link #createNotificationChannel(Context, String, int, int, int)}. */
-  @Deprecated
-  public static void createNotificationChannel(
-      Context context, String id, @StringRes int nameResourceId, @Importance int importance) {
-    createNotificationChannel(
-        context, id, nameResourceId, /* descriptionResourceId= */ 0, importance);
-  }
-
   /**
    * Creates a notification channel that notifications can be posted to. See {@link
    * NotificationChannel} and {@link
@@ -99,7 +93,8 @@ public final class NotificationUtil {
       @Importance int importance) {
     if (Util.SDK_INT >= 26) {
       NotificationManager notificationManager =
-          (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+          checkNotNull(
+              (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE));
       NotificationChannel channel =
           new NotificationChannel(id, context.getString(nameResourceId), importance);
       if (descriptionResourceId != 0) {
@@ -122,7 +117,7 @@ public final class NotificationUtil {
    */
   public static void setNotification(Context context, int id, @Nullable Notification notification) {
     NotificationManager notificationManager =
-        (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        checkNotNull((NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE));
     if (notification != null) {
       notificationManager.notify(id, notification);
     } else {

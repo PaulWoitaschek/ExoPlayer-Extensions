@@ -15,20 +15,26 @@
  */
 package com.google.android.exoplayer2.ext.okhttp;
 
+import static com.google.android.exoplayer2.upstream.HttpUtil.buildRangeRequestHeader;
 import static com.google.android.exoplayer2.util.Util.castNonNull;
+import static java.lang.Math.min;
 
 import android.net.Uri;
 import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlayerLibraryInfo;
 import com.google.android.exoplayer2.upstream.BaseDataSource;
+import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DataSourceException;
 import com.google.android.exoplayer2.upstream.DataSpec;
 import com.google.android.exoplayer2.upstream.HttpDataSource;
+import com.google.android.exoplayer2.upstream.HttpUtil;
+import com.google.android.exoplayer2.upstream.TransferListener;
 import com.google.android.exoplayer2.util.Assertions;
-import com.google.android.exoplayer2.util.Predicate;
 import com.google.android.exoplayer2.util.Util;
-import java.io.EOFException;
+import com.google.common.base.Ascii;
+import com.google.common.base.Predicate;
+import com.google.common.net.HttpHeaders;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
@@ -40,6 +46,7 @@ import okhttp3.CacheControl;
 import okhttp3.Call;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
@@ -58,7 +65,111 @@ public class OkHttpDataSource extends BaseDataSource implements HttpDataSource {
     ExoPlayerLibraryInfo.registerModule("goog.exo.okhttp");
   }
 
-  private static final byte[] SKIP_BUFFER = new byte[4096];
+  /** {@link DataSource.Factory} for {@link OkHttpDataSource} instances. */
+  public static final class Factory implements HttpDataSource.Factory {
+
+    private final RequestProperties defaultRequestProperties;
+    private final Call.Factory callFactory;
+
+    @Nullable private String userAgent;
+    @Nullable private TransferListener transferListener;
+    @Nullable private CacheControl cacheControl;
+    @Nullable private Predicate<String> contentTypePredicate;
+
+    /**
+     * Creates an instance.
+     *
+     * @param callFactory A {@link Call.Factory} (typically an {@link OkHttpClient}) for use by the
+     *     sources created by the factory.
+     */
+    public Factory(Call.Factory callFactory) {
+      this.callFactory = callFactory;
+      defaultRequestProperties = new RequestProperties();
+    }
+
+    /** @deprecated Use {@link #setDefaultRequestProperties(Map)} instead. */
+    @Deprecated
+    @Override
+    public final RequestProperties getDefaultRequestProperties() {
+      return defaultRequestProperties;
+    }
+
+    @Override
+    public final Factory setDefaultRequestProperties(Map<String, String> defaultRequestProperties) {
+      this.defaultRequestProperties.clearAndSet(defaultRequestProperties);
+      return this;
+    }
+
+    /**
+     * Sets the user agent that will be used.
+     *
+     * <p>The default is {@code null}, which causes the default user agent of the underlying {@link
+     * OkHttpClient} to be used.
+     *
+     * @param userAgent The user agent that will be used, or {@code null} to use the default user
+     *     agent of the underlying {@link OkHttpClient}.
+     * @return This factory.
+     */
+    public Factory setUserAgent(@Nullable String userAgent) {
+      this.userAgent = userAgent;
+      return this;
+    }
+
+    /**
+     * Sets the {@link CacheControl} that will be used.
+     *
+     * <p>The default is {@code null}.
+     *
+     * @param cacheControl The cache control that will be used.
+     * @return This factory.
+     */
+    public Factory setCacheControl(@Nullable CacheControl cacheControl) {
+      this.cacheControl = cacheControl;
+      return this;
+    }
+
+    /**
+     * Sets a content type {@link Predicate}. If a content type is rejected by the predicate then a
+     * {@link HttpDataSource.InvalidContentTypeException} is thrown from {@link
+     * OkHttpDataSource#open(DataSpec)}.
+     *
+     * <p>The default is {@code null}.
+     *
+     * @param contentTypePredicate The content type {@link Predicate}, or {@code null} to clear a
+     *     predicate that was previously set.
+     * @return This factory.
+     */
+    public Factory setContentTypePredicate(@Nullable Predicate<String> contentTypePredicate) {
+      this.contentTypePredicate = contentTypePredicate;
+      return this;
+    }
+
+    /**
+     * Sets the {@link TransferListener} that will be used.
+     *
+     * <p>The default is {@code null}.
+     *
+     * <p>See {@link DataSource#addTransferListener(TransferListener)}.
+     *
+     * @param transferListener The listener that will be used.
+     * @return This factory.
+     */
+    public Factory setTransferListener(@Nullable TransferListener transferListener) {
+      this.transferListener = transferListener;
+      return this;
+    }
+
+    @Override
+    public OkHttpDataSource createDataSource() {
+      OkHttpDataSource dataSource =
+          new OkHttpDataSource(
+              callFactory, userAgent, cacheControl, defaultRequestProperties, contentTypePredicate);
+      if (transferListener != null) {
+        dataSource.addTransferListener(transferListener);
+      }
+      return dataSource;
+    }
+  }
 
   private final Call.Factory callFactory;
   private final RequestProperties requestProperties;
@@ -72,102 +183,57 @@ public class OkHttpDataSource extends BaseDataSource implements HttpDataSource {
   @Nullable private Response response;
   @Nullable private InputStream responseByteStream;
   private boolean opened;
-
-  private long bytesToSkip;
   private long bytesToRead;
-
-  private long bytesSkipped;
   private long bytesRead;
 
-  /**
-   * @param callFactory A {@link Call.Factory} (typically an {@link okhttp3.OkHttpClient}) for use
-   *     by the source.
-   * @param userAgent An optional User-Agent string.
-   */
+  /** @deprecated Use {@link OkHttpDataSource.Factory} instead. */
+  @SuppressWarnings("deprecation")
+  @Deprecated
+  public OkHttpDataSource(Call.Factory callFactory) {
+    this(callFactory, /* userAgent= */ null);
+  }
+
+  /** @deprecated Use {@link OkHttpDataSource.Factory} instead. */
+  @SuppressWarnings("deprecation")
+  @Deprecated
   public OkHttpDataSource(Call.Factory callFactory, @Nullable String userAgent) {
     this(callFactory, userAgent, /* cacheControl= */ null, /* defaultRequestProperties= */ null);
   }
 
-  /**
-   * @param callFactory A {@link Call.Factory} (typically an {@link okhttp3.OkHttpClient}) for use
-   *     by the source.
-   * @param userAgent An optional User-Agent string.
-   * @param cacheControl An optional {@link CacheControl} for setting the Cache-Control header.
-   * @param defaultRequestProperties Optional default {@link RequestProperties} to be sent to the
-   *     server as HTTP headers on every request.
-   */
+  /** @deprecated Use {@link OkHttpDataSource.Factory} instead. */
+  @Deprecated
   public OkHttpDataSource(
       Call.Factory callFactory,
       @Nullable String userAgent,
       @Nullable CacheControl cacheControl,
       @Nullable RequestProperties defaultRequestProperties) {
-    super(/* isNetwork= */ true);
-    this.callFactory = Assertions.checkNotNull(callFactory);
-    this.userAgent = userAgent;
-    this.cacheControl = cacheControl;
-    this.defaultRequestProperties = defaultRequestProperties;
-    this.requestProperties = new RequestProperties();
-  }
-
-  /**
-   * @param callFactory A {@link Call.Factory} (typically an {@link okhttp3.OkHttpClient}) for use
-   *     by the source.
-   * @param userAgent An optional User-Agent string.
-   * @param contentTypePredicate An optional {@link Predicate}. If a content type is rejected by the
-   *     predicate then a {@link InvalidContentTypeException} is thrown from {@link
-   *     #open(DataSpec)}.
-   * @deprecated Use {@link #OkHttpDataSource(Call.Factory, String)} and {@link
-   *     #setContentTypePredicate(Predicate)}.
-   */
-  @Deprecated
-  public OkHttpDataSource(
-      Call.Factory callFactory,
-      @Nullable String userAgent,
-      @Nullable Predicate<String> contentTypePredicate) {
     this(
         callFactory,
         userAgent,
-        contentTypePredicate,
-        /* cacheControl= */ null,
-        /* defaultRequestProperties= */ null);
+        cacheControl,
+        defaultRequestProperties,
+        /* contentTypePredicate= */ null);
   }
 
-  /**
-   * @param callFactory A {@link Call.Factory} (typically an {@link okhttp3.OkHttpClient}) for use
-   *     by the source.
-   * @param userAgent An optional User-Agent string.
-   * @param contentTypePredicate An optional {@link Predicate}. If a content type is rejected by the
-   *     predicate then a {@link InvalidContentTypeException} is thrown from {@link
-   *     #open(DataSpec)}.
-   * @param cacheControl An optional {@link CacheControl} for setting the Cache-Control header.
-   * @param defaultRequestProperties Optional default {@link RequestProperties} to be sent to the
-   *     server as HTTP headers on every request.
-   * @deprecated Use {@link #OkHttpDataSource(Call.Factory, String, CacheControl,
-   *     RequestProperties)} and {@link #setContentTypePredicate(Predicate)}.
-   */
-  @Deprecated
-  public OkHttpDataSource(
+  private OkHttpDataSource(
       Call.Factory callFactory,
       @Nullable String userAgent,
-      @Nullable Predicate<String> contentTypePredicate,
       @Nullable CacheControl cacheControl,
-      @Nullable RequestProperties defaultRequestProperties) {
+      @Nullable RequestProperties defaultRequestProperties,
+      @Nullable Predicate<String> contentTypePredicate) {
     super(/* isNetwork= */ true);
     this.callFactory = Assertions.checkNotNull(callFactory);
     this.userAgent = userAgent;
-    this.contentTypePredicate = contentTypePredicate;
     this.cacheControl = cacheControl;
     this.defaultRequestProperties = defaultRequestProperties;
+    this.contentTypePredicate = contentTypePredicate;
     this.requestProperties = new RequestProperties();
   }
 
   /**
-   * Sets a content type {@link Predicate}. If a content type is rejected by the predicate then a
-   * {@link HttpDataSource.InvalidContentTypeException} is thrown from {@link #open(DataSpec)}.
-   *
-   * @param contentTypePredicate The content type {@link Predicate}, or {@code null} to clear a
-   *     predicate that was previously set.
+   * @deprecated Use {@link OkHttpDataSource.Factory#setContentTypePredicate(Predicate)} instead.
    */
+  @Deprecated
   public void setContentTypePredicate(@Nullable Predicate<String> contentTypePredicate) {
     this.contentTypePredicate = contentTypePredicate;
   }
@@ -209,8 +275,8 @@ public class OkHttpDataSource extends BaseDataSource implements HttpDataSource {
   @Override
   public long open(DataSpec dataSpec) throws HttpDataSourceException {
     this.dataSpec = dataSpec;
-    this.bytesRead = 0;
-    this.bytesSkipped = 0;
+    bytesRead = 0;
+    bytesToRead = 0;
     transferInitializing(dataSpec);
 
     Request request = makeRequest(dataSpec);
@@ -222,18 +288,40 @@ public class OkHttpDataSource extends BaseDataSource implements HttpDataSource {
       responseBody = Assertions.checkNotNull(response.body());
       responseByteStream = responseBody.byteStream();
     } catch (IOException e) {
+      @Nullable String message = e.getMessage();
+      if (message != null
+          && Ascii.toLowerCase(message).matches("cleartext communication.*not permitted.*")) {
+        throw new CleartextNotPermittedException(e, dataSpec);
+      }
       throw new HttpDataSourceException(
-          "Unable to connect to " + dataSpec.uri, e, dataSpec, HttpDataSourceException.TYPE_OPEN);
+          "Unable to connect", e, dataSpec, HttpDataSourceException.TYPE_OPEN);
     }
 
     int responseCode = response.code();
 
     // Check for a valid response code.
     if (!response.isSuccessful()) {
+      if (responseCode == 416) {
+        long documentSize =
+            HttpUtil.getDocumentSize(response.headers().get(HttpHeaders.CONTENT_RANGE));
+        if (dataSpec.position == documentSize) {
+          opened = true;
+          transferStarted(dataSpec);
+          return dataSpec.length != C.LENGTH_UNSET ? dataSpec.length : 0;
+        }
+      }
+
+      byte[] errorResponseBody;
+      try {
+        errorResponseBody = Util.toByteArray(Assertions.checkNotNull(responseByteStream));
+      } catch (IOException e) {
+        errorResponseBody = Util.EMPTY_BYTE_ARRAY;
+      }
       Map<String, List<String>> headers = response.headers().toMultimap();
       closeConnectionQuietly();
       InvalidResponseCodeException exception =
-          new InvalidResponseCodeException(responseCode, response.message(), headers, dataSpec);
+          new InvalidResponseCodeException(
+              responseCode, response.message(), headers, dataSpec, errorResponseBody);
       if (responseCode == 416) {
         exception.initCause(new DataSourceException(DataSourceException.POSITION_OUT_OF_RANGE));
       }
@@ -241,9 +329,9 @@ public class OkHttpDataSource extends BaseDataSource implements HttpDataSource {
     }
 
     // Check for a valid content type.
-    MediaType mediaType = responseBody.contentType();
+    @Nullable MediaType mediaType = responseBody.contentType();
     String contentType = mediaType != null ? mediaType.toString() : "";
-    if (contentTypePredicate != null && !contentTypePredicate.evaluate(contentType)) {
+    if (contentTypePredicate != null && !contentTypePredicate.apply(contentType)) {
       closeConnectionQuietly();
       throw new InvalidContentTypeException(contentType, dataSpec);
     }
@@ -251,7 +339,7 @@ public class OkHttpDataSource extends BaseDataSource implements HttpDataSource {
     // If we requested a range starting from a non-zero position and received a 200 rather than a
     // 206, then the server does not support partial requests. We'll need to manually skip to the
     // requested position.
-    bytesToSkip = responseCode == 200 && dataSpec.position != 0 ? dataSpec.position : 0;
+    long bytesToSkip = responseCode == 200 && dataSpec.position != 0 ? dataSpec.position : 0;
 
     // Determine the length of the data to be read, after skipping.
     if (dataSpec.length != C.LENGTH_UNSET) {
@@ -264,13 +352,21 @@ public class OkHttpDataSource extends BaseDataSource implements HttpDataSource {
     opened = true;
     transferStarted(dataSpec);
 
+    try {
+      if (!skipFully(bytesToSkip)) {
+        throw new DataSourceException(DataSourceException.POSITION_OUT_OF_RANGE);
+      }
+    } catch (IOException e) {
+      closeConnectionQuietly();
+      throw new HttpDataSourceException(e, dataSpec, HttpDataSourceException.TYPE_OPEN);
+    }
+
     return bytesToRead;
   }
 
   @Override
   public int read(byte[] buffer, int offset, int readLength) throws HttpDataSourceException {
     try {
-      skipInternal();
       return readInternal(buffer, offset, readLength);
     } catch (IOException e) {
       throw new HttpDataSourceException(
@@ -287,44 +383,12 @@ public class OkHttpDataSource extends BaseDataSource implements HttpDataSource {
     }
   }
 
-  /**
-   * Returns the number of bytes that have been skipped since the most recent call to
-   * {@link #open(DataSpec)}.
-   *
-   * @return The number of bytes skipped.
-   */
-  protected final long bytesSkipped() {
-    return bytesSkipped;
-  }
-
-  /**
-   * Returns the number of bytes that have been read since the most recent call to
-   * {@link #open(DataSpec)}.
-   *
-   * @return The number of bytes read.
-   */
-  protected final long bytesRead() {
-    return bytesRead;
-  }
-
-  /**
-   * Returns the number of bytes that are still to be read for the current {@link DataSpec}.
-   * <p>
-   * If the total length of the data being read is known, then this length minus {@code bytesRead()}
-   * is returned. If the total length is unknown, {@link C#LENGTH_UNSET} is returned.
-   *
-   * @return The remaining length, or {@link C#LENGTH_UNSET}.
-   */
-  protected final long bytesRemaining() {
-    return bytesToRead == C.LENGTH_UNSET ? bytesToRead : bytesToRead - bytesRead;
-  }
-
   /** Establishes a connection. */
   private Request makeRequest(DataSpec dataSpec) throws HttpDataSourceException {
     long position = dataSpec.position;
     long length = dataSpec.length;
 
-    HttpUrl url = HttpUrl.parse(dataSpec.uri.toString());
+    @Nullable HttpUrl url = HttpUrl.parse(dataSpec.uri.toString());
     if (url == null) {
       throw new HttpDataSourceException(
           "Malformed URL", dataSpec, HttpDataSourceException.TYPE_OPEN);
@@ -347,21 +411,18 @@ public class OkHttpDataSource extends BaseDataSource implements HttpDataSource {
       builder.header(header.getKey(), header.getValue());
     }
 
-    if (!(position == 0 && length == C.LENGTH_UNSET)) {
-      String rangeRequest = "bytes=" + position + "-";
-      if (length != C.LENGTH_UNSET) {
-        rangeRequest += (position + length - 1);
-      }
-      builder.addHeader("Range", rangeRequest);
+    @Nullable String rangeHeader = buildRangeRequestHeader(position, length);
+    if (rangeHeader != null) {
+      builder.addHeader(HttpHeaders.RANGE, rangeHeader);
     }
     if (userAgent != null) {
-      builder.addHeader("User-Agent", userAgent);
+      builder.addHeader(HttpHeaders.USER_AGENT, userAgent);
     }
     if (!dataSpec.isFlagSet(DataSpec.FLAG_ALLOW_GZIP)) {
-      builder.addHeader("Accept-Encoding", "identity");
+      builder.addHeader(HttpHeaders.ACCEPT_ENCODING, "identity");
     }
 
-    RequestBody requestBody = null;
+    @Nullable RequestBody requestBody = null;
     if (dataSpec.httpBody != null) {
       requestBody = RequestBody.create(null, dataSpec.httpBody);
     } else if (dataSpec.httpMethod == DataSpec.HTTP_METHOD_POST) {
@@ -373,30 +434,32 @@ public class OkHttpDataSource extends BaseDataSource implements HttpDataSource {
   }
 
   /**
-   * Skips any bytes that need skipping. Else does nothing.
-   * <p>
-   * This implementation is based roughly on {@code libcore.io.Streams.skipByReading()}.
+   * Attempts to skip the specified number of bytes in full.
    *
+   * @param bytesToSkip The number of bytes to skip.
    * @throws InterruptedIOException If the thread is interrupted during the operation.
-   * @throws EOFException If the end of the input stream is reached before the bytes are skipped.
+   * @throws IOException If an error occurs reading from the source.
+   * @return Whether the bytes were skipped in full. If {@code false} then the data ended before the
+   *     specified number of bytes were skipped. Always {@code true} if {@code bytesToSkip == 0}.
    */
-  private void skipInternal() throws IOException {
-    if (bytesSkipped == bytesToSkip) {
-      return;
+  private boolean skipFully(long bytesToSkip) throws IOException {
+    if (bytesToSkip == 0) {
+      return true;
     }
-
-    while (bytesSkipped != bytesToSkip) {
-      int readLength = (int) Math.min(bytesToSkip - bytesSkipped, SKIP_BUFFER.length);
-      int read = castNonNull(responseByteStream).read(SKIP_BUFFER, 0, readLength);
+    byte[] skipBuffer = new byte[4096];
+    while (bytesToSkip > 0) {
+      int readLength = (int) min(bytesToSkip, skipBuffer.length);
+      int read = castNonNull(responseByteStream).read(skipBuffer, 0, readLength);
       if (Thread.currentThread().isInterrupted()) {
         throw new InterruptedIOException();
       }
       if (read == -1) {
-        throw new EOFException();
+        return false;
       }
-      bytesSkipped += read;
+      bytesToSkip -= read;
       bytesTransferred(read);
     }
+    return true;
   }
 
   /**
@@ -422,15 +485,11 @@ public class OkHttpDataSource extends BaseDataSource implements HttpDataSource {
       if (bytesRemaining == 0) {
         return C.RESULT_END_OF_INPUT;
       }
-      readLength = (int) Math.min(readLength, bytesRemaining);
+      readLength = (int) min(readLength, bytesRemaining);
     }
 
     int read = castNonNull(responseByteStream).read(buffer, offset, readLength);
     if (read == -1) {
-      if (bytesToRead != C.LENGTH_UNSET) {
-        // End of stream reached having not read sufficient data.
-        throw new EOFException();
-      }
       return C.RESULT_END_OF_INPUT;
     }
 

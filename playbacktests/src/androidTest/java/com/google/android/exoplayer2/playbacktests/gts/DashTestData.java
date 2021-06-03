@@ -20,8 +20,7 @@ import com.google.android.exoplayer2.util.Util;
 /** Test data for DASH tests. */
 /* package */ final class DashTestData {
 
-  private static final String BASE_URL =
-      "https://storage.googleapis.com/exoplayer-test-media-1/gen-4/";
+  private static final String BASE_URL = getBaseUrl();
 
   private static final String BASE_URL_SCREENS = BASE_URL + "screens/dash-vod-single-segment/";
   private static final String BASE_URL_COMMON_ENCRYPTION = BASE_URL + "common-encryption/";
@@ -45,8 +44,6 @@ import com.google.android.exoplayer2.util.Util;
 
   // Widevine encrypted content manifests using different common encryption schemes.
   public static final String WIDEVINE_SCHEME_CENC = BASE_URL_COMMON_ENCRYPTION + "tears-cenc.mpd";
-  public static final String WIDEVINE_SCHEME_CBC1 =
-      BASE_URL_COMMON_ENCRYPTION + "tears-aes-cbc1.mpd";
   public static final String WIDEVINE_SCHEME_CBCS =
       BASE_URL_COMMON_ENCRYPTION + "tears-aes-cbcs.mpd";
 
@@ -161,6 +158,10 @@ import com.google.android.exoplayer2.util.Util;
       return WIDEVINE_LICENSE_URL
           + (useL1Widevine ? WIDEVINE_HW_SECURE_DECODE_CONTENT_ID : WIDEVINE_SW_CRYPTO_CONTENT_ID);
     }
+  }
+
+  private static String getBaseUrl() {
+    return "https://storage.googleapis.com/exoplayer-test-media-1/gen-4/";
   }
 
   private DashTestData() {

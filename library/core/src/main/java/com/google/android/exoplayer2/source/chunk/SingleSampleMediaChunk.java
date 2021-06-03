@@ -15,6 +15,7 @@
  */
 package com.google.android.exoplayer2.source.chunk;
 
+import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.extractor.DefaultExtractorInput;
@@ -25,9 +26,7 @@ import com.google.android.exoplayer2.upstream.DataSpec;
 import com.google.android.exoplayer2.util.Util;
 import java.io.IOException;
 
-/**
- * A {@link BaseMediaChunk} for chunks consisting of a single raw sample.
- */
+/** A {@link BaseMediaChunk} for chunks consisting of a single raw sample. */
 public final class SingleSampleMediaChunk extends BaseMediaChunk {
 
   private final int trackType;
@@ -54,7 +53,7 @@ public final class SingleSampleMediaChunk extends BaseMediaChunk {
       DataSpec dataSpec,
       Format trackFormat,
       int trackSelectionReason,
-      Object trackSelectionData,
+      @Nullable Object trackSelectionData,
       long startTimeUs,
       long endTimeUs,
       long chunkIndex,
@@ -90,7 +89,7 @@ public final class SingleSampleMediaChunk extends BaseMediaChunk {
 
   @SuppressWarnings("NonAtomicVolatileUpdate")
   @Override
-  public void load() throws IOException, InterruptedException {
+  public void load() throws IOException {
     BaseMediaChunkOutput output = getOutput();
     output.setSampleOffsetUs(0);
     TrackOutput trackOutput = output.track(0, trackType);

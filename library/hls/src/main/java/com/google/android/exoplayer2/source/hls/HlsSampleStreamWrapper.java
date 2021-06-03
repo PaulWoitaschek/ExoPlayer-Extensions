@@ -15,8 +15,13 @@
  */
 package com.google.android.exoplayer2.source.hls;
 
+import static com.google.android.exoplayer2.source.hls.HlsChunkSource.CHUNK_PUBLICATION_STATE_PUBLISHED;
+import static com.google.android.exoplayer2.source.hls.HlsChunkSource.CHUNK_PUBLICATION_STATE_REMOVED;
+import static java.lang.Math.max;
+
 import android.net.Uri;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.SparseIntArray;
 import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.C;
@@ -26,10 +31,10 @@ import com.google.android.exoplayer2.ParserException;
 import com.google.android.exoplayer2.decoder.DecoderInputBuffer;
 import com.google.android.exoplayer2.drm.DrmInitData;
 import com.google.android.exoplayer2.drm.DrmSession;
+import com.google.android.exoplayer2.drm.DrmSessionEventListener;
 import com.google.android.exoplayer2.drm.DrmSessionManager;
 import com.google.android.exoplayer2.extractor.DummyTrackOutput;
 import com.google.android.exoplayer2.extractor.Extractor;
-import com.google.android.exoplayer2.extractor.ExtractorInput;
 import com.google.android.exoplayer2.extractor.ExtractorOutput;
 import com.google.android.exoplayer2.extractor.SeekMap;
 import com.google.android.exoplayer2.extractor.TrackOutput;
@@ -37,18 +42,24 @@ import com.google.android.exoplayer2.metadata.Metadata;
 import com.google.android.exoplayer2.metadata.emsg.EventMessage;
 import com.google.android.exoplayer2.metadata.emsg.EventMessageDecoder;
 import com.google.android.exoplayer2.metadata.id3.PrivFrame;
-import com.google.android.exoplayer2.source.MediaSourceEventListener.EventDispatcher;
+import com.google.android.exoplayer2.source.LoadEventInfo;
+import com.google.android.exoplayer2.source.MediaLoadData;
+import com.google.android.exoplayer2.source.MediaSourceEventListener;
 import com.google.android.exoplayer2.source.SampleQueue;
 import com.google.android.exoplayer2.source.SampleQueue.UpstreamFormatChangedListener;
 import com.google.android.exoplayer2.source.SampleStream;
+import com.google.android.exoplayer2.source.SampleStream.ReadFlags;
 import com.google.android.exoplayer2.source.SequenceableLoader;
 import com.google.android.exoplayer2.source.TrackGroup;
 import com.google.android.exoplayer2.source.TrackGroupArray;
 import com.google.android.exoplayer2.source.chunk.Chunk;
 import com.google.android.exoplayer2.source.chunk.MediaChunkIterator;
-import com.google.android.exoplayer2.trackselection.TrackSelection;
+import com.google.android.exoplayer2.trackselection.ExoTrackSelection;
 import com.google.android.exoplayer2.upstream.Allocator;
+import com.google.android.exoplayer2.upstream.DataReader;
+import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.upstream.LoadErrorHandlingPolicy;
+import com.google.android.exoplayer2.upstream.LoadErrorHandlingPolicy.LoadErrorInfo;
 import com.google.android.exoplayer2.upstream.Loader;
 import com.google.android.exoplayer2.upstream.Loader.LoadErrorAction;
 import com.google.android.exoplayer2.util.Assertions;
@@ -56,6 +67,8 @@ import com.google.android.exoplayer2.util.Log;
 import com.google.android.exoplayer2.util.MimeTypes;
 import com.google.android.exoplayer2.util.ParsableByteArray;
 import com.google.android.exoplayer2.util.Util;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import java.io.EOFException;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -113,10 +126,11 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
   private final HlsChunkSource chunkSource;
   private final Allocator allocator;
   @Nullable private final Format muxedAudioFormat;
-  private final DrmSessionManager<?> drmSessionManager;
+  private final DrmSessionManager drmSessionManager;
+  private final DrmSessionEventListener.EventDispatcher drmEventDispatcher;
   private final LoadErrorHandlingPolicy loadErrorHandlingPolicy;
   private final Loader loader;
-  private final EventDispatcher eventDispatcher;
+  private final MediaSourceEventListener.EventDispatcher mediaSourceEventDispatcher;
   private final @HlsMediaSource.MetadataType int metadataType;
   private final HlsChunkSource.HlsChunkHolder nextChunkHolder;
   private final ArrayList<HlsMediaChunk> mediaChunks;
@@ -128,24 +142,25 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
   private final ArrayList<HlsSampleStream> hlsSampleStreams;
   private final Map<String, DrmInitData> overridingDrmInitData;
 
-  private FormatAdjustingSampleQueue[] sampleQueues;
+  @Nullable private Chunk loadingChunk;
+  private HlsSampleQueue[] sampleQueues;
   private int[] sampleQueueTrackIds;
   private Set<Integer> sampleQueueMappingDoneByType;
   private SparseIntArray sampleQueueIndicesByType;
-  @MonotonicNonNull private TrackOutput emsgUnwrappingTrackOutput;
+  private @MonotonicNonNull TrackOutput emsgUnwrappingTrackOutput;
   private int primarySampleQueueType;
   private int primarySampleQueueIndex;
   private boolean sampleQueuesBuilt;
   private boolean prepared;
   private int enabledTrackGroupCount;
-  @MonotonicNonNull private Format upstreamTrackFormat;
+  private @MonotonicNonNull Format upstreamTrackFormat;
   @Nullable private Format downstreamTrackFormat;
   private boolean released;
 
   // Tracks are complicated in HLS. See documentation of buildTracksFromSampleStreams for details.
   // Indexed by track (as exposed by this source).
-  @MonotonicNonNull private TrackGroupArray trackGroups;
-  @MonotonicNonNull private Set<TrackGroup> optionalTrackGroups;
+  private @MonotonicNonNull TrackGroupArray trackGroups;
+  private @MonotonicNonNull Set<TrackGroup> optionalTrackGroups;
   // Indexed by track group.
   private int @MonotonicNonNull [] trackGroupToSampleQueueIndex;
   private int primaryTrackGroupIndex;
@@ -163,7 +178,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
   private boolean tracksEnded;
   private long sampleOffsetUs;
   @Nullable private DrmInitData drmInitData;
-  private int chunkUid;
+  @Nullable private HlsMediaChunk sourceChunk;
 
   /**
    * @param trackType The type of the track. One of the {@link C} {@code TRACK_TYPE_*} constants.
@@ -178,8 +193,10 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
    * @param muxedAudioFormat Optional muxed audio {@link Format} as defined by the master playlist.
    * @param drmSessionManager The {@link DrmSessionManager} to acquire {@link DrmSession
    *     DrmSessions} with.
+   * @param drmEventDispatcher A dispatcher to notify of {@link DrmSessionEventListener} events.
    * @param loadErrorHandlingPolicy A {@link LoadErrorHandlingPolicy}.
-   * @param eventDispatcher A dispatcher to notify of events.
+   * @param mediaSourceEventDispatcher A dispatcher to notify of {@link MediaSourceEventListener}
+   *     events.
    */
   public HlsSampleStreamWrapper(
       int trackType,
@@ -189,9 +206,10 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
       Allocator allocator,
       long positionUs,
       @Nullable Format muxedAudioFormat,
-      DrmSessionManager<?> drmSessionManager,
+      DrmSessionManager drmSessionManager,
+      DrmSessionEventListener.EventDispatcher drmEventDispatcher,
       LoadErrorHandlingPolicy loadErrorHandlingPolicy,
-      EventDispatcher eventDispatcher,
+      MediaSourceEventListener.EventDispatcher mediaSourceEventDispatcher,
       @HlsMediaSource.MetadataType int metadataType) {
     this.trackType = trackType;
     this.callback = callback;
@@ -200,15 +218,16 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
     this.allocator = allocator;
     this.muxedAudioFormat = muxedAudioFormat;
     this.drmSessionManager = drmSessionManager;
+    this.drmEventDispatcher = drmEventDispatcher;
     this.loadErrorHandlingPolicy = loadErrorHandlingPolicy;
-    this.eventDispatcher = eventDispatcher;
+    this.mediaSourceEventDispatcher = mediaSourceEventDispatcher;
     this.metadataType = metadataType;
     loader = new Loader("Loader:HlsSampleStreamWrapper");
     nextChunkHolder = new HlsChunkSource.HlsChunkHolder();
     sampleQueueTrackIds = new int[0];
     sampleQueueMappingDoneByType = new HashSet<>(MAPPABLE_TYPES.size());
     sampleQueueIndicesByType = new SparseIntArray(MAPPABLE_TYPES.size());
-    sampleQueues = new FormatAdjustingSampleQueue[0];
+    sampleQueues = new HlsSampleQueue[0];
     sampleQueueIsAudioVideoFlags = new boolean[0];
     sampleQueuesEnabledStates = new boolean[0];
     mediaChunks = new ArrayList<>();
@@ -221,7 +240,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
     @SuppressWarnings("nullness:methodref.receiver.bound.invalid")
     Runnable onTracksEndedRunnable = this::onTracksEnded;
     this.onTracksEndedRunnable = onTracksEndedRunnable;
-    handler = new Handler();
+    handler = Util.createHandlerForCurrentLooper();
     lastSeekPositionUs = positionUs;
     pendingResetPositionUs = positionUs;
   }
@@ -313,7 +332,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
    *     part of the track selection.
    */
   public boolean selectTracks(
-      @NullableType TrackSelection[] selections,
+      @NullableType ExoTrackSelection[] selections,
       boolean[] mayRetainStreamFlags,
       @NullableType SampleStream[] streams,
       boolean[] streamResetFlags,
@@ -340,11 +359,11 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
                 : positionUs != lastSeekPositionUs);
     // Get the old (i.e. current before the loop below executes) primary track selection. The new
     // primary selection will equal the old one unless it's changed in the loop.
-    TrackSelection oldPrimaryTrackSelection = chunkSource.getTrackSelection();
-    TrackSelection primaryTrackSelection = oldPrimaryTrackSelection;
+    ExoTrackSelection oldPrimaryTrackSelection = chunkSource.getTrackSelection();
+    ExoTrackSelection primaryTrackSelection = oldPrimaryTrackSelection;
     // Select new tracks.
     for (int i = 0; i < selections.length; i++) {
-      TrackSelection selection = selections[i];
+      ExoTrackSelection selection = selections[i];
       if (selection == null) {
         continue;
       }
@@ -475,12 +494,35 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
     loadingFinished = false;
     mediaChunks.clear();
     if (loader.isLoading()) {
+      if (sampleQueuesBuilt) {
+        // Discard as much as we can synchronously.
+        for (SampleQueue sampleQueue : sampleQueues) {
+          sampleQueue.discardToEnd();
+        }
+      }
       loader.cancelLoading();
     } else {
       loader.clearFatalError();
       resetSampleQueues();
     }
     return true;
+  }
+
+  /** Called when the playlist is updated. */
+  public void onPlaylistUpdated() {
+    if (mediaChunks.isEmpty()) {
+      return;
+    }
+    HlsMediaChunk lastMediaChunk = Iterables.getLast(mediaChunks);
+    @HlsChunkSource.ChunkPublicationState
+    int chunkState = chunkSource.getChunkPublicationState(lastMediaChunk);
+    if (chunkState == CHUNK_PUBLICATION_STATE_PUBLISHED) {
+      lastMediaChunk.publish();
+    } else if (chunkState == CHUNK_PUBLICATION_STATE_REMOVED
+        && !loadingFinished
+        && loader.isLoading()) {
+      loader.cancelLoading();
+    }
   }
 
   public void release() {
@@ -508,8 +550,8 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
     chunkSource.setIsTimestampMaster(isTimestampMaster);
   }
 
-  public boolean onPlaylistError(Uri playlistUrl, long blacklistDurationMs) {
-    return chunkSource.onPlaylistError(playlistUrl, blacklistDurationMs);
+  public boolean onPlaylistError(Uri playlistUrl, long exclusionDurationMs) {
+    return chunkSource.onPlaylistError(playlistUrl, exclusionDurationMs);
   }
 
   // SampleStream implementation.
@@ -528,8 +570,11 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
     chunkSource.maybeThrowError();
   }
 
-  public int readData(int sampleQueueIndex, FormatHolder formatHolder, DecoderInputBuffer buffer,
-      boolean requireFormat) {
+  public int readData(
+      int sampleQueueIndex,
+      FormatHolder formatHolder,
+      DecoderInputBuffer buffer,
+      @ReadFlags int readFlags) {
     if (isPendingReset()) {
       return C.RESULT_NOTHING_READ;
     }
@@ -545,16 +590,23 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
       HlsMediaChunk currentChunk = mediaChunks.get(0);
       Format trackFormat = currentChunk.trackFormat;
       if (!trackFormat.equals(downstreamTrackFormat)) {
-        eventDispatcher.downstreamFormatChanged(trackType, trackFormat,
-            currentChunk.trackSelectionReason, currentChunk.trackSelectionData,
+        mediaSourceEventDispatcher.downstreamFormatChanged(
+            trackType,
+            trackFormat,
+            currentChunk.trackSelectionReason,
+            currentChunk.trackSelectionData,
             currentChunk.startTimeUs);
       }
       downstreamTrackFormat = trackFormat;
     }
 
+    if (!mediaChunks.isEmpty() && !mediaChunks.get(0).isPublished()) {
+      // Don't read into preload chunks until we can be sure they are permanently published.
+      return C.RESULT_NOTHING_READ;
+    }
+
     int result =
-        sampleQueues[sampleQueueIndex].read(
-            formatHolder, buffer, requireFormat, loadingFinished, lastSeekPositionUs);
+        sampleQueues[sampleQueueIndex].read(formatHolder, buffer, readFlags, loadingFinished);
     if (result == C.RESULT_FORMAT_READ) {
       Format format = Assertions.checkNotNull(formatHolder.format);
       if (sampleQueueIndex == primarySampleQueueIndex) {
@@ -568,7 +620,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
             chunkIndex < mediaChunks.size()
                 ? mediaChunks.get(chunkIndex).trackFormat
                 : Assertions.checkNotNull(upstreamTrackFormat);
-        format = format.copyWithManifestFormatInfo(trackFormat);
+        format = format.withManifestFormatInfo(trackFormat);
       }
       formatHolder.format = format;
     }
@@ -581,11 +633,24 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
     }
 
     SampleQueue sampleQueue = sampleQueues[sampleQueueIndex];
-    if (loadingFinished && positionUs > sampleQueue.getLargestQueuedTimestampUs()) {
-      return sampleQueue.advanceToEnd();
-    } else {
-      return sampleQueue.advanceTo(positionUs);
+    int skipCount = sampleQueue.getSkipCount(positionUs, loadingFinished);
+
+    // Ensure we don't skip into preload chunks until we can be sure they are permanently published.
+    int readIndex = sampleQueue.getReadIndex();
+    for (int i = 0; i < mediaChunks.size(); i++) {
+      HlsMediaChunk mediaChunk = mediaChunks.get(i);
+      int firstSampleIndex = mediaChunks.get(i).getFirstSampleIndex(sampleQueueIndex);
+      if (readIndex + skipCount <= firstSampleIndex) {
+        break;
+      }
+      if (!mediaChunk.isPublished()) {
+        skipCount = firstSampleIndex - readIndex;
+        break;
+      }
     }
+
+    sampleQueue.skip(skipCount);
+    return skipCount;
   }
 
   // SequenceableLoader implementation
@@ -602,12 +667,11 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
       HlsMediaChunk lastCompletedMediaChunk = lastMediaChunk.isLoadCompleted() ? lastMediaChunk
           : mediaChunks.size() > 1 ? mediaChunks.get(mediaChunks.size() - 2) : null;
       if (lastCompletedMediaChunk != null) {
-        bufferedPositionUs = Math.max(bufferedPositionUs, lastCompletedMediaChunk.endTimeUs);
+        bufferedPositionUs = max(bufferedPositionUs, lastCompletedMediaChunk.endTimeUs);
       }
       if (sampleQueuesBuilt) {
         for (SampleQueue sampleQueue : sampleQueues) {
-          bufferedPositionUs =
-              Math.max(bufferedPositionUs, sampleQueue.getLargestQueuedTimestampUs());
+          bufferedPositionUs = max(bufferedPositionUs, sampleQueue.getLargestQueuedTimestampUs());
         }
       }
       return bufferedPositionUs;
@@ -634,13 +698,16 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
     if (isPendingReset()) {
       chunkQueue = Collections.emptyList();
       loadPositionUs = pendingResetPositionUs;
+      for (SampleQueue sampleQueue : sampleQueues) {
+        sampleQueue.setStartTimeUs(pendingResetPositionUs);
+      }
     } else {
       chunkQueue = readOnlyMediaChunks;
       HlsMediaChunk lastMediaChunk = getLastMediaChunk();
       loadPositionUs =
           lastMediaChunk.isLoadCompleted()
               ? lastMediaChunk.endTimeUs
-              : Math.max(lastSeekPositionUs, lastMediaChunk.startTimeUs);
+              : max(lastSeekPositionUs, lastMediaChunk.startTimeUs);
     }
     chunkSource.getNextChunk(
         positionUs,
@@ -649,8 +716,8 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
         /* allowEndOfStream= */ prepared || !chunkQueue.isEmpty(),
         nextChunkHolder);
     boolean endOfStream = nextChunkHolder.endOfStream;
-    Chunk loadable = nextChunkHolder.chunk;
-    Uri playlistUrlToLoad = nextChunkHolder.playlistUrl;
+    @Nullable Chunk loadable = nextChunkHolder.chunk;
+    @Nullable Uri playlistUrlToLoad = nextChunkHolder.playlistUrl;
     nextChunkHolder.clear();
 
     if (endOfStream) {
@@ -667,25 +734,21 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
     }
 
     if (isMediaChunk(loadable)) {
-      pendingResetPositionUs = C.TIME_UNSET;
-      HlsMediaChunk mediaChunk = (HlsMediaChunk) loadable;
-      mediaChunk.init(this);
-      mediaChunks.add(mediaChunk);
-      upstreamTrackFormat = mediaChunk.trackFormat;
+      initMediaChunkLoad((HlsMediaChunk) loadable);
     }
+    loadingChunk = loadable;
     long elapsedRealtimeMs =
         loader.startLoading(
             loadable, this, loadErrorHandlingPolicy.getMinimumLoadableRetryCount(loadable.type));
-    eventDispatcher.loadStarted(
-        loadable.dataSpec,
+    mediaSourceEventDispatcher.loadStarted(
+        new LoadEventInfo(loadable.loadTaskId, loadable.dataSpec, elapsedRealtimeMs),
         loadable.type,
         trackType,
         loadable.trackFormat,
         loadable.trackSelectionReason,
         loadable.trackSelectionData,
         loadable.startTimeUs,
-        loadable.endTimeUs,
-        elapsedRealtimeMs);
+        loadable.endTimeUs);
     return true;
   }
 
@@ -696,28 +759,59 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
   @Override
   public void reevaluateBuffer(long positionUs) {
-    // Do nothing.
+    if (loader.hasFatalError() || isPendingReset()) {
+      return;
+    }
+
+    if (loader.isLoading()) {
+      Assertions.checkNotNull(loadingChunk);
+      if (chunkSource.shouldCancelLoad(positionUs, loadingChunk, readOnlyMediaChunks)) {
+        loader.cancelLoading();
+      }
+      return;
+    }
+
+    int newQueueSize = readOnlyMediaChunks.size();
+    while (newQueueSize > 0
+        && chunkSource.getChunkPublicationState(readOnlyMediaChunks.get(newQueueSize - 1))
+            == CHUNK_PUBLICATION_STATE_REMOVED) {
+      newQueueSize--;
+    }
+    if (newQueueSize < readOnlyMediaChunks.size()) {
+      discardUpstream(newQueueSize);
+    }
+
+    int preferredQueueSize = chunkSource.getPreferredQueueSize(positionUs, readOnlyMediaChunks);
+    if (preferredQueueSize < mediaChunks.size()) {
+      discardUpstream(preferredQueueSize);
+    }
   }
 
   // Loader.Callback implementation.
 
   @Override
   public void onLoadCompleted(Chunk loadable, long elapsedRealtimeMs, long loadDurationMs) {
+    loadingChunk = null;
     chunkSource.onChunkLoadCompleted(loadable);
-    eventDispatcher.loadCompleted(
-        loadable.dataSpec,
-        loadable.getUri(),
-        loadable.getResponseHeaders(),
+    LoadEventInfo loadEventInfo =
+        new LoadEventInfo(
+            loadable.loadTaskId,
+            loadable.dataSpec,
+            loadable.getUri(),
+            loadable.getResponseHeaders(),
+            elapsedRealtimeMs,
+            loadDurationMs,
+            loadable.bytesLoaded());
+    loadErrorHandlingPolicy.onLoadTaskConcluded(loadable.loadTaskId);
+    mediaSourceEventDispatcher.loadCompleted(
+        loadEventInfo,
         loadable.type,
         trackType,
         loadable.trackFormat,
         loadable.trackSelectionReason,
         loadable.trackSelectionData,
         loadable.startTimeUs,
-        loadable.endTimeUs,
-        elapsedRealtimeMs,
-        loadDurationMs,
-        loadable.bytesLoaded());
+        loadable.endTimeUs);
     if (!prepared) {
       continueLoading(lastSeekPositionUs);
     } else {
@@ -726,24 +820,32 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
   }
 
   @Override
-  public void onLoadCanceled(Chunk loadable, long elapsedRealtimeMs, long loadDurationMs,
-      boolean released) {
-    eventDispatcher.loadCanceled(
-        loadable.dataSpec,
-        loadable.getUri(),
-        loadable.getResponseHeaders(),
+  public void onLoadCanceled(
+      Chunk loadable, long elapsedRealtimeMs, long loadDurationMs, boolean released) {
+    loadingChunk = null;
+    LoadEventInfo loadEventInfo =
+        new LoadEventInfo(
+            loadable.loadTaskId,
+            loadable.dataSpec,
+            loadable.getUri(),
+            loadable.getResponseHeaders(),
+            elapsedRealtimeMs,
+            loadDurationMs,
+            loadable.bytesLoaded());
+    loadErrorHandlingPolicy.onLoadTaskConcluded(loadable.loadTaskId);
+    mediaSourceEventDispatcher.loadCanceled(
+        loadEventInfo,
         loadable.type,
         trackType,
         loadable.trackFormat,
         loadable.trackSelectionReason,
         loadable.trackSelectionData,
         loadable.startTimeUs,
-        loadable.endTimeUs,
-        elapsedRealtimeMs,
-        loadDurationMs,
-        loadable.bytesLoaded());
+        loadable.endTimeUs);
     if (!released) {
-      resetSampleQueues();
+      if (isPendingReset() || enabledTrackGroupCount == 0) {
+        resetSampleQueues();
+      }
       if (enabledTrackGroupCount > 0) {
         callback.onContinueLoadingRequested(this);
       }
@@ -757,41 +859,68 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
       long loadDurationMs,
       IOException error,
       int errorCount) {
-    long bytesLoaded = loadable.bytesLoaded();
     boolean isMediaChunk = isMediaChunk(loadable);
-    boolean blacklistSucceeded = false;
+    if (isMediaChunk
+        && !((HlsMediaChunk) loadable).isPublished()
+        && error instanceof HttpDataSource.InvalidResponseCodeException) {
+      int responseCode = ((HttpDataSource.InvalidResponseCodeException) error).responseCode;
+      if (responseCode == 410 || responseCode == 404) {
+        // According to RFC 8216, Section 6.2.6 a server should respond with an HTTP 404 (Not found)
+        // for requests of hinted parts that are replaced and not available anymore. We've seen test
+        // streams with HTTP 410 (Gone) also.
+        return Loader.RETRY;
+      }
+    }
+    long bytesLoaded = loadable.bytesLoaded();
+    boolean exclusionSucceeded = false;
+    LoadEventInfo loadEventInfo =
+        new LoadEventInfo(
+            loadable.loadTaskId,
+            loadable.dataSpec,
+            loadable.getUri(),
+            loadable.getResponseHeaders(),
+            elapsedRealtimeMs,
+            loadDurationMs,
+            bytesLoaded);
+    MediaLoadData mediaLoadData =
+        new MediaLoadData(
+            loadable.type,
+            trackType,
+            loadable.trackFormat,
+            loadable.trackSelectionReason,
+            loadable.trackSelectionData,
+            C.usToMs(loadable.startTimeUs),
+            C.usToMs(loadable.endTimeUs));
+    LoadErrorInfo loadErrorInfo =
+        new LoadErrorInfo(loadEventInfo, mediaLoadData, error, errorCount);
     LoadErrorAction loadErrorAction;
-
-    long blacklistDurationMs =
-        loadErrorHandlingPolicy.getBlacklistDurationMsFor(
-            loadable.type, loadDurationMs, error, errorCount);
-    if (blacklistDurationMs != C.TIME_UNSET) {
-      blacklistSucceeded = chunkSource.maybeBlacklistTrack(loadable, blacklistDurationMs);
+    long exclusionDurationMs = loadErrorHandlingPolicy.getBlacklistDurationMsFor(loadErrorInfo);
+    if (exclusionDurationMs != C.TIME_UNSET) {
+      exclusionSucceeded = chunkSource.maybeExcludeTrack(loadable, exclusionDurationMs);
     }
 
-    if (blacklistSucceeded) {
+    if (exclusionSucceeded) {
       if (isMediaChunk && bytesLoaded == 0) {
         HlsMediaChunk removed = mediaChunks.remove(mediaChunks.size() - 1);
         Assertions.checkState(removed == loadable);
         if (mediaChunks.isEmpty()) {
           pendingResetPositionUs = lastSeekPositionUs;
+        } else {
+          Iterables.getLast(mediaChunks).invalidateExtractor();
         }
       }
       loadErrorAction = Loader.DONT_RETRY;
-    } else /* did not blacklist */ {
-      long retryDelayMs =
-          loadErrorHandlingPolicy.getRetryDelayMsFor(
-              loadable.type, loadDurationMs, error, errorCount);
+    } else /* did not exclude */ {
+      long retryDelayMs = loadErrorHandlingPolicy.getRetryDelayMsFor(loadErrorInfo);
       loadErrorAction =
           retryDelayMs != C.TIME_UNSET
               ? Loader.createRetryAction(/* resetErrorCount= */ false, retryDelayMs)
               : Loader.DONT_RETRY_FATAL;
     }
 
-    eventDispatcher.loadError(
-        loadable.dataSpec,
-        loadable.getUri(),
-        loadable.getResponseHeaders(),
+    boolean wasCanceled = !loadErrorAction.isRetry();
+    mediaSourceEventDispatcher.loadError(
+        loadEventInfo,
         loadable.type,
         trackType,
         loadable.trackFormat,
@@ -799,13 +928,14 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
         loadable.trackSelectionData,
         loadable.startTimeUs,
         loadable.endTimeUs,
-        elapsedRealtimeMs,
-        loadDurationMs,
-        bytesLoaded,
         error,
-        /* wasCanceled= */ !loadErrorAction.isRetry());
+        wasCanceled);
+    if (wasCanceled) {
+      loadingChunk = null;
+      loadErrorHandlingPolicy.onLoadTaskConcluded(loadable.loadTaskId);
+    }
 
-    if (blacklistSucceeded) {
+    if (exclusionSucceeded) {
       if (!prepared) {
         continueLoading(lastSeekPositionUs);
       } else {
@@ -818,22 +948,53 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
   // Called by the consuming thread, but only when there is no loading thread.
 
   /**
-   * Initializes the wrapper for loading a chunk.
+   * Performs initialization for a media chunk that's about to start loading.
    *
-   * @param chunkUid The chunk's uid.
-   * @param shouldSpliceIn Whether the samples parsed from the chunk should be spliced into any
-   *     samples already queued to the wrapper.
+   * @param chunk The media chunk that's about to start loading.
    */
-  public void init(int chunkUid, boolean shouldSpliceIn) {
-    this.chunkUid = chunkUid;
+  private void initMediaChunkLoad(HlsMediaChunk chunk) {
+    sourceChunk = chunk;
+    upstreamTrackFormat = chunk.trackFormat;
+    pendingResetPositionUs = C.TIME_UNSET;
+    mediaChunks.add(chunk);
+    ImmutableList.Builder<Integer> sampleQueueWriteIndicesBuilder = ImmutableList.builder();
     for (SampleQueue sampleQueue : sampleQueues) {
-      sampleQueue.sourceId(chunkUid);
+      sampleQueueWriteIndicesBuilder.add(sampleQueue.getWriteIndex());
     }
-    if (shouldSpliceIn) {
-      for (SampleQueue sampleQueue : sampleQueues) {
+    chunk.init(/* output= */ this, sampleQueueWriteIndicesBuilder.build());
+    for (HlsSampleQueue sampleQueue : sampleQueues) {
+      sampleQueue.setSourceChunk(chunk);
+      if (chunk.shouldSpliceIn) {
         sampleQueue.splice();
       }
     }
+  }
+
+  private void discardUpstream(int preferredQueueSize) {
+    Assertions.checkState(!loader.isLoading());
+
+    int newQueueSize = C.LENGTH_UNSET;
+    for (int i = preferredQueueSize; i < mediaChunks.size(); i++) {
+      if (canDiscardUpstreamMediaChunksFromIndex(i)) {
+        newQueueSize = i;
+        break;
+      }
+    }
+    if (newQueueSize == C.LENGTH_UNSET) {
+      return;
+    }
+
+    long endTimeUs = getLastMediaChunk().endTimeUs;
+    HlsMediaChunk firstRemovedChunk = discardUpstreamMediaChunksFromIndex(newQueueSize);
+    if (mediaChunks.isEmpty()) {
+      pendingResetPositionUs = lastSeekPositionUs;
+    } else {
+      Iterables.getLast(mediaChunks).invalidateExtractor();
+    }
+    loadingFinished = false;
+
+    mediaSourceEventDispatcher.upstreamDiscarded(
+        primarySampleQueueType, firstRemovedChunk.startTimeUs, endTimeUs);
   }
 
   // ExtractorOutput implementation. Called by the loading thread.
@@ -855,7 +1016,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
     if (trackOutput == null) {
       if (tracksEnded) {
-        return createDummyTrackOutput(id, type);
+        return createFakeTrackOutput(id, type);
       } else {
         // The relevant SampleQueue hasn't been constructed yet - so construct it.
         trackOutput = createSampleQueue(id, type);
@@ -884,7 +1045,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
    *
    * @param id The ID of the track.
    * @param type The type of the track, must be one of {@link #MAPPABLE_TYPES}.
-   * @return The the mapped {@link TrackOutput}, or null if it's not been created yet.
+   * @return The mapped {@link TrackOutput}, or null if it's not been created yet.
    */
   @Nullable
   private TrackOutput getMappedTrackOutput(int id, int type) {
@@ -899,24 +1060,32 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
     }
     return sampleQueueTrackIds[sampleQueueIndex] == id
         ? sampleQueues[sampleQueueIndex]
-        : createDummyTrackOutput(id, type);
+        : createFakeTrackOutput(id, type);
   }
 
   private SampleQueue createSampleQueue(int id, int type) {
     int trackCount = sampleQueues.length;
 
     boolean isAudioVideo = type == C.TRACK_TYPE_AUDIO || type == C.TRACK_TYPE_VIDEO;
-    FormatAdjustingSampleQueue trackOutput =
-        new FormatAdjustingSampleQueue(allocator, drmSessionManager, overridingDrmInitData);
+    HlsSampleQueue sampleQueue =
+        new HlsSampleQueue(
+            allocator,
+            /* playbackLooper= */ handler.getLooper(),
+            drmSessionManager,
+            drmEventDispatcher,
+            overridingDrmInitData);
+    sampleQueue.setStartTimeUs(lastSeekPositionUs);
     if (isAudioVideo) {
-      trackOutput.setDrmInitData(drmInitData);
+      sampleQueue.setDrmInitData(drmInitData);
     }
-    trackOutput.setSampleOffsetUs(sampleOffsetUs);
-    trackOutput.sourceId(chunkUid);
-    trackOutput.setUpstreamFormatChangeListener(this);
+    sampleQueue.setSampleOffsetUs(sampleOffsetUs);
+    if (sourceChunk != null) {
+      sampleQueue.setSourceChunk(sourceChunk);
+    }
+    sampleQueue.setUpstreamFormatChangeListener(this);
     sampleQueueTrackIds = Arrays.copyOf(sampleQueueTrackIds, trackCount + 1);
     sampleQueueTrackIds[trackCount] = id;
-    sampleQueues = Util.nullSafeArrayAppend(sampleQueues, trackOutput);
+    sampleQueues = Util.nullSafeArrayAppend(sampleQueues, sampleQueue);
     sampleQueueIsAudioVideoFlags = Arrays.copyOf(sampleQueueIsAudioVideoFlags, trackCount + 1);
     sampleQueueIsAudioVideoFlags[trackCount] = isAudioVideo;
     haveAudioVideoSampleQueues |= sampleQueueIsAudioVideoFlags[trackCount];
@@ -927,7 +1096,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
       primarySampleQueueType = type;
     }
     sampleQueuesEnabledStates = Arrays.copyOf(sampleQueuesEnabledStates, trackCount + 1);
-    return trackOutput;
+    return sampleQueue;
   }
 
   @Override
@@ -1009,7 +1178,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
   private void updateSampleStreams(@NullableType SampleStream[] streams) {
     hlsSampleStreams.clear();
-    for (SampleStream stream : streams) {
+    for (@Nullable SampleStream stream : streams) {
       if (stream != null) {
         hlsSampleStreams.add((HlsSampleStream) stream);
       }
@@ -1025,6 +1194,38 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
       }
     }
     return true;
+  }
+
+  private boolean canDiscardUpstreamMediaChunksFromIndex(int mediaChunkIndex) {
+    for (int i = mediaChunkIndex; i < mediaChunks.size(); i++) {
+      if (mediaChunks.get(i).shouldSpliceIn) {
+        // Discarding not possible because a spliced-in chunk potentially removed sample metadata
+        // from the previous chunks.
+        // TODO: Keep sample metadata to allow restoring these chunks [internal b/159904763].
+        return false;
+      }
+    }
+    HlsMediaChunk mediaChunk = mediaChunks.get(mediaChunkIndex);
+    for (int i = 0; i < sampleQueues.length; i++) {
+      int discardFromIndex = mediaChunk.getFirstSampleIndex(/* sampleQueueIndex= */ i);
+      if (sampleQueues[i].getReadIndex() > discardFromIndex) {
+        // Discarding not possible because we already read from the chunk.
+        // TODO: Sparse tracks (e.g. ID3) may prevent discarding in almost all cases because it
+        // means that most chunks have been read from already. See [internal b/161126666].
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private HlsMediaChunk discardUpstreamMediaChunksFromIndex(int chunkIndex) {
+    HlsMediaChunk firstRemovedChunk = mediaChunks.get(chunkIndex);
+    Util.removeRange(mediaChunks, /* fromIndex= */ chunkIndex, /* toIndex= */ mediaChunks.size());
+    for (int i = 0; i < sampleQueues.length; i++) {
+      int discardFromIndex = firstRemovedChunk.getFirstSampleIndex(/* sampleQueueIndex= */ i);
+      sampleQueues[i].discardUpstreamSamples(discardFromIndex);
+    }
+    return firstRemovedChunk;
   }
 
   private void resetSampleQueues() {
@@ -1069,7 +1270,8 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
     for (int i = 0; i < trackGroupCount; i++) {
       for (int queueIndex = 0; queueIndex < sampleQueues.length; queueIndex++) {
         SampleQueue sampleQueue = sampleQueues[queueIndex];
-        if (formatsMatch(sampleQueue.getUpstreamFormat(), trackGroups.get(i).getFormat(0))) {
+        Format upstreamFormat = Assertions.checkStateNotNull(sampleQueue.getUpstreamFormat());
+        if (formatsMatch(upstreamFormat, trackGroups.get(i).getFormat(0))) {
           trackGroupToSampleQueueIndex[i] = queueIndex;
           break;
         }
@@ -1118,7 +1320,9 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
     int primaryExtractorTrackIndex = C.INDEX_UNSET;
     int extractorTrackCount = sampleQueues.length;
     for (int i = 0; i < extractorTrackCount; i++) {
-      String sampleMimeType = sampleQueues[i].getUpstreamFormat().sampleMimeType;
+      @Nullable
+      String sampleMimeType =
+          Assertions.checkStateNotNull(sampleQueues[i].getUpstreamFormat()).sampleMimeType;
       int trackType;
       if (MimeTypes.isVideo(sampleMimeType)) {
         trackType = C.TRACK_TYPE_VIDEO;
@@ -1153,11 +1357,11 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
     // Construct the set of exposed track groups.
     TrackGroup[] trackGroups = new TrackGroup[extractorTrackCount];
     for (int i = 0; i < extractorTrackCount; i++) {
-      Format sampleFormat = sampleQueues[i].getUpstreamFormat();
+      Format sampleFormat = Assertions.checkStateNotNull(sampleQueues[i].getUpstreamFormat());
       if (i == primaryExtractorTrackIndex) {
         Format[] formats = new Format[chunkSourceTrackCount];
         if (chunkSourceTrackCount == 1) {
-          formats[0] = sampleFormat.copyWithManifestFormatInfo(chunkSourceTrackGroup.getFormat(0));
+          formats[0] = sampleFormat.withManifestFormatInfo(chunkSourceTrackGroup.getFormat(0));
         } else {
           for (int j = 0; j < chunkSourceTrackCount; j++) {
             formats[j] = deriveFormat(chunkSourceTrackGroup.getFormat(j), sampleFormat, true);
@@ -1166,6 +1370,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
         trackGroups[i] = new TrackGroup(formats);
         primaryTrackGroupIndex = i;
       } else {
+        @Nullable
         Format trackFormat =
             primaryExtractorTrackType == C.TRACK_TYPE_VIDEO
                     && MimeTypes.isAudio(sampleFormat.sampleMimeType)
@@ -1185,12 +1390,8 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
       Format[] exposedFormats = new Format[trackGroup.length];
       for (int j = 0; j < trackGroup.length; j++) {
         Format format = trackGroup.getFormat(j);
-        if (format.drmInitData != null) {
-          format =
-              format.copyWithExoMediaCryptoType(
-                  drmSessionManager.getExoMediaCryptoType(format.drmInitData));
-        }
-        exposedFormats[j] = format;
+        exposedFormats[j] =
+            format.copyWithExoMediaCryptoType(drmSessionManager.getExoMediaCryptoType(format));
       }
       trackGroups[i] = new TrackGroup(exposedFormats);
     }
@@ -1261,42 +1462,70 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
   /**
    * Derives a track sample format from the corresponding format in the master playlist, and a
-   * sample format that may have been obtained from a chunk belonging to a different track.
+   * sample format that may have been obtained from a chunk belonging to a different track in the
+   * same track group.
    *
    * @param playlistFormat The format information obtained from the master playlist.
    * @param sampleFormat The format information obtained from the samples.
-   * @param propagateBitrate Whether the bitrate from the playlist format should be included in the
-   *     derived format.
+   * @param propagateBitrates Whether the bitrates from the playlist format should be included in
+   *     the derived format.
    * @return The derived track format.
    */
   private static Format deriveFormat(
-      @Nullable Format playlistFormat, Format sampleFormat, boolean propagateBitrate) {
+      @Nullable Format playlistFormat, Format sampleFormat, boolean propagateBitrates) {
     if (playlistFormat == null) {
       return sampleFormat;
     }
-    int bitrate = propagateBitrate ? playlistFormat.bitrate : Format.NO_VALUE;
-    int channelCount =
-        playlistFormat.channelCount != Format.NO_VALUE
-            ? playlistFormat.channelCount
-            : sampleFormat.channelCount;
+
     int sampleTrackType = MimeTypes.getTrackType(sampleFormat.sampleMimeType);
-    String codecs = Util.getCodecsOfType(playlistFormat.codecs, sampleTrackType);
-    String mimeType = MimeTypes.getMediaMimeType(codecs);
-    if (mimeType == null) {
-      mimeType = sampleFormat.sampleMimeType;
+    @Nullable String sampleMimeType;
+    @Nullable String codecs;
+    if (Util.getCodecCountOfType(playlistFormat.codecs, sampleTrackType) == 1) {
+      // We can unequivocally map this track to a playlist variant because only one codec string
+      // matches this track's type.
+      codecs = Util.getCodecsOfType(playlistFormat.codecs, sampleTrackType);
+      sampleMimeType = MimeTypes.getMediaMimeType(codecs);
+    } else {
+      // The variant assigns more than one codec string to this track. We choose whichever codec
+      // string matches the sample mime type. This can happen when different languages are encoded
+      // using different codecs.
+      codecs =
+          MimeTypes.getCodecsCorrespondingToMimeType(
+              playlistFormat.codecs, sampleFormat.sampleMimeType);
+      sampleMimeType = sampleFormat.sampleMimeType;
     }
-    return sampleFormat.copyWithContainerInfo(
-        playlistFormat.id,
-        playlistFormat.label,
-        mimeType,
-        codecs,
-        playlistFormat.metadata,
-        bitrate,
-        playlistFormat.width,
-        playlistFormat.height,
-        channelCount,
-        playlistFormat.selectionFlags,
-        playlistFormat.language);
+
+    Format.Builder formatBuilder =
+        sampleFormat
+            .buildUpon()
+            .setId(playlistFormat.id)
+            .setLabel(playlistFormat.label)
+            .setLanguage(playlistFormat.language)
+            .setSelectionFlags(playlistFormat.selectionFlags)
+            .setRoleFlags(playlistFormat.roleFlags)
+            .setAverageBitrate(propagateBitrates ? playlistFormat.averageBitrate : Format.NO_VALUE)
+            .setPeakBitrate(propagateBitrates ? playlistFormat.peakBitrate : Format.NO_VALUE)
+            .setCodecs(codecs)
+            .setWidth(playlistFormat.width)
+            .setHeight(playlistFormat.height);
+
+    if (sampleMimeType != null) {
+      formatBuilder.setSampleMimeType(sampleMimeType);
+    }
+
+    if (playlistFormat.channelCount != Format.NO_VALUE) {
+      formatBuilder.setChannelCount(playlistFormat.channelCount);
+    }
+
+    if (playlistFormat.metadata != null) {
+      Metadata metadata = playlistFormat.metadata;
+      if (sampleFormat.metadata != null) {
+        metadata = sampleFormat.metadata.copyWithAppendedEntriesFrom(metadata);
+      }
+      formatBuilder.setMetadata(metadata);
+    }
+
+    return formatBuilder.build();
   }
 
   private static boolean isMediaChunk(Chunk chunk) {
@@ -1304,8 +1533,8 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
   }
 
   private static boolean formatsMatch(Format manifestFormat, Format sampleFormat) {
-    String manifestFormatMimeType = manifestFormat.sampleMimeType;
-    String sampleFormatMimeType = sampleFormat.sampleMimeType;
+    @Nullable String manifestFormatMimeType = manifestFormat.sampleMimeType;
+    @Nullable String sampleFormatMimeType = sampleFormat.sampleMimeType;
     int manifestFormatTrackType = MimeTypes.getTrackType(manifestFormatMimeType);
     if (manifestFormatTrackType != C.TRACK_TYPE_TEXT) {
       return manifestFormatTrackType == MimeTypes.getTrackType(sampleFormatMimeType);
@@ -1319,22 +1548,70 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
     return true;
   }
 
-  private static DummyTrackOutput createDummyTrackOutput(int id, int type) {
+  private static DummyTrackOutput createFakeTrackOutput(int id, int type) {
     Log.w(TAG, "Unmapped track with id " + id + " of type " + type);
     return new DummyTrackOutput();
   }
 
-  private static final class FormatAdjustingSampleQueue extends SampleQueue {
+  /**
+   * A {@link SampleQueue} that adds HLS specific functionality:
+   *
+   * <ul>
+   *   <li>Detection of spurious discontinuities, by checking sample timestamps against the range
+   *       expected for the currently loading chunk.
+   *   <li>Stripping private timestamp metadata from {@link Format Formats} to avoid an excessive
+   *       number of format switches in the queue.
+   *   <li>Overriding of {@link Format#drmInitData}.
+   * </ul>
+   */
+  private static final class HlsSampleQueue extends SampleQueue {
+
+    // TODO: Uncomment this to reject samples with unexpected timestamps. See
+    // https://github.com/google/ExoPlayer/issues/7030.
+    // /**
+    //  * The fraction of the chunk duration from which timestamps of samples loaded from within a
+    //  * chunk are allowed to deviate from the expected range.
+    //  */
+    // private static final double MAX_TIMESTAMP_DEVIATION_FRACTION = 0.5;
+    //
+    // /**
+    //  * A minimum tolerance for sample timestamps in microseconds. Timestamps of samples loaded
+    //  * from within a chunk are always allowed to deviate up to this amount from the expected
+    //  * range.
+    //  */
+    // private static final long MIN_TIMESTAMP_DEVIATION_TOLERANCE_US = 4_000_000;
+    //
+    // @Nullable private HlsMediaChunk sourceChunk;
+    // private long sourceChunkLastSampleTimeUs;
+    // private long minAllowedSampleTimeUs;
+    // private long maxAllowedSampleTimeUs;
 
     private final Map<String, DrmInitData> overridingDrmInitData;
     @Nullable private DrmInitData drmInitData;
 
-    public FormatAdjustingSampleQueue(
+    private HlsSampleQueue(
         Allocator allocator,
-        DrmSessionManager<?> drmSessionManager,
+        Looper playbackLooper,
+        DrmSessionManager drmSessionManager,
+        DrmSessionEventListener.EventDispatcher eventDispatcher,
         Map<String, DrmInitData> overridingDrmInitData) {
-      super(allocator, drmSessionManager);
+      super(allocator, playbackLooper, drmSessionManager, eventDispatcher);
       this.overridingDrmInitData = overridingDrmInitData;
+    }
+
+    public void setSourceChunk(HlsMediaChunk chunk) {
+      sourceId(chunk.uid);
+
+      // TODO: Uncomment this to reject samples with unexpected timestamps. See
+      // https://github.com/google/ExoPlayer/issues/7030.
+      // sourceChunk = chunk;
+      // sourceChunkLastSampleTimeUs = C.TIME_UNSET;
+      // long allowedDeviationUs =
+      //     Math.max(
+      //         (long) ((chunk.endTimeUs - chunk.startTimeUs) * MAX_TIMESTAMP_DEVIATION_FRACTION),
+      //         MIN_TIMESTAMP_DEVIATION_TOLERANCE_US);
+      // minAllowedSampleTimeUs = chunk.startTimeUs - allowedDeviationUs;
+      // maxAllowedSampleTimeUs = chunk.endTimeUs + allowedDeviationUs;
     }
 
     public void setDrmInitData(@Nullable DrmInitData drmInitData) {
@@ -1342,6 +1619,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
       invalidateUpstreamFormatAdjustment();
     }
 
+    @SuppressWarnings("ReferenceEquality")
     @Override
     public Format getAdjustedUpstreamFormat(Format format) {
       @Nullable
@@ -1353,8 +1631,11 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
           drmInitData = overridingDrmInitData;
         }
       }
-      return super.getAdjustedUpstreamFormat(
-          format.copyWithAdjustments(drmInitData, getAdjustedMetadata(format.metadata)));
+      @Nullable Metadata metadata = getAdjustedMetadata(format.metadata);
+      if (drmInitData != format.drmInitData || metadata != format.metadata) {
+        format = format.buildUpon().setDrmInitData(drmInitData).setMetadata(metadata).build();
+      }
+      return super.getAdjustedUpstreamFormat(format);
     }
 
     /**
@@ -1393,24 +1674,40 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
       }
       return new Metadata(newMetadataEntries);
     }
+
+    @Override
+    public void sampleMetadata(
+        long timeUs,
+        @C.BufferFlags int flags,
+        int size,
+        int offset,
+        @Nullable CryptoData cryptoData) {
+      // TODO: Uncomment this to reject samples with unexpected timestamps. See
+      // https://github.com/google/ExoPlayer/issues/7030.
+      // if (timeUs < minAllowedSampleTimeUs || timeUs > maxAllowedSampleTimeUs) {
+      //   Util.sneakyThrow(
+      //       new UnexpectedSampleTimestampException(
+      //           sourceChunk, sourceChunkLastSampleTimeUs, timeUs));
+      // }
+      // sourceChunkLastSampleTimeUs = timeUs;
+      super.sampleMetadata(timeUs, flags, size, offset, cryptoData);
+    }
   }
 
   private static class EmsgUnwrappingTrackOutput implements TrackOutput {
 
     private static final String TAG = "EmsgUnwrappingTrackOutput";
 
-    // TODO(ibaker): Create a Formats util class with common constants like this.
+    // TODO: Create a Formats util class with common constants like this.
     private static final Format ID3_FORMAT =
-        Format.createSampleFormat(
-            /* id= */ null, MimeTypes.APPLICATION_ID3, Format.OFFSET_SAMPLE_RELATIVE);
+        new Format.Builder().setSampleMimeType(MimeTypes.APPLICATION_ID3).build();
     private static final Format EMSG_FORMAT =
-        Format.createSampleFormat(
-            /* id= */ null, MimeTypes.APPLICATION_EMSG, Format.OFFSET_SAMPLE_RELATIVE);
+        new Format.Builder().setSampleMimeType(MimeTypes.APPLICATION_EMSG).build();
 
     private final EventMessageDecoder emsgDecoder;
     private final TrackOutput delegate;
     private final Format delegateFormat;
-    @MonotonicNonNull private Format format;
+    private @MonotonicNonNull Format format;
 
     private byte[] buffer;
     private int bufferPosition;
@@ -1441,8 +1738,9 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
     }
 
     @Override
-    public int sampleData(ExtractorInput input, int length, boolean allowEndOfInput)
-        throws IOException, InterruptedException {
+    public int sampleData(
+        DataReader input, int length, boolean allowEndOfInput, @SampleDataPart int sampleDataPart)
+        throws IOException {
       ensureBufferCapacity(bufferPosition + length);
       int numBytesRead = input.read(buffer, bufferPosition, length);
       if (numBytesRead == C.RESULT_END_OF_INPUT) {
@@ -1457,7 +1755,8 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
     }
 
     @Override
-    public void sampleData(ParsableByteArray buffer, int length) {
+    public void sampleData(
+        ParsableByteArray buffer, int length, @SampleDataPart int sampleDataPart) {
       ensureBufferCapacity(bufferPosition + length);
       buffer.readBytes(this.buffer, bufferPosition, length);
       bufferPosition += length;

@@ -82,6 +82,9 @@ public class DashManifest implements FilterableManifest<DashManifest> {
    */
   @Nullable public final UtcTimingElement utcTiming;
 
+  /** The {@link ServiceDescriptionElement}, or null if not present. */
+  @Nullable public final ServiceDescriptionElement serviceDescription;
+
   /** The location of this manifest, or null if not present. */
   @Nullable public final Uri location;
 
@@ -89,38 +92,6 @@ public class DashManifest implements FilterableManifest<DashManifest> {
   @Nullable public final ProgramInformation programInformation;
 
   private final List<Period> periods;
-
-  /**
-   * @deprecated Use {@link #DashManifest(long, long, long, boolean, long, long, long, long,
-   *     ProgramInformation, UtcTimingElement, Uri, List)}.
-   */
-  @Deprecated
-  public DashManifest(
-      long availabilityStartTimeMs,
-      long durationMs,
-      long minBufferTimeMs,
-      boolean dynamic,
-      long minUpdatePeriodMs,
-      long timeShiftBufferDepthMs,
-      long suggestedPresentationDelayMs,
-      long publishTimeMs,
-      @Nullable UtcTimingElement utcTiming,
-      @Nullable Uri location,
-      List<Period> periods) {
-    this(
-        availabilityStartTimeMs,
-        durationMs,
-        minBufferTimeMs,
-        dynamic,
-        minUpdatePeriodMs,
-        timeShiftBufferDepthMs,
-        suggestedPresentationDelayMs,
-        publishTimeMs,
-        /* programInformation= */ null,
-        utcTiming,
-        location,
-        periods);
-  }
 
   public DashManifest(
       long availabilityStartTimeMs,
@@ -133,6 +104,7 @@ public class DashManifest implements FilterableManifest<DashManifest> {
       long publishTimeMs,
       @Nullable ProgramInformation programInformation,
       @Nullable UtcTimingElement utcTiming,
+      @Nullable ServiceDescriptionElement serviceDescription,
       @Nullable Uri location,
       List<Period> periods) {
     this.availabilityStartTimeMs = availabilityStartTimeMs;
@@ -146,6 +118,7 @@ public class DashManifest implements FilterableManifest<DashManifest> {
     this.programInformation = programInformation;
     this.utcTiming = utcTiming;
     this.location = location;
+    this.serviceDescription = serviceDescription;
     this.periods = periods == null ? Collections.emptyList() : periods;
   }
 
@@ -203,6 +176,7 @@ public class DashManifest implements FilterableManifest<DashManifest> {
         publishTimeMs,
         programInformation,
         utcTiming,
+        serviceDescription,
         location,
         copyPeriods);
   }
@@ -224,9 +198,14 @@ public class DashManifest implements FilterableManifest<DashManifest> {
         key = keys.poll();
       } while (key.periodIndex == periodIndex && key.groupIndex == adaptationSetIndex);
 
-      copyAdaptationSets.add(new AdaptationSet(adaptationSet.id, adaptationSet.type,
-          copyRepresentations, adaptationSet.accessibilityDescriptors,
-          adaptationSet.supplementalProperties));
+      copyAdaptationSets.add(
+          new AdaptationSet(
+              adaptationSet.id,
+              adaptationSet.type,
+              copyRepresentations,
+              adaptationSet.accessibilityDescriptors,
+              adaptationSet.essentialProperties,
+              adaptationSet.supplementalProperties));
     } while(key.periodIndex == periodIndex);
     // Add back the last key which doesn't belong to the period being processed
     keys.addFirst(key);

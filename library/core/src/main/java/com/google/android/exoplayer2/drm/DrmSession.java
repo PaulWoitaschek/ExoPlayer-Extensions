@@ -23,28 +23,30 @@ import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.Map;
+import java.util.UUID;
 
-/**
- * A DRM session.
- */
-public interface DrmSession<T extends ExoMediaCrypto> {
+/** A DRM session. */
+public interface DrmSession {
 
   /**
-   * Invokes {@code newSession's} {@link #acquire()} and {@code previousSession's} {@link
-   * #release()} in that order. Null arguments are ignored. Does nothing if {@code previousSession}
-   * and {@code newSession} are the same session.
+   * Acquires {@code newSession} then releases {@code previousSession}.
+   *
+   * <p>Invokes {@code newSession's} {@link #acquire(DrmSessionEventListener.EventDispatcher)} and
+   * {@code previousSession's} {@link #release(DrmSessionEventListener.EventDispatcher)} in that
+   * order (passing {@code eventDispatcher = null}). Null arguments are ignored. Does nothing if
+   * {@code previousSession} and {@code newSession} are the same session.
    */
-  static <T extends ExoMediaCrypto> void replaceSession(
-      @Nullable DrmSession<T> previousSession, @Nullable DrmSession<T> newSession) {
+  static void replaceSession(
+      @Nullable DrmSession previousSession, @Nullable DrmSession newSession) {
     if (previousSession == newSession) {
       // Do nothing.
       return;
     }
     if (newSession != null) {
-      newSession.acquire();
+      newSession.acquire(/* eventDispatcher= */ null);
     }
     if (previousSession != null) {
-      previousSession.release();
+      previousSession.release(/* eventDispatcher= */ null);
     }
   }
 
@@ -65,12 +67,11 @@ public interface DrmSession<T extends ExoMediaCrypto> {
   @Retention(RetentionPolicy.SOURCE)
   @IntDef({STATE_RELEASED, STATE_ERROR, STATE_OPENING, STATE_OPENED, STATE_OPENED_WITH_KEYS})
   @interface State {}
-  /**
-   * The session has been released.
-   */
+  /** The session has been released. This is a terminal state. */
   int STATE_RELEASED = 0;
   /**
    * The session has encountered an error. {@link #getError()} can be used to retrieve the cause.
+   * This is a terminal state.
    */
   int STATE_ERROR = 1;
   /**
@@ -101,12 +102,15 @@ public interface DrmSession<T extends ExoMediaCrypto> {
   @Nullable
   DrmSessionException getError();
 
+  /** Returns the DRM scheme UUID for this session. */
+  UUID getSchemeUuid();
+
   /**
-   * Returns a {@link ExoMediaCrypto} for the open session, or null if called before the session has
-   * been opened or after it's been released.
+   * Returns an {@link ExoMediaCrypto} for the open session, or null if called before the session
+   * has been opened or after it's been released.
    */
   @Nullable
-  T getMediaCrypto();
+  ExoMediaCrypto getMediaCrypto();
 
   /**
    * Returns a map describing the key status for the session, or null if called before the session
@@ -132,13 +136,21 @@ public interface DrmSession<T extends ExoMediaCrypto> {
 
   /**
    * Increments the reference count. When the caller no longer needs to use the instance, it must
-   * call {@link #release()} to decrement the reference count.
+   * call {@link #release(DrmSessionEventListener.EventDispatcher)} to decrement the reference
+   * count.
+   *
+   * @param eventDispatcher The {@link DrmSessionEventListener.EventDispatcher} used to route
+   *     DRM-related events dispatched from this session, or null if no event handling is needed.
    */
-  void acquire();
+  void acquire(@Nullable DrmSessionEventListener.EventDispatcher eventDispatcher);
 
   /**
    * Decrements the reference count. If the reference count drops to 0 underlying resources are
    * released, and the instance cannot be re-used.
+   *
+   * @param eventDispatcher The {@link DrmSessionEventListener.EventDispatcher} to disconnect when
+   *     the session is released (the same instance (possibly null) that was passed by the caller to
+   *     {@link #acquire(DrmSessionEventListener.EventDispatcher)}).
    */
-  void release();
+  void release(@Nullable DrmSessionEventListener.EventDispatcher eventDispatcher);
 }

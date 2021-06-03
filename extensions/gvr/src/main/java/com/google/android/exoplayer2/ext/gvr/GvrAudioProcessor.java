@@ -32,7 +32,7 @@ import java.nio.ByteOrder;
  *     href="https://github.com/google/ExoPlayer/issues">issue tracker</a>.
  */
 @Deprecated
-public final class GvrAudioProcessor implements AudioProcessor {
+public class GvrAudioProcessor implements AudioProcessor {
 
   static {
     ExoPlayerLibraryInfo.registerModule("goog.exo.gvr");
@@ -135,6 +135,7 @@ public final class GvrAudioProcessor implements AudioProcessor {
 
   @Override
   public void queueEndOfStream() {
+    // TODO(internal b/174554082): assert gvrAudioSurround is non-null here and in getOutput.
     if (gvrAudioSurround != null) {
       gvrAudioSurround.triggerProcessing();
     }

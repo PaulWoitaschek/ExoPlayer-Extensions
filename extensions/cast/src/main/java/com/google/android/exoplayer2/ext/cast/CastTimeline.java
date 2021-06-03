@@ -15,10 +15,12 @@
  */
 package com.google.android.exoplayer2.ext.cast;
 
+import android.net.Uri;
 import android.util.SparseArray;
 import android.util.SparseIntArray;
 import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.C;
+import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.Timeline;
 import java.util.Arrays;
 
@@ -44,8 +46,8 @@ import java.util.Arrays;
 
     private ItemData() {
       this(
-          /* durationUs= */ C.TIME_UNSET, /* defaultPositionUs */
-          C.TIME_UNSET,
+          /* durationUs= */ C.TIME_UNSET,
+          /* defaultPositionUs= */ C.TIME_UNSET,
           /* isLive= */ false);
     }
 
@@ -124,15 +126,18 @@ import java.util.Arrays;
   public Window getWindow(int windowIndex, Window window, long defaultPositionProjectionUs) {
     long durationUs = durationsUs[windowIndex];
     boolean isDynamic = durationUs == C.TIME_UNSET;
+    MediaItem mediaItem =
+        new MediaItem.Builder().setUri(Uri.EMPTY).setTag(ids[windowIndex]).build();
     return window.set(
         /* uid= */ ids[windowIndex],
-        /* tag= */ ids[windowIndex],
+        /* mediaItem= */ mediaItem,
         /* manifest= */ null,
         /* presentationStartTimeMs= */ C.TIME_UNSET,
         /* windowStartTimeMs= */ C.TIME_UNSET,
+        /* elapsedRealtimeEpochOffsetMs= */ C.TIME_UNSET,
         /* isSeekable= */ !isDynamic,
         isDynamic,
-        isLive[windowIndex],
+        isLive[windowIndex] ? mediaItem.liveConfiguration : null,
         defaultPositionsUs[windowIndex],
         durationUs,
         /* firstPeriodIndex= */ windowIndex,

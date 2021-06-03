@@ -15,6 +15,8 @@
  */
 package com.google.android.exoplayer2.upstream;
 
+import static java.lang.Math.min;
+
 import android.net.Uri;
 import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.C;
@@ -45,16 +47,17 @@ public final class ByteArrayDataSource extends BaseDataSource {
   public long open(DataSpec dataSpec) throws IOException {
     uri = dataSpec.uri;
     transferInitializing(dataSpec);
+    if (dataSpec.position > data.length) {
+      throw new DataSourceException(DataSourceException.POSITION_OUT_OF_RANGE);
+    }
     readPosition = (int) dataSpec.position;
-    bytesRemaining = (int) ((dataSpec.length == C.LENGTH_UNSET)
-        ? (data.length - dataSpec.position) : dataSpec.length);
-    if (bytesRemaining <= 0 || readPosition + bytesRemaining > data.length) {
-      throw new IOException("Unsatisfiable range: [" + readPosition + ", " + dataSpec.length
-          + "], length: " + data.length);
+    bytesRemaining = data.length - (int) dataSpec.position;
+    if (dataSpec.length != C.LENGTH_UNSET) {
+      bytesRemaining = (int) min(bytesRemaining, dataSpec.length);
     }
     opened = true;
     transferStarted(dataSpec);
-    return bytesRemaining;
+    return dataSpec.length != C.LENGTH_UNSET ? dataSpec.length : bytesRemaining;
   }
 
   @Override
@@ -65,7 +68,7 @@ public final class ByteArrayDataSource extends BaseDataSource {
       return C.RESULT_END_OF_INPUT;
     }
 
-    readLength = Math.min(readLength, bytesRemaining);
+    readLength = min(readLength, bytesRemaining);
     System.arraycopy(data, readPosition, buffer, offset, readLength);
     readPosition += readLength;
     bytesRemaining -= readLength;

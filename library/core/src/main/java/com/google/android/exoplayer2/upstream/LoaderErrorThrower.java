@@ -18,9 +18,7 @@ package com.google.android.exoplayer2.upstream;
 import com.google.android.exoplayer2.upstream.Loader.Loadable;
 import java.io.IOException;
 
-/**
- * Conditionally throws errors affecting a {@link Loader}.
- */
+/** Conditionally throws errors affecting a {@link Loader}. */
 public interface LoaderErrorThrower {
 
   /**
@@ -49,15 +47,14 @@ public interface LoaderErrorThrower {
   final class Dummy implements LoaderErrorThrower {
 
     @Override
-    public void maybeThrowError() throws IOException {
+    public void maybeThrowError() {
       // Do nothing.
     }
 
     @Override
-    public void maybeThrowError(int minRetryCount) throws IOException {
+    public void maybeThrowError(int minRetryCount) {
       // Do nothing.
     }
-
   }
 
 }

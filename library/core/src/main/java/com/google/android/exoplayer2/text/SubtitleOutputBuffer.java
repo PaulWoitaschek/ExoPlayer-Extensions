@@ -21,9 +21,7 @@ import com.google.android.exoplayer2.decoder.OutputBuffer;
 import com.google.android.exoplayer2.util.Assertions;
 import java.util.List;
 
-/**
- * Base class for {@link SubtitleDecoder} output buffers.
- */
+/** Base class for {@link SubtitleDecoder} output buffers. */
 public abstract class SubtitleOutputBuffer extends OutputBuffer implements Subtitle {
 
   @Nullable private Subtitle subtitle;
@@ -64,9 +62,6 @@ public abstract class SubtitleOutputBuffer extends OutputBuffer implements Subti
   public List<Cue> getCues(long timeUs) {
     return Assertions.checkNotNull(subtitle).getCues(timeUs - subsampleOffsetUs);
   }
-
-  @Override
-  public abstract void release();
 
   @Override
   public void clear() {
