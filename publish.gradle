@@ -51,7 +51,7 @@ afterEvaluate {
         }
     }
 }
-tasks.withType(PublishToMavenRepository) { it.dependsOn lint, test }
+tasks.withType(PublishToMavenRepository) { it.dependsOn lint }
 
 task androidSourcesJar(type: Jar) {
     archiveClassifier.set('sources')

@@ -14,10 +14,6 @@
 plugins {
     id "de.undercouch.download" version "3.4.3"
 }
-apply from: '../../constants.gradle'
-apply plugin: 'com.android.library'
-apply from: 'build-opus.gradle'
-
 apply from: "$gradle.ext.exoplayerSettingsDir/common_library_config.gradle"
 
 android {
@@ -34,7 +30,6 @@ dependencies {
     implementation project(modulePrefix + 'library-core')
     implementation 'androidx.annotation:annotation:' + androidxAnnotationVersion
     compileOnly 'org.jetbrains.kotlin:kotlin-annotations-jvm:' + kotlinAnnotationsVersion
-    testImplementation project(modulePrefix + 'testutils')
     testImplementation 'org.robolectric:robolectric:' + robolectricVersion
     androidTestImplementation 'androidx.test:runner:' + androidxTestRunnerVersion
     androidTestImplementation 'androidx.test.ext:junit:' + androidxTestJUnitVersion
@@ -44,3 +39,4 @@ ext {
     javadocTitle = 'Opus extension'
 }
 apply from: '../../javadoc_library.gradle'
+apply from: 'build-opus.gradle'
