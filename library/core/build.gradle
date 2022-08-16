@@ -46,6 +46,7 @@ dependencies {
     androidTestImplementation 'com.linkedin.dexmaker:dexmaker:' + dexmakerVersion
     androidTestImplementation 'com.linkedin.dexmaker:dexmaker-mockito:' + dexmakerVersion
     testImplementation 'com.squareup.okhttp3:mockwebserver:' + mockWebServerVersion
+    testImplementation 'com.squareup.okhttp3:mockwebserver:' + okhttpVersion
     testImplementation 'org.robolectric:robolectric:' + robolectricVersion
 }
 
