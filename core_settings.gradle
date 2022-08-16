@@ -23,12 +23,20 @@ if (gradle.ext.has('exoplayerModulePrefix')) {
 
 include modulePrefix + 'library-core'
 include modulePrefix + 'library-common'
+include modulePrefix + 'library-database'
+include modulePrefix + 'library-datasource'
+include modulePrefix + 'library-decoder'
 include modulePrefix + 'library-extractor'
+include modulePrefix + 'library-transformer'
 include modulePrefix + 'extension-flac'
 include modulePrefix + 'extension-opus'
 
 project(modulePrefix + 'library-core').projectDir = new File(rootDir, 'library/core')
 project(modulePrefix + 'library-common').projectDir = new File(rootDir, 'library/common')
+project(modulePrefix + 'library-database').projectDir = new File(rootDir, 'library/database')
+project(modulePrefix + 'library-datasource').projectDir = new File(rootDir, 'library/datasource')
+project(modulePrefix + 'library-decoder').projectDir = new File(rootDir, 'library/decoder')
 project(modulePrefix + 'library-extractor').projectDir = new File(rootDir, 'library/extractor')
+project(modulePrefix + 'library-transformer').projectDir = new File(rootDir, 'library/transformer')
 project(modulePrefix + 'extension-flac').projectDir = new File(rootDir, 'extensions/flac')
 project(modulePrefix + 'extension-opus').projectDir = new File(rootDir, 'extensions/opus')

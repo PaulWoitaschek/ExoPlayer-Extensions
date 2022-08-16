@@ -27,6 +27,8 @@ android {
 }
 
 dependencies {
+    implementation project(modulePrefix + 'library-decoder')
+    // TODO(b/203752526): Remove this dependency.
     implementation project(modulePrefix + 'library-core')
     implementation 'androidx.annotation:annotation:' + androidxAnnotationVersion
     compileOnly 'org.jetbrains.kotlin:kotlin-annotations-jvm:' + kotlinAnnotationsVersion
@@ -36,6 +38,8 @@ dependencies {
 }
 
 ext {
+    releaseArtifactId = 'extension-opus'
+    releaseDescription = 'Opus extension for ExoPlayer.'
     javadocTitle = 'Opus extension'
 }
 apply from: '../../javadoc_library.gradle'

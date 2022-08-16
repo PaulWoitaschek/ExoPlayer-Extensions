@@ -36,8 +36,13 @@ android {
 
 dependencies {
     api project(modulePrefix + 'library-common')
+    // TODO(b/203754886): Revisit which modules are exported as API dependencies.
+    api project(modulePrefix + 'library-datasource')
+    api project(modulePrefix + 'library-decoder')
     api project(modulePrefix + 'library-extractor')
+    api project(modulePrefix + 'library-database')
     implementation 'androidx.annotation:annotation:' + androidxAnnotationVersion
+    implementation 'androidx.core:core:' + androidxCoreVersion
     compileOnly 'com.google.code.findbugs:jsr305:' + jsr305Version
     compileOnly 'org.checkerframework:checker-qual:' + checkerframeworkVersion
     compileOnly 'org.checkerframework:checker-compat-qual:' + checkerframeworkCompatVersion
@@ -45,7 +50,7 @@ dependencies {
     androidTestImplementation 'androidx.test:runner:' + androidxTestRunnerVersion
     androidTestImplementation 'com.linkedin.dexmaker:dexmaker:' + dexmakerVersion
     androidTestImplementation 'com.linkedin.dexmaker:dexmaker-mockito:' + dexmakerVersion
-    testImplementation 'com.squareup.okhttp3:mockwebserver:' + mockWebServerVersion
+    androidTestImplementation 'com.squareup.okhttp3:mockwebserver:' + okhttpVersion
     testImplementation 'com.squareup.okhttp3:mockwebserver:' + okhttpVersion
     testImplementation 'org.robolectric:robolectric:' + robolectricVersion
 }
@@ -56,7 +61,7 @@ ext {
 apply from: '../../javadoc_library.gradle'
 
 ext {
-    releaseArtifact = 'exoplayer-core'
+    releaseArtifactId = 'exoplayer-core'
     releaseDescription = 'The ExoPlayer library core module.'
 }
 apply from: '../../publish.gradle'

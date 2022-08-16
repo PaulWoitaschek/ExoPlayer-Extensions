@@ -29,10 +29,6 @@ dependencies {
     compileOnly 'org.checkerframework:checker-qual:' + checkerframeworkVersion
     compileOnly 'org.checkerframework:checker-compat-qual:' + checkerframeworkCompatVersion
     compileOnly 'org.jetbrains.kotlin:kotlin-annotations-jvm:' + kotlinAnnotationsVersion
-    testImplementation project(modulePrefix + 'robolectricutils')
-    testImplementation project(modulePrefix + 'testutils')
-    testImplementation project(modulePrefix + 'testdata')
-    testImplementation 'org.robolectric:robolectric:' + robolectricVersion
 }
 
 ext {
@@ -41,7 +37,7 @@ ext {
 apply from: '../../javadoc_library.gradle'
 
 ext {
-    releaseArtifact = 'exoplayer-transformer'
+    releaseArtifactId = 'exoplayer-transformer'
     releaseDescription = 'The ExoPlayer library transformer module.'
 }
 apply from: '../../publish.gradle'

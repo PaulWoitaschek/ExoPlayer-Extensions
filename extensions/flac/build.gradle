@@ -29,6 +29,8 @@ android {
 }
 
 dependencies {
+    implementation project(modulePrefix + 'library-decoder')
+    // TODO(b/203752526): Remove this dependency.
     implementation project(modulePrefix + 'library-core')
     implementation 'androidx.annotation:annotation:' + androidxAnnotationVersion
     compileOnly 'org.checkerframework:checker-qual:' + checkerframeworkVersion
@@ -40,6 +42,8 @@ dependencies {
 }
 
 ext {
+    releaseArtifactId = 'extension-flac'
+    releaseDescription = 'FLAC extension for ExoPlayer.'
     javadocTitle = 'FLAC extension'
 }
 apply from: '../../javadoc_library.gradle'
