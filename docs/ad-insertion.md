@@ -51,8 +51,8 @@ build and inject a `DefaultMediaSourceFactory` configured with an
 ~~~
 MediaSource.Factory mediaSourceFactory =
     new DefaultMediaSourceFactory(context)
-        .setAdsLoaderProvider(adsLoaderProvider)
-        .setAdViewProvider(playerView);
+        .setLocalAdInsertionComponents(
+            adsLoaderProvider, /* adViewProvider= */ playerView);
 ExoPlayer player = new ExoPlayer.Builder(context)
     .setMediaSourceFactory(mediaSourceFactory)
     .build();
@@ -220,7 +220,7 @@ server-side ad insertion `MediaSource` for URIs using the `ssai://` scheme:
 Player player =
     new ExoPlayer.Builder(context)
         .setMediaSourceFactory(
-            new DefaultMediaSourceFactory(dataSourceFactory)
+            new DefaultMediaSourceFactory(context)
                 .setServerSideAdInsertionMediaSourceFactory(ssaiFactory))
         .build();
 ```
@@ -241,7 +241,7 @@ In order to use this class, you need to set up the
 ```
 // MediaSource.Factory to load the actual media stream.
 DefaultMediaSourceFactory defaultMediaSourceFactory =
-    new DefaultMediaSourceFactory(dataSourceFactory);
+    new DefaultMediaSourceFactory(context);
 // AdsLoader that can be reused for multiple playbacks.
 ImaServerSideAdInsertionMediaSource.AdsLoader adsLoader =
     new ImaServerSideAdInsertionMediaSource.AdsLoader.Builder(context, adViewProvider)
@@ -267,7 +267,10 @@ with `ImaServerSideAdInsertionUriBuilder`:
 
 ```
 Uri ssaiUri =
-    new ImaServerSideAdInsertionUriBuilder().setAssetKey(assetKey).build();
+    new ImaServerSideAdInsertionUriBuilder()
+        .setAssetKey(assetKey)
+        .setFormat(C.TYPE_HLS)
+        .build();
 player.setMediaItem(MediaItem.fromUri(ssaiUri));
 ```
 
@@ -301,7 +304,7 @@ provide a custom `MediaSource` that accepts URIs with the `ssai://` scheme
 similar to `ImaServerSideAdInsertionMediaSource`.
 
 The actual logic of creating the ad structure can be delegated to the general
-purpose `ServerSideInsertedAdsMediaSource`, which wraps a stream `MediaSource`
+purpose `ServerSideAdInsertionMediaSource`, which wraps a stream `MediaSource`
 and allows the user to set and update the `AdPlaybackState` representing the ad
 metadata.
 
