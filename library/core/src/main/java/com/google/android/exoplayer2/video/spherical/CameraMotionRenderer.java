@@ -56,15 +56,15 @@ public final class CameraMotionRenderer extends BaseRenderer {
   }
 
   @Override
-  @Capabilities
-  public int supportsFormat(Format format) {
+  public @Capabilities int supportsFormat(Format format) {
     return MimeTypes.APPLICATION_CAMERA_MOTION.equals(format.sampleMimeType)
         ? RendererCapabilities.create(C.FORMAT_HANDLED)
         : RendererCapabilities.create(C.FORMAT_UNSUPPORTED_TYPE);
   }
 
   @Override
-  public void handleMessage(int messageType, @Nullable Object message) throws ExoPlaybackException {
+  public void handleMessage(@MessageType int messageType, @Nullable Object message)
+      throws ExoPlaybackException {
     if (messageType == MSG_SET_CAMERA_MOTION_LISTENER) {
       listener = (CameraMotionListener) message;
     } else {

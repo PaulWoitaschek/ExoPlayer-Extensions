@@ -106,7 +106,9 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
     }
   }
 
-  /** @see Extractor#read(ExtractorInput, PositionHolder) */
+  /**
+   * @see Extractor#read(ExtractorInput, PositionHolder)
+   */
   final int read(ExtractorInput input, PositionHolder seekPosition) throws IOException {
     assertInitialized();
     switch (state) {
@@ -294,7 +296,5 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
     public SeekMap createSeekMap() {
       return new SeekMap.Unseekable(C.TIME_UNSET);
     }
-
   }
-
 }

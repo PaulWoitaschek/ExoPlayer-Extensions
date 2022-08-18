@@ -22,11 +22,12 @@ import android.os.SystemClock;
 import android.util.Pair;
 import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.Format;
+import com.google.android.exoplayer2.PlaybackException;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.Timeline.Period;
+import com.google.android.exoplayer2.Tracks;
 import com.google.android.exoplayer2.analytics.PlaybackStats.EventTimeAndException;
 import com.google.android.exoplayer2.analytics.PlaybackStats.EventTimeAndFormat;
 import com.google.android.exoplayer2.analytics.PlaybackStats.EventTimeAndPlaybackState;
@@ -34,9 +35,7 @@ import com.google.android.exoplayer2.analytics.PlaybackStats.PlaybackState;
 import com.google.android.exoplayer2.source.LoadEventInfo;
 import com.google.android.exoplayer2.source.MediaLoadData;
 import com.google.android.exoplayer2.source.MediaSource.MediaPeriodId;
-import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.util.Assertions;
-import com.google.android.exoplayer2.util.MimeTypes;
 import com.google.android.exoplayer2.util.Util;
 import com.google.android.exoplayer2.video.VideoSize;
 import java.io.IOException;
@@ -83,7 +82,7 @@ public final class PlaybackStatsListener
 
   @Nullable private String discontinuityFromSession;
   private long discontinuityFromPositionMs;
-  @Player.DiscontinuityReason private int discontinuityReason;
+  private @Player.DiscontinuityReason int discontinuityReason;
   private int droppedFrames;
   @Nullable private Exception nonFatalException;
   private long bandwidthTimeMs;
@@ -147,29 +146,33 @@ public final class PlaybackStatsListener
   // PlaybackSessionManager.Listener implementation.
 
   @Override
-  public void onSessionCreated(EventTime eventTime, String session) {
+  public void onSessionCreated(EventTime eventTime, String sessionId) {
     PlaybackStatsTracker tracker = new PlaybackStatsTracker(keepHistory, eventTime);
-    playbackStatsTrackers.put(session, tracker);
-    sessionStartEventTimes.put(session, eventTime);
+    playbackStatsTrackers.put(sessionId, tracker);
+    sessionStartEventTimes.put(sessionId, eventTime);
   }
 
   @Override
-  public void onSessionActive(EventTime eventTime, String session) {
-    checkNotNull(playbackStatsTrackers.get(session)).onForeground();
+  public void onSessionActive(EventTime eventTime, String sessionId) {
+    checkNotNull(playbackStatsTrackers.get(sessionId)).onForeground();
   }
 
   @Override
-  public void onAdPlaybackStarted(EventTime eventTime, String contentSession, String adSession) {
-    checkNotNull(playbackStatsTrackers.get(contentSession)).onInterruptedByAd();
+  public void onAdPlaybackStarted(
+      EventTime eventTime, String contentSessionId, String adSessionId) {
+    checkNotNull(playbackStatsTrackers.get(contentSessionId)).onInterruptedByAd();
   }
 
   @Override
-  public void onSessionFinished(EventTime eventTime, String session, boolean automaticTransition) {
-    PlaybackStatsTracker tracker = checkNotNull(playbackStatsTrackers.remove(session));
-    EventTime startEventTime = checkNotNull(sessionStartEventTimes.remove(session));
+  public void onSessionFinished(
+      EventTime eventTime, String sessionId, boolean automaticTransitionToNextPlayback) {
+    PlaybackStatsTracker tracker = checkNotNull(playbackStatsTrackers.remove(sessionId));
+    EventTime startEventTime = checkNotNull(sessionStartEventTimes.remove(sessionId));
     long discontinuityFromPositionMs =
-        session.equals(discontinuityFromSession) ? this.discontinuityFromPositionMs : C.TIME_UNSET;
-    tracker.onFinished(eventTime, automaticTransition, discontinuityFromPositionMs);
+        sessionId.equals(discontinuityFromSession)
+            ? this.discontinuityFromPositionMs
+            : C.TIME_UNSET;
+    tracker.onFinished(eventTime, automaticTransitionToNextPlayback, discontinuityFromPositionMs);
     PlaybackStats playbackStats = tracker.build(/* isFinal= */ true);
     finishedPlaybackStats = PlaybackStats.merge(finishedPlaybackStats, playbackStats);
     if (callback != null) {
@@ -182,12 +185,12 @@ public final class PlaybackStatsListener
   @Override
   public void onPositionDiscontinuity(
       EventTime eventTime,
-      Player.PositionInfo oldPositionInfo,
-      Player.PositionInfo newPositionInfo,
+      Player.PositionInfo oldPosition,
+      Player.PositionInfo newPosition,
       @Player.DiscontinuityReason int reason) {
     if (discontinuityFromSession == null) {
       discontinuityFromSession = sessionManager.getActiveSessionId();
-      discontinuityFromPositionMs = oldPositionInfo.positionMs;
+      discontinuityFromPositionMs = oldPosition.positionMs;
     }
     discontinuityReason = reason;
   }
@@ -330,7 +333,7 @@ public final class PlaybackStatsListener
                   eventTime.mediaPeriodId.periodUid,
                   eventTime.mediaPeriodId.windowSequenceNumber,
                   eventTime.mediaPeriodId.adGroupIndex),
-              /* eventPlaybackPositionMs= */ C.usToMs(contentWindowPositionUs),
+              /* eventPlaybackPositionMs= */ Util.usToMs(contentWindowPositionUs),
               eventTime.timeline,
               eventTime.currentWindowIndex,
               eventTime.currentMediaPeriodId,
@@ -489,7 +492,7 @@ public final class PlaybackStatsListener
         int droppedFrameCount,
         boolean hasAudioUnderun,
         boolean startedLoading,
-        @Nullable ExoPlaybackException fatalError,
+        @Nullable PlaybackException fatalError,
         @Nullable Exception nonFatalException,
         long bandwidthTimeMs,
         long bandwidthBytes,
@@ -519,22 +522,11 @@ public final class PlaybackStatsListener
         hasFatalError = false;
       }
       if (isForeground && !isInterruptedByAd) {
-        boolean videoEnabled = false;
-        boolean audioEnabled = false;
-        for (TrackSelection trackSelection : player.getCurrentTrackSelections().getAll()) {
-          if (trackSelection != null && trackSelection.length() > 0) {
-            int trackType = MimeTypes.getTrackType(trackSelection.getFormat(0).sampleMimeType);
-            if (trackType == C.TRACK_TYPE_VIDEO) {
-              videoEnabled = true;
-            } else if (trackType == C.TRACK_TYPE_AUDIO) {
-              audioEnabled = true;
-            }
-          }
-        }
-        if (!videoEnabled) {
+        Tracks currentTracks = player.getCurrentTracks();
+        if (!currentTracks.isTypeSelected(C.TRACK_TYPE_VIDEO)) {
           maybeUpdateVideoFormat(eventTime, /* newFormat= */ null);
         }
-        if (!audioEnabled) {
+        if (!currentTracks.isTypeSelected(C.TRACK_TYPE_AUDIO)) {
           maybeUpdateAudioFormat(eventTime, /* newFormat= */ null);
         }
       }
@@ -765,10 +757,12 @@ public final class PlaybackStatsListener
           }
         }
       }
-      mediaTimeHistory.add(
-          mediaTimeMs == C.TIME_UNSET
-              ? guessMediaTimeBasedOnElapsedRealtime(realtimeMs)
-              : new long[] {realtimeMs, mediaTimeMs});
+
+      if (mediaTimeMs != C.TIME_UNSET) {
+        mediaTimeHistory.add(new long[] {realtimeMs, mediaTimeMs});
+      } else if (!mediaTimeHistory.isEmpty()) {
+        mediaTimeHistory.add(guessMediaTimeBasedOnElapsedRealtime(realtimeMs));
+      }
     }
 
     private long[] guessMediaTimeBasedOnElapsedRealtime(long realtimeMs) {

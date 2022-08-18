@@ -37,22 +37,24 @@
     <item quantity="one">Tua nhanh %d giây</item>
     <item quantity="other">Tua nhanh %d giây</item>
   </plurals>
-  <string name="exo_controls_repeat_off_description">Không lặp lại</string>
-  <string name="exo_controls_repeat_one_description">Lặp lại một</string>
-  <string name="exo_controls_repeat_all_description">Lặp lại tất cả</string>
-  <string name="exo_controls_shuffle_on_description">Chế độ trộn bài đang bật</string>
-  <string name="exo_controls_shuffle_off_description">Chế độ trộn bài đang tắt</string>
+  <string name="exo_controls_repeat_off_description">Chế độ hiện tại: Không lặp lại. Bật/tắt chế độ lặp lại.</string>
+  <string name="exo_controls_repeat_one_description">Chế độ hiện tại: Lặp lại một nội dung. Bật/tắt chế độ lặp lại.</string>
+  <string name="exo_controls_repeat_all_description">Chế độ hiện tại: Lặp lại tất cả nội dung. Bật/tắt chế độ lặp lại.</string>
+  <string name="exo_controls_shuffle_on_description">Tắt chế độ trộn bài</string>
+  <string name="exo_controls_shuffle_off_description">Bật chế độ trộn bài</string>
   <string name="exo_controls_vr_description">Chế độ thực tế ảo</string>
   <string name="exo_controls_cc_enabled_description">Tắt phụ đề</string>
   <string name="exo_controls_cc_disabled_description">Bật phụ đề</string>
   <string name="exo_controls_playback_speed">Tốc độ</string>
-  <string name="exo_controls_playback_speed_normal">Bình thường</string>
-  <string name="exo_download_description">Tải xuống</string>
-  <string name="exo_download_notification_channel_name">Tài nguyên đã tải xuống</string>
-  <string name="exo_download_downloading">Đang tải xuống</string>
-  <string name="exo_download_completed">Đã hoàn tất tải xuống</string>
-  <string name="exo_download_failed">Không tải xuống được</string>
-  <string name="exo_download_removing">Đang xóa các mục đã tải xuống</string>
+  <string-array name="exo_controls_playback_speeds">
+    <item>0,25x</item>
+    <item>0,5x</item>
+    <item>0,75x</item>
+    <item>Bình thường</item>
+    <item>1,25x</item>
+    <item>1,5x</item>
+    <item>2x</item>
+  </string-array>
   <string name="exo_track_selection_title_video">Video</string>
   <string name="exo_track_selection_title_audio">Âm thanh</string>
   <string name="exo_track_selection_title_text">Văn bản</string>

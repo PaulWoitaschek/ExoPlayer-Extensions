@@ -37,22 +37,24 @@
     <item quantity="one">快进 %d 秒</item>
     <item quantity="other">快进 %d 秒</item>
   </plurals>
-  <string name="exo_controls_repeat_off_description">不重复播放</string>
-  <string name="exo_controls_repeat_one_description">重复播放一项</string>
-  <string name="exo_controls_repeat_all_description">全部重复播放</string>
-  <string name="exo_controls_shuffle_on_description">随机播放功能已开启</string>
-  <string name="exo_controls_shuffle_off_description">随机播放功能已关闭</string>
+  <string name="exo_controls_repeat_off_description">当前模式：不重复。切换重复播放模式。</string>
+  <string name="exo_controls_repeat_one_description">当前模式：重复播放当前项目。切换重复播放模式。</string>
+  <string name="exo_controls_repeat_all_description">当前模式：重复播放所有项目。切换重复播放模式。</string>
+  <string name="exo_controls_shuffle_on_description">停用随机播放模式</string>
+  <string name="exo_controls_shuffle_off_description">启用随机播放模式</string>
   <string name="exo_controls_vr_description">VR 模式</string>
   <string name="exo_controls_cc_enabled_description">停用字幕</string>
   <string name="exo_controls_cc_disabled_description">启用字幕</string>
   <string name="exo_controls_playback_speed">速度</string>
-  <string name="exo_controls_playback_speed_normal">正常</string>
-  <string name="exo_download_description">下载</string>
-  <string name="exo_download_notification_channel_name">下载内容</string>
-  <string name="exo_download_downloading">正在下载</string>
-  <string name="exo_download_completed">下载完毕</string>
-  <string name="exo_download_failed">下载失败</string>
-  <string name="exo_download_removing">正在移除下载内容</string>
+  <string-array name="exo_controls_playback_speeds">
+    <item>0.25 倍</item>
+    <item>0.5 倍</item>
+    <item>0.75 倍</item>
+    <item>正常</item>
+    <item>1.25 倍</item>
+    <item>1.5 倍</item>
+    <item>2 倍</item>
+  </string-array>
   <string name="exo_track_selection_title_video">视频</string>
   <string name="exo_track_selection_title_audio">音频</string>
   <string name="exo_track_selection_title_text">文字</string>

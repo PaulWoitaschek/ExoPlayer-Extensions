@@ -21,6 +21,7 @@ import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.FormatHolder;
+import com.google.android.exoplayer2.PlaybackException;
 import com.google.android.exoplayer2.Renderer;
 import com.google.android.exoplayer2.RendererCapabilities;
 import com.google.android.exoplayer2.decoder.DecoderInputBuffer;
@@ -60,8 +61,10 @@ public class FakeRenderer extends BaseRenderer {
   public boolean isEnded;
   public int positionResetCount;
   public int sampleBufferReadCount;
+  public int enabledCount;
+  public int resetCount;
 
-  public FakeRenderer(int trackType) {
+  public FakeRenderer(@C.TrackType int trackType) {
     super(trackType);
     buffer = new DecoderInputBuffer(DecoderInputBuffer.BUFFER_REPLACEMENT_MODE_NORMAL);
     lastSamplePositionUs = Long.MIN_VALUE;
@@ -107,7 +110,9 @@ public class FakeRenderer extends BaseRenderer {
                 getName(),
                 getIndex(),
                 format,
-                C.FORMAT_UNSUPPORTED_TYPE);
+                C.FORMAT_UNSUPPORTED_TYPE,
+                /* isRecoverable= */ false,
+                PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED);
           }
           formatsRead.add(format);
           onFormatChanged(format);
@@ -134,6 +139,17 @@ public class FakeRenderer extends BaseRenderer {
   }
 
   @Override
+  protected void onEnabled(boolean joining, boolean mayRenderStartOfStream)
+      throws ExoPlaybackException {
+    enabledCount++;
+  }
+
+  @Override
+  protected void onReset() {
+    resetCount++;
+  }
+
+  @Override
   public boolean isReady() {
     return lastSamplePositionUs >= playbackPositionUs || hasPendingBuffer || isSourceReady();
   }
@@ -144,8 +160,7 @@ public class FakeRenderer extends BaseRenderer {
   }
 
   @Override
-  @Capabilities
-  public int supportsFormat(Format format) throws ExoPlaybackException {
+  public @Capabilities int supportsFormat(Format format) throws ExoPlaybackException {
     int trackType = MimeTypes.getTrackType(format.sampleMimeType);
     return trackType != C.TRACK_TYPE_UNKNOWN && trackType == getTrackType()
         ? RendererCapabilities.create(C.FORMAT_HANDLED, ADAPTIVE_SEAMLESS, TUNNELING_NOT_SUPPORTED)

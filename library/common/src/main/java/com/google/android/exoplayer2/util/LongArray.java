@@ -63,9 +63,7 @@ public final class LongArray {
     return values[index];
   }
 
-  /**
-   * Returns the current size of the array.
-   */
+  /** Returns the current size of the array. */
   public int size() {
     return size;
   }
@@ -78,5 +76,4 @@ public final class LongArray {
   public long[] toArray() {
     return Arrays.copyOf(values, size);
   }
-
 }

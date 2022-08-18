@@ -15,6 +15,7 @@
  */
 package com.google.android.exoplayer2.source.rtsp.reader;
 
+import static com.google.android.exoplayer2.util.Assertions.checkNotNull;
 import static com.google.android.exoplayer2.util.Assertions.checkStateNotNull;
 import static com.google.android.exoplayer2.util.Util.castNonNull;
 
@@ -35,10 +36,6 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 /* package */ final class RtpH264Reader implements RtpPayloadReader {
   private static final String TAG = "RtpH264Reader";
 
-  // TODO(b/172331505) Move NAL related constants to NalUnitUtil.
-  private static final ParsableByteArray NAL_START_CODE =
-      new ParsableByteArray(NalUnitUtil.NAL_START_CODE);
-  private static final int NAL_START_CODE_LENGTH = NalUnitUtil.NAL_START_CODE.length;
   private static final long MEDIA_CLOCK_FREQUENCY = 90_000;
 
   /** Offset of payload data within a FU type A payload. */
@@ -55,10 +52,13 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
   /** Scratch for Fragmentation Unit RTP packets. */
   private final ParsableByteArray fuScratchBuffer;
 
+  private final ParsableByteArray nalStartCodeArray =
+      new ParsableByteArray(NalUnitUtil.NAL_START_CODE);
+
   private final RtpPayloadFormat payloadFormat;
 
   private @MonotonicNonNull TrackOutput trackOutput;
-  @C.BufferFlags private int bufferFlags;
+  private @C.BufferFlags int bufferFlags;
 
   private long firstReceivedTimestamp;
   private int previousSequenceNumber;
@@ -86,8 +86,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
   public void onReceivingFirstPacket(long timestamp, int sequenceNumber) {}
 
   @Override
-  public void consume(
-      ParsableByteArray data, long timestamp, int sequenceNumber, boolean isAuBoundary)
+  public void consume(ParsableByteArray data, long timestamp, int sequenceNumber, boolean rtpMarker)
       throws ParserException {
 
     int rtpH264PacketMode;
@@ -95,7 +94,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
       // RFC6184 Section 5.6, 5.7 and 5.8.
       rtpH264PacketMode = data.getData()[0] & 0x1F;
     } catch (IndexOutOfBoundsException e) {
-      throw new ParserException(e);
+      throw ParserException.createForMalformedManifest(/* message= */ null, e);
     }
 
     checkStateNotNull(trackOutput);
@@ -106,22 +105,19 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
     } else if (rtpH264PacketMode == RTP_PACKET_TYPE_FU_A) {
       processFragmentationUnitPacket(data, sequenceNumber);
     } else {
-      throw new ParserException(
-          String.format("RTP H264 packetization mode [%d] not supported.", rtpH264PacketMode));
+      throw ParserException.createForMalformedManifest(
+          String.format("RTP H264 packetization mode [%d] not supported.", rtpH264PacketMode),
+          /* cause= */ null);
     }
 
-    if (isAuBoundary) {
+    if (rtpMarker) {
       if (firstReceivedTimestamp == C.TIME_UNSET) {
         firstReceivedTimestamp = timestamp;
       }
 
       long timeUs = toSampleUs(startTimeOffsetUs, timestamp, firstReceivedTimestamp);
       trackOutput.sampleMetadata(
-          timeUs,
-          bufferFlags,
-          fragmentedSampleSizeBytes,
-          /* offset= */ 0,
-          /* encryptionData= */ null);
+          timeUs, bufferFlags, fragmentedSampleSizeBytes, /* offset= */ 0, /* cryptoData= */ null);
       fragmentedSampleSizeBytes = 0;
     }
 
@@ -159,7 +155,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
     //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
     int numBytesInData = data.bytesLeft();
-    fragmentedSampleSizeBytes += writeStartCode(trackOutput);
+    fragmentedSampleSizeBytes += writeStartCode();
     trackOutput.sampleData(data, numBytesInData);
     fragmentedSampleSizeBytes += numBytesInData;
 
@@ -202,13 +198,12 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
     int nalUnitLength;
     while (data.bytesLeft() > 4) {
       nalUnitLength = data.readUnsignedShort();
-      fragmentedSampleSizeBytes += writeStartCode(trackOutput);
+      fragmentedSampleSizeBytes += writeStartCode();
       trackOutput.sampleData(data, nalUnitLength);
       fragmentedSampleSizeBytes += nalUnitLength;
     }
 
     // Treat Aggregated NAL units as non key frames.
-    // TODO(internal b/172331505) examine whether STAP mode carries keyframes.
     bufferFlags = 0;
   }
 
@@ -251,7 +246,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
     if (isFirstFuPacket) {
       // Prepends starter code.
-      fragmentedSampleSizeBytes += writeStartCode(trackOutput);
+      fragmentedSampleSizeBytes += writeStartCode();
 
       // The bytes needed is 1 (NALU header) + payload size. The original data array has size 2 (FU
       // indicator/header) + payload size. Thus setting the correct header and set position to 1.
@@ -260,7 +255,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
       fuScratchBuffer.setPosition(1);
     } else {
       // Check that this packet is in the sequence of the previous packet.
-      int expectedSequenceNumber = (previousSequenceNumber + 1) % RtpPacket.MAX_SEQUENCE_NUMBER;
+      int expectedSequenceNumber = RtpPacket.getNextSequenceNumber(previousSequenceNumber);
       if (packetSequenceNumber != expectedSequenceNumber) {
         Log.w(
             TAG,
@@ -285,6 +280,13 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
     }
   }
 
+  private int writeStartCode() {
+    nalStartCodeArray.setPosition(/* position= */ 0);
+    int bytesWritten = nalStartCodeArray.bytesLeft();
+    checkNotNull(trackOutput).sampleData(nalStartCodeArray, bytesWritten);
+    return bytesWritten;
+  }
+
   private static long toSampleUs(
       long startTimeOffsetUs, long rtpTimestamp, long firstReceivedRtpTimestamp) {
     return startTimeOffsetUs
@@ -294,14 +296,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
             /* divisor= */ MEDIA_CLOCK_FREQUENCY);
   }
 
-  private static int writeStartCode(TrackOutput trackOutput) {
-    trackOutput.sampleData(NAL_START_CODE, NAL_START_CODE_LENGTH);
-    NAL_START_CODE.setPosition(/* position= */ 0);
-    return NAL_START_CODE_LENGTH;
-  }
-
-  @C.BufferFlags
-  private static int getBufferFlagsFromNalType(int nalType) {
+  private static @C.BufferFlags int getBufferFlagsFromNalType(int nalType) {
     return nalType == NAL_UNIT_TYPE_IDR ? C.BUFFER_FLAG_KEY_FRAME : 0;
   }
 }

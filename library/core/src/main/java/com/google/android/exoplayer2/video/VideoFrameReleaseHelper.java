@@ -17,7 +17,6 @@ package com.google.android.exoplayer2.video;
 
 import static com.google.android.exoplayer2.util.Assertions.checkNotNull;
 
-import android.annotation.TargetApi;
 import android.content.Context;
 import android.hardware.display.DisplayManager;
 import android.os.Handler;
@@ -28,6 +27,7 @@ import android.view.Choreographer.FrameCallback;
 import android.view.Display;
 import android.view.Surface;
 import android.view.WindowManager;
+import androidx.annotation.DoNotInline;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import com.google.android.exoplayer2.C;
@@ -91,9 +91,8 @@ public final class VideoFrameReleaseHelper {
   private static final long VSYNC_OFFSET_PERCENTAGE = 80;
 
   private final FixedFrameRateEstimator frameRateEstimator;
-  @Nullable private final WindowManager windowManager;
+  @Nullable private final DisplayHelper displayHelper;
   @Nullable private final VSyncSampler vsyncSampler;
-  @Nullable private final DefaultDisplayListener displayListener;
 
   private boolean started;
   @Nullable private Surface surface;
@@ -110,6 +109,7 @@ public final class VideoFrameReleaseHelper {
   private float surfacePlaybackFrameRate;
 
   private float playbackSpeed;
+  private @C.VideoChangeFrameRateStrategy int changeFrameRateStrategy;
 
   private long vsyncDurationNs;
   private long vsyncOffsetNs;
@@ -127,43 +127,37 @@ public final class VideoFrameReleaseHelper {
    */
   public VideoFrameReleaseHelper(@Nullable Context context) {
     frameRateEstimator = new FixedFrameRateEstimator();
-    if (context != null) {
-      context = context.getApplicationContext();
-      windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
-    } else {
-      windowManager = null;
-    }
-    if (windowManager != null) {
-      displayListener =
-          Util.SDK_INT >= 17 ? maybeBuildDefaultDisplayListenerV17(checkNotNull(context)) : null;
-      vsyncSampler = VSyncSampler.getInstance();
-    } else {
-      displayListener = null;
-      vsyncSampler = null;
-    }
+    displayHelper = maybeBuildDisplayHelper(context);
+    vsyncSampler = displayHelper != null ? VSyncSampler.getInstance() : null;
     vsyncDurationNs = C.TIME_UNSET;
     vsyncOffsetNs = C.TIME_UNSET;
     formatFrameRate = Format.NO_VALUE;
     playbackSpeed = 1f;
+    changeFrameRateStrategy = C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_ONLY_IF_SEAMLESS;
   }
 
-  /** Called when the renderer is enabled. */
-  @TargetApi(17) // displayListener is null if Util.SDK_INT < 17.
-  public void onEnabled() {
-    if (windowManager != null) {
-      checkNotNull(vsyncSampler).addObserver();
-      if (displayListener != null) {
-        displayListener.register();
-      }
-      updateDefaultDisplayRefreshRateParams();
+  /**
+   * Change the {@link C.VideoChangeFrameRateStrategy} used when calling {@link
+   * Surface#setFrameRate}.
+   */
+  public void setChangeFrameRateStrategy(
+      @C.VideoChangeFrameRateStrategy int changeFrameRateStrategy) {
+    if (this.changeFrameRateStrategy == changeFrameRateStrategy) {
+      return;
     }
+    this.changeFrameRateStrategy = changeFrameRateStrategy;
+    updateSurfacePlaybackFrameRate(/* forceUpdate= */ true);
   }
 
   /** Called when the renderer is started. */
   public void onStarted() {
     started = true;
     resetAdjustment();
-    updateSurfacePlaybackFrameRate(/* isNewSurface= */ false);
+    if (displayHelper != null) {
+      checkNotNull(vsyncSampler).addObserver();
+      displayHelper.register(this::updateDefaultDisplayRefreshRateParams);
+    }
+    updateSurfacePlaybackFrameRate(/* forceUpdate= */ false);
   }
 
   /**
@@ -172,7 +166,7 @@ public final class VideoFrameReleaseHelper {
    * @param surface The new {@link Surface}, or {@code null} if the renderer does not have one.
    */
   public void onSurfaceChanged(@Nullable Surface surface) {
-    if (surface instanceof DummySurface) {
+    if (surface instanceof PlaceholderSurface) {
       // We don't care about dummy surfaces for release timing, since they're not visible.
       surface = null;
     }
@@ -181,7 +175,7 @@ public final class VideoFrameReleaseHelper {
     }
     clearSurfaceFrameRate();
     this.surface = surface;
-    updateSurfacePlaybackFrameRate(/* isNewSurface= */ true);
+    updateSurfacePlaybackFrameRate(/* forceUpdate= */ true);
   }
 
   /** Called when the renderer's position is reset. */
@@ -197,7 +191,7 @@ public final class VideoFrameReleaseHelper {
   public void onPlaybackSpeed(float playbackSpeed) {
     this.playbackSpeed = playbackSpeed;
     resetAdjustment();
-    updateSurfacePlaybackFrameRate(/* isNewSurface= */ false);
+    updateSurfacePlaybackFrameRate(/* forceUpdate= */ false);
   }
 
   /**
@@ -229,18 +223,11 @@ public final class VideoFrameReleaseHelper {
   /** Called when the renderer is stopped. */
   public void onStopped() {
     started = false;
-    clearSurfaceFrameRate();
-  }
-
-  /** Called when the renderer is disabled. */
-  @TargetApi(17) // displayListener is null if Util.SDK_INT < 17.
-  public void onDisabled() {
-    if (windowManager != null) {
-      if (displayListener != null) {
-        displayListener.unregister();
-      }
+    if (displayHelper != null) {
+      displayHelper.unregister();
       checkNotNull(vsyncSampler).removeObserver();
     }
+    clearSurfaceFrameRate();
   }
 
   // Frame release time adjustment.
@@ -342,7 +329,7 @@ public final class VideoFrameReleaseHelper {
 
     if (shouldUpdate) {
       surfaceMediaFrameRate = candidateFrameRate;
-      updateSurfacePlaybackFrameRate(/* isNewSurface= */ false);
+      updateSurfacePlaybackFrameRate(/* forceUpdate= */ false);
     }
   }
 
@@ -350,10 +337,16 @@ public final class VideoFrameReleaseHelper {
    * Updates the playback frame rate of the current {@link #surface} based on the playback speed,
    * frame rate of the content, and whether the renderer is started.
    *
-   * @param isNewSurface Whether the current {@link #surface} is new.
+   * <p>Does nothing if {@link #changeFrameRateStrategy} is {@link
+   * C#VIDEO_CHANGE_FRAME_RATE_STRATEGY_OFF}.
+   *
+   * @param forceUpdate Whether to call {@link Surface#setFrameRate} even if the frame rate is
+   *     unchanged.
    */
-  private void updateSurfacePlaybackFrameRate(boolean isNewSurface) {
-    if (Util.SDK_INT < 30 || surface == null) {
+  private void updateSurfacePlaybackFrameRate(boolean forceUpdate) {
+    if (Util.SDK_INT < 30
+        || surface == null
+        || changeFrameRateStrategy == C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_OFF) {
       return;
     }
 
@@ -363,46 +356,33 @@ public final class VideoFrameReleaseHelper {
     }
     // We always set the frame-rate if we have a new surface, since we have no way of knowing what
     // it might have been set to previously.
-    if (!isNewSurface && this.surfacePlaybackFrameRate == surfacePlaybackFrameRate) {
+    if (!forceUpdate && this.surfacePlaybackFrameRate == surfacePlaybackFrameRate) {
       return;
     }
     this.surfacePlaybackFrameRate = surfacePlaybackFrameRate;
-    setSurfaceFrameRateV30(surface, surfacePlaybackFrameRate);
+    Api30.setSurfaceFrameRate(surface, surfacePlaybackFrameRate);
   }
 
-  /** Clears the frame-rate of the current {@link #surface}. */
+  /**
+   * Clears the frame-rate of the current {@link #surface}.
+   *
+   * <p>Does nothing if {@link #changeFrameRateStrategy} is {@link
+   * C#VIDEO_CHANGE_FRAME_RATE_STRATEGY_OFF}.
+   */
   private void clearSurfaceFrameRate() {
-    if (Util.SDK_INT < 30 || surface == null || surfacePlaybackFrameRate == 0) {
+    if (Util.SDK_INT < 30
+        || surface == null
+        || changeFrameRateStrategy == C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_OFF
+        || surfacePlaybackFrameRate == 0) {
       return;
     }
     surfacePlaybackFrameRate = 0;
-    setSurfaceFrameRateV30(surface, /* frameRate= */ 0);
-  }
-
-  @RequiresApi(30)
-  private static void setSurfaceFrameRateV30(Surface surface, float frameRate) {
-    int compatibility =
-        frameRate == 0
-            ? Surface.FRAME_RATE_COMPATIBILITY_DEFAULT
-            : Surface.FRAME_RATE_COMPATIBILITY_FIXED_SOURCE;
-    try {
-      surface.setFrameRate(frameRate, compatibility);
-    } catch (IllegalStateException e) {
-      Log.e(TAG, "Failed to call Surface.setFrameRate", e);
-    }
+    Api30.setSurfaceFrameRate(surface, /* frameRate= */ 0);
   }
 
   // Display refresh rate and vsync logic.
 
-  @RequiresApi(17)
-  @Nullable
-  private DefaultDisplayListener maybeBuildDefaultDisplayListenerV17(Context context) {
-    DisplayManager manager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
-    return manager == null ? null : new DefaultDisplayListener(manager);
-  }
-
-  private void updateDefaultDisplayRefreshRateParams() {
-    Display defaultDisplay = checkNotNull(windowManager).getDefaultDisplay();
+  private void updateDefaultDisplayRefreshRateParams(@Nullable Display defaultDisplay) {
     if (defaultDisplay != null) {
       double defaultDisplayRefreshRate = defaultDisplay.getRefreshRate();
       vsyncDurationNs = (long) (C.NANOS_PER_SECOND / defaultDisplayRefreshRate);
@@ -431,21 +411,126 @@ public final class VideoFrameReleaseHelper {
     return snappedAfterDiff < snappedBeforeDiff ? snappedAfterNs : snappedBeforeNs;
   }
 
+  @Nullable
+  private static DisplayHelper maybeBuildDisplayHelper(@Nullable Context context) {
+    @Nullable DisplayHelper displayHelper = null;
+    if (context != null) {
+      context = context.getApplicationContext();
+      if (Util.SDK_INT >= 17) {
+        displayHelper = DisplayHelperV17.maybeBuildNewInstance(context);
+      }
+      if (displayHelper == null) {
+        displayHelper = DisplayHelperV16.maybeBuildNewInstance(context);
+      }
+    }
+    return displayHelper;
+  }
+
+  // Nested classes.
+
+  @RequiresApi(30)
+  private static final class Api30 {
+    @DoNotInline
+    public static void setSurfaceFrameRate(Surface surface, float frameRate) {
+      int compatibility =
+          frameRate == 0
+              ? Surface.FRAME_RATE_COMPATIBILITY_DEFAULT
+              : Surface.FRAME_RATE_COMPATIBILITY_FIXED_SOURCE;
+      try {
+        surface.setFrameRate(frameRate, compatibility);
+      } catch (IllegalStateException e) {
+        Log.e(TAG, "Failed to call Surface.setFrameRate", e);
+      }
+    }
+  }
+
+  /** Helper for listening to changes to the default display. */
+  private interface DisplayHelper {
+
+    /** Listener for changes to the default display. */
+    interface Listener {
+
+      /**
+       * Called when the default display changes.
+       *
+       * @param defaultDisplay The default display, or {@code null} if a corresponding {@link
+       *     Display} object could not be obtained.
+       */
+      void onDefaultDisplayChanged(@Nullable Display defaultDisplay);
+    }
+
+    /**
+     * Enables the helper, invoking {@link Listener#onDefaultDisplayChanged(Display)} to pass the
+     * initial default display.
+     */
+    void register(Listener listener);
+
+    /** Disables the helper. */
+    void unregister();
+  }
+
+  private static final class DisplayHelperV16 implements DisplayHelper {
+
+    @Nullable
+    public static DisplayHelper maybeBuildNewInstance(Context context) {
+      WindowManager windowManager =
+          (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+      return windowManager != null ? new DisplayHelperV16(windowManager) : null;
+    }
+
+    private final WindowManager windowManager;
+
+    private DisplayHelperV16(WindowManager windowManager) {
+      this.windowManager = windowManager;
+    }
+
+    @Override
+    public void register(Listener listener) {
+      listener.onDefaultDisplayChanged(windowManager.getDefaultDisplay());
+    }
+
+    @Override
+    public void unregister() {
+      // Do nothing.
+    }
+  }
+
   @RequiresApi(17)
-  private final class DefaultDisplayListener implements DisplayManager.DisplayListener {
+  private static final class DisplayHelperV17
+      implements DisplayHelper, DisplayManager.DisplayListener {
+
+    @Nullable
+    public static DisplayHelper maybeBuildNewInstance(Context context) {
+      DisplayManager displayManager =
+          (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
+      return displayManager != null ? new DisplayHelperV17(displayManager) : null;
+    }
 
     private final DisplayManager displayManager;
+    @Nullable private Listener listener;
 
-    public DefaultDisplayListener(DisplayManager displayManager) {
+    private DisplayHelperV17(DisplayManager displayManager) {
       this.displayManager = displayManager;
     }
 
-    public void register() {
+    @Override
+    public void register(Listener listener) {
+      this.listener = listener;
       displayManager.registerDisplayListener(this, Util.createHandlerForCurrentLooper());
+      listener.onDefaultDisplayChanged(getDefaultDisplay());
     }
 
+    @Override
     public void unregister() {
       displayManager.unregisterDisplayListener(this);
+      listener = null;
+    }
+
+    @Override
+    public void onDisplayChanged(int displayId) {
+      if (listener != null && displayId == Display.DEFAULT_DISPLAY) {
+        listener.onDefaultDisplayChanged(getDefaultDisplay());
+      }
     }
 
     @Override
@@ -458,13 +543,9 @@ public final class VideoFrameReleaseHelper {
       // Do nothing.
     }
 
-    @Override
-    public void onDisplayChanged(int displayId) {
-      if (displayId == Display.DEFAULT_DISPLAY) {
-        updateDefaultDisplayRefreshRateParams();
-      }
+    private Display getDefaultDisplay() {
+      return displayManager.getDisplay(Display.DEFAULT_DISPLAY);
     }
-
   }
 
   /**
@@ -524,42 +605,46 @@ public final class VideoFrameReleaseHelper {
     @Override
     public boolean handleMessage(Message message) {
       switch (message.what) {
-        case CREATE_CHOREOGRAPHER: {
+        case CREATE_CHOREOGRAPHER:
           createChoreographerInstanceInternal();
           return true;
-        }
-        case MSG_ADD_OBSERVER: {
+        case MSG_ADD_OBSERVER:
           addObserverInternal();
           return true;
-        }
-        case MSG_REMOVE_OBSERVER: {
+        case MSG_REMOVE_OBSERVER:
           removeObserverInternal();
           return true;
-        }
-        default: {
+        default:
           return false;
-        }
       }
     }
 
     private void createChoreographerInstanceInternal() {
-      choreographer = Choreographer.getInstance();
+      try {
+        choreographer = Choreographer.getInstance();
+      } catch (RuntimeException e) {
+        // See [Internal: b/213926330].
+        Log.w(TAG, "Vsync sampling disabled due to platform error", e);
+      }
     }
 
     private void addObserverInternal() {
-      observerCount++;
-      if (observerCount == 1) {
-        checkNotNull(choreographer).postFrameCallback(this);
+      if (choreographer != null) {
+        observerCount++;
+        if (observerCount == 1) {
+          choreographer.postFrameCallback(this);
+        }
       }
     }
 
     private void removeObserverInternal() {
-      observerCount--;
-      if (observerCount == 0) {
-        checkNotNull(choreographer).removeFrameCallback(this);
-        sampledVsyncTimeNs = C.TIME_UNSET;
+      if (choreographer != null) {
+        observerCount--;
+        if (observerCount == 0) {
+          choreographer.removeFrameCallback(this);
+          sampledVsyncTimeNs = C.TIME_UNSET;
+        }
       }
     }
-
   }
 }

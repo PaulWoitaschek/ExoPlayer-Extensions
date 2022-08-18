@@ -46,8 +46,8 @@ public final class H262Reader implements ElementaryStreamReader {
   private @MonotonicNonNull TrackOutput output;
 
   // Maps (frame_rate_code - 1) indices to values, as defined in ITU-T H.262 Table 6-4.
-  private static final double[] FRAME_RATE_VALUES = new double[] {
-      24000d / 1001, 24, 25, 30000d / 1001, 30, 50, 60000d / 1001, 60};
+  private static final double[] FRAME_RATE_VALUES =
+      new double[] {24000d / 1001, 24, 25, 30000d / 1001, 30, 50, 60000d / 1001, 60};
 
   @Nullable private final UserDataReader userDataReader;
   @Nullable private final ParsableByteArray userDataParsable;
@@ -87,6 +87,8 @@ public final class H262Reader implements ElementaryStreamReader {
       userData = null;
       userDataParsable = null;
     }
+    pesTimeUs = C.TIME_UNSET;
+    sampleTimeUs = C.TIME_UNSET;
   }
 
   @Override
@@ -98,6 +100,8 @@ public final class H262Reader implements ElementaryStreamReader {
     }
     totalBytesWritten = 0;
     startedFirstSample = false;
+    pesTimeUs = C.TIME_UNSET;
+    sampleTimeUs = C.TIME_UNSET;
   }
 
   @Override
@@ -182,7 +186,7 @@ public final class H262Reader implements ElementaryStreamReader {
       }
       if (startCodeValue == START_PICTURE || startCodeValue == START_SEQUENCE_HEADER) {
         int bytesWrittenPastStartCode = limit - startCodeOffset;
-        if (startedFirstSample && sampleHasPicture && hasOutputFormat) {
+        if (sampleHasPicture && hasOutputFormat && sampleTimeUs != C.TIME_UNSET) {
           // Output the sample.
           @C.BufferFlags int flags = sampleIsKeyframe ? C.BUFFER_FLAG_KEY_FRAME : 0;
           int size = (int) (totalBytesWritten - samplePosition) - bytesWrittenPastStartCode;
@@ -191,8 +195,12 @@ public final class H262Reader implements ElementaryStreamReader {
         if (!startedFirstSample || sampleHasPicture) {
           // Start the next sample.
           samplePosition = totalBytesWritten - bytesWrittenPastStartCode;
-          sampleTimeUs = pesTimeUs != C.TIME_UNSET ? pesTimeUs
-              : (startedFirstSample ? (sampleTimeUs + frameDurationUs) : 0);
+          sampleTimeUs =
+              pesTimeUs != C.TIME_UNSET
+                  ? pesTimeUs
+                  : (sampleTimeUs != C.TIME_UNSET
+                      ? (sampleTimeUs + frameDurationUs)
+                      : C.TIME_UNSET);
           sampleIsKeyframe = false;
           pesTimeUs = C.TIME_UNSET;
           startedFirstSample = true;
@@ -230,7 +238,7 @@ public final class H262Reader implements ElementaryStreamReader {
 
     float pixelWidthHeightRatio = 1f;
     int aspectRatioCode = (csdData[7] & 0xF0) >> 4;
-    switch(aspectRatioCode) {
+    switch (aspectRatioCode) {
       case 2:
         pixelWidthHeightRatio = (4 * height) / (float) (3 * width);
         break;
@@ -285,9 +293,7 @@ public final class H262Reader implements ElementaryStreamReader {
       data = new byte[initialCapacity];
     }
 
-    /**
-     * Resets the buffer, clearing any data that it holds.
-     */
+    /** Resets the buffer, clearing any data that it holds. */
     public void reset() {
       isFilling = false;
       length = 0;
@@ -300,9 +306,9 @@ public final class H262Reader implements ElementaryStreamReader {
      * @param startCodeValue The start code value.
      * @param bytesAlreadyPassed The number of bytes of the start code that have been passed to
      *     {@link #onData(byte[], int, int)}, or 0.
-     * @return Whether the csd data is now complete. If true is returned, neither
-     *     this method nor {@link #onData(byte[], int, int)} should be called again without an
-     *     interleaving call to {@link #reset()}.
+     * @return Whether the csd data is now complete. If true is returned, neither this method nor
+     *     {@link #onData(byte[], int, int)} should be called again without an interleaving call to
+     *     {@link #reset()}.
      */
     public boolean onStartCode(int startCodeValue, int bytesAlreadyPassed) {
       if (isFilling) {
@@ -338,7 +344,5 @@ public final class H262Reader implements ElementaryStreamReader {
       System.arraycopy(newData, offset, data, length, readLength);
       length += readLength;
     }
-
   }
-
 }

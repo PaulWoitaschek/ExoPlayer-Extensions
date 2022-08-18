@@ -18,13 +18,15 @@ package com.google.android.exoplayer2.testutil;
 import android.os.Looper;
 import android.view.Surface;
 import androidx.annotation.Nullable;
+import androidx.annotation.Size;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlaybackException;
+import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.PlayerMessage;
 import com.google.android.exoplayer2.PlayerMessage.Target;
-import com.google.android.exoplayer2.SimpleExoPlayer;
+import com.google.android.exoplayer2.Renderer;
 import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.audio.AudioAttributes;
 import com.google.android.exoplayer2.source.MediaSource;
@@ -59,16 +61,11 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 /** Schedules a sequence of {@link Action}s for execution during a test. */
 public final class ActionSchedule {
 
-  /**
-   * Callback to notify listener that the action schedule has finished.
-   */
+  /** Callback to notify listener that the action schedule has finished. */
   public interface Callback {
 
-    /**
-     * Called when action schedule finished executing all its actions.
-     */
+    /** Called when action schedule finished executing all its actions. */
     void onActionScheduleFinished();
-
   }
 
   private final ActionNode rootNode;
@@ -95,7 +92,7 @@ public final class ActionSchedule {
    *     notification is needed.
    */
   /* package */ void start(
-      SimpleExoPlayer player,
+      ExoPlayer player,
       DefaultTrackSelector trackSelector,
       @Nullable Surface surface,
       HandlerWrapper mainHandler,
@@ -104,12 +101,12 @@ public final class ActionSchedule {
     rootNode.schedule(player, trackSelector, surface, mainHandler);
   }
 
-  /**
-   * A builder for {@link ActionSchedule} instances.
-   */
+  /** A builder for {@link ActionSchedule} instances. */
   public static final class Builder {
 
+    @Size(max = 23)
     private final String tag;
+
     private final ActionNode rootNode;
 
     private long currentDelayMs;
@@ -169,24 +166,25 @@ public final class ActionSchedule {
     /**
      * Schedules a seek action.
      *
-     * @param windowIndex The window to seek to.
+     * @param mediaItemIndex The media item to seek to.
      * @param positionMs The seek position.
      * @return The builder, for convenience.
      */
-    public Builder seek(int windowIndex, long positionMs) {
-      return apply(new Seek(tag, windowIndex, positionMs, /* catchIllegalSeekException= */ false));
+    public Builder seek(int mediaItemIndex, long positionMs) {
+      return apply(
+          new Seek(tag, mediaItemIndex, positionMs, /* catchIllegalSeekException= */ false));
     }
 
     /**
      * Schedules a seek action to be executed.
      *
-     * @param windowIndex The window to seek to.
+     * @param mediaItemIndex The media item to seek to.
      * @param positionMs The seek position.
      * @param catchIllegalSeekException Whether an illegal seek position should be caught or not.
      * @return The builder, for convenience.
      */
-    public Builder seek(int windowIndex, long positionMs, boolean catchIllegalSeekException) {
-      return apply(new Seek(tag, windowIndex, positionMs, catchIllegalSeekException));
+    public Builder seek(int mediaItemIndex, long positionMs, boolean catchIllegalSeekException) {
+      return apply(new Seek(tag, mediaItemIndex, positionMs, catchIllegalSeekException));
     }
 
     /**
@@ -255,23 +253,23 @@ public final class ActionSchedule {
      * Schedules a play action, waits until the player reaches the specified position, and pauses
      * the player again.
      *
-     * @param windowIndex The window index at which the player should be paused again.
-     * @param positionMs The position in that window at which the player should be paused again.
+     * @param mediaItemIndex The media item index at which the player should be paused again.
+     * @param positionMs The position in that media item at which the player should be paused again.
      * @return The builder, for convenience.
      */
-    public Builder playUntilPosition(int windowIndex, long positionMs) {
-      return apply(new PlayUntilPosition(tag, windowIndex, positionMs));
+    public Builder playUntilPosition(int mediaItemIndex, long positionMs) {
+      return apply(new PlayUntilPosition(tag, mediaItemIndex, positionMs));
     }
 
     /**
-     * Schedules a play action, waits until the player reaches the start of the specified window,
-     * and pauses the player again.
+     * Schedules a play action, waits until the player reaches the start of the specified media
+     * item, and pauses the player again.
      *
-     * @param windowIndex The window index at which the player should be paused again.
+     * @param mediaItemIndex The media item index at which the player should be paused again.
      * @return The builder, for convenience.
      */
-    public Builder playUntilStartOfWindow(int windowIndex) {
-      return apply(new PlayUntilPosition(tag, windowIndex, /* positionMs= */ 0));
+    public Builder playUntilStartOfMediaItem(int mediaItemIndex) {
+      return apply(new PlayUntilPosition(tag, mediaItemIndex, /* positionMs= */ 0));
     }
 
     /**
@@ -331,16 +329,16 @@ public final class ActionSchedule {
     /**
      * Schedules a set media items action to be executed.
      *
-     * @param windowIndex The window index to start playback from or {@link C#INDEX_UNSET} if the
-     *     playback position should not be reset.
+     * @param mediaItemIndex The media item index to start playback from or {@link C#INDEX_UNSET} if
+     *     the playback position should not be reset.
      * @param positionMs The position in milliseconds from where playback should start. If {@link
-     *     C#TIME_UNSET} is passed the default position is used. In any case, if {@code windowIndex}
-     *     is set to {@link C#INDEX_UNSET} the position is not reset at all and this parameter is
-     *     ignored.
+     *     C#TIME_UNSET} is passed the default position is used. In any case, if {@code
+     *     mediaItemIndex} is set to {@link C#INDEX_UNSET} the position is not reset at all and this
+     *     parameter is ignored.
      * @return The builder, for convenience.
      */
-    public Builder setMediaSources(int windowIndex, long positionMs, MediaSource... sources) {
-      return apply(new Action.SetMediaItems(tag, windowIndex, positionMs, sources));
+    public Builder setMediaSources(int mediaItemIndex, long positionMs, MediaSource... sources) {
+      return apply(new Action.SetMediaItems(tag, mediaItemIndex, positionMs, sources));
     }
 
     /**
@@ -362,7 +360,10 @@ public final class ActionSchedule {
     public Builder setMediaSources(MediaSource... mediaSources) {
       return apply(
           new Action.SetMediaItems(
-              tag, /* windowIndex= */ C.INDEX_UNSET, /* positionMs= */ C.TIME_UNSET, mediaSources));
+              tag,
+              /* mediaItemIndex= */ C.INDEX_UNSET,
+              /* positionMs= */ C.TIME_UNSET,
+              mediaSources));
     }
     /**
      * Schedules a add media items action to be executed.
@@ -455,8 +456,8 @@ public final class ActionSchedule {
     /**
      * Schedules sending a {@link PlayerMessage}.
      *
-     * @param positionMs The position in the current window at which the message should be sent, in
-     *     milliseconds.
+     * @param positionMs The position in the current media item at which the message should be sent,
+     *     in milliseconds.
      * @return The builder, for convenience.
      */
     public Builder sendMessage(Target target, long positionMs) {
@@ -467,27 +468,28 @@ public final class ActionSchedule {
      * Schedules sending a {@link PlayerMessage}.
      *
      * @param target A message target.
-     * @param windowIndex The window index at which the message should be sent.
+     * @param mediaItemIndex The media item index at which the message should be sent.
      * @param positionMs The position at which the message should be sent, in milliseconds.
      * @return The builder, for convenience.
      */
-    public Builder sendMessage(Target target, int windowIndex, long positionMs) {
+    public Builder sendMessage(Target target, int mediaItemIndex, long positionMs) {
       return apply(
-          new SendMessages(tag, target, windowIndex, positionMs, /* deleteAfterDelivery= */ true));
+          new SendMessages(
+              tag, target, mediaItemIndex, positionMs, /* deleteAfterDelivery= */ true));
     }
 
     /**
      * Schedules to send a {@link PlayerMessage}.
      *
      * @param target A message target.
-     * @param windowIndex The window index at which the message should be sent.
+     * @param mediaItemIndex The media item index at which the message should be sent.
      * @param positionMs The position at which the message should be sent, in milliseconds.
      * @param deleteAfterDelivery Whether the message will be deleted after delivery.
      * @return The builder, for convenience.
      */
     public Builder sendMessage(
-        Target target, int windowIndex, long positionMs, boolean deleteAfterDelivery) {
-      return apply(new SendMessages(tag, target, windowIndex, positionMs, deleteAfterDelivery));
+        Target target, int mediaItemIndex, long positionMs, boolean deleteAfterDelivery) {
+      return apply(new SendMessages(tag, target, mediaItemIndex, positionMs, deleteAfterDelivery));
     }
 
     /**
@@ -609,7 +611,7 @@ public final class ActionSchedule {
       void onMessageArrived();
     }
 
-    @Nullable private SimpleExoPlayer player;
+    @Nullable private ExoPlayer player;
     private boolean hasArrived;
     @Nullable private Callback callback;
 
@@ -621,21 +623,21 @@ public final class ActionSchedule {
     }
 
     /** Handles the message send to the component and additionally provides access to the player. */
-    public abstract void handleMessage(
-        SimpleExoPlayer player, int messageType, @Nullable Object message);
-
-    /** Sets the player to be passed to {@link #handleMessage(SimpleExoPlayer, int, Object)}. */
-    /* package */ void setPlayer(SimpleExoPlayer player) {
-      this.player = player;
-    }
+    public abstract void handleMessage(ExoPlayer player, int messageType, @Nullable Object message);
 
     @Override
-    public final void handleMessage(int messageType, @Nullable Object message) {
+    public final void handleMessage(
+        @Renderer.MessageType int messageType, @Nullable Object message) {
       handleMessage(Assertions.checkStateNotNull(player), messageType, message);
       if (callback != null) {
         hasArrived = true;
         callback.onMessageArrived();
       }
+    }
+
+    /** Sets the player to be passed to {@link #handleMessage(ExoPlayer, int, Object)}. */
+    /* package */ void setPlayer(ExoPlayer player) {
+      this.player = player;
     }
   }
 
@@ -645,19 +647,19 @@ public final class ActionSchedule {
    */
   public abstract static class PlayerRunnable implements Runnable {
 
-    @Nullable private SimpleExoPlayer player;
+    @Nullable private ExoPlayer player;
 
     /** Executes Runnable with reference to player. */
-    public abstract void run(SimpleExoPlayer player);
-
-    /** Sets the player to be passed to {@link #run(SimpleExoPlayer)} . */
-    /* package */ void setPlayer(SimpleExoPlayer player) {
-      this.player = player;
-    }
+    public abstract void run(ExoPlayer player);
 
     @Override
     public final void run() {
       run(Assertions.checkStateNotNull(player));
+    }
+
+    /** Sets the player to be passed to {@link #run(ExoPlayer)} . */
+    /* package */ void setPlayer(ExoPlayer player) {
+      this.player = player;
     }
   }
 
@@ -670,7 +672,7 @@ public final class ActionSchedule {
 
     @Nullable private ActionNode next;
 
-    private @MonotonicNonNull SimpleExoPlayer player;
+    private @MonotonicNonNull ExoPlayer player;
     private @MonotonicNonNull DefaultTrackSelector trackSelector;
     @Nullable private Surface surface;
     private @MonotonicNonNull HandlerWrapper mainHandler;
@@ -714,7 +716,7 @@ public final class ActionSchedule {
      * @param mainHandler A handler associated with the main thread of the host activity.
      */
     public void schedule(
-        SimpleExoPlayer player,
+        ExoPlayer player,
         DefaultTrackSelector trackSelector,
         @Nullable Surface surface,
         HandlerWrapper mainHandler) {
@@ -750,33 +752,28 @@ public final class ActionSchedule {
             repeatIntervalMs);
       }
     }
-
   }
 
-  /**
-   * A no-op root action.
-   */
+  /** A no-op root action. */
   private static final class RootAction extends Action {
 
-    public RootAction(String tag) {
+    public RootAction(@Size(max = 23) String tag) {
       super(tag, "Root");
     }
 
     @Override
     protected void doActionImpl(
-        SimpleExoPlayer player, DefaultTrackSelector trackSelector, @Nullable Surface surface) {
+        ExoPlayer player, DefaultTrackSelector trackSelector, @Nullable Surface surface) {
       // Do nothing.
     }
   }
 
-  /**
-   * An action calling a specified {@link ActionSchedule.Callback}.
-   */
+  /** An action calling a specified {@link ActionSchedule.Callback}. */
   private static final class CallbackAction extends Action {
 
     @Nullable private Callback callback;
 
-    public CallbackAction(String tag) {
+    public CallbackAction(@Size(max = 23) String tag) {
       super(tag, "FinishedCallback");
     }
 
@@ -786,7 +783,7 @@ public final class ActionSchedule {
 
     @Override
     protected void doActionAndScheduleNextImpl(
-        SimpleExoPlayer player,
+        ExoPlayer player,
         DefaultTrackSelector trackSelector,
         @Nullable Surface surface,
         HandlerWrapper handler,
@@ -800,9 +797,8 @@ public final class ActionSchedule {
 
     @Override
     protected void doActionImpl(
-        SimpleExoPlayer player, DefaultTrackSelector trackSelector, @Nullable Surface surface) {
+        ExoPlayer player, DefaultTrackSelector trackSelector, @Nullable Surface surface) {
       // Not triggered.
     }
   }
-
 }

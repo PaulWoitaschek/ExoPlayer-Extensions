@@ -41,27 +41,24 @@ public class AsynchronousMediaCodecAdapterTest {
 
   @Before
   public void setUp() throws Exception {
-    MediaCodecInfo codecInfo = createMediaCodecInfo("h264", "video/mp4");
+    MediaCodecInfo codecInfo = createMediaCodecInfo("aac", "audio/aac");
     MediaCodecAdapter.Configuration configuration =
-        new MediaCodecAdapter.Configuration(
+        MediaCodecAdapter.Configuration.createForAudioDecoding(
             codecInfo,
             createMediaFormat("format"),
-            /* format= */ new Format.Builder().build(),
-            /* surface= */ null,
-            /* crypto= */ null,
-            /* flags= */ 0);
+            new Format.Builder().build(),
+            /* crypto= */ null);
     callbackThread = new HandlerThread("TestCallbackThread");
     queueingThread = new HandlerThread("TestQueueingThread");
     adapter =
         new AsynchronousMediaCodecAdapter.Factory(
                 /* callbackThreadSupplier= */ () -> callbackThread,
                 /* queueingThreadSupplier= */ () -> queueingThread,
-                /* forceQueueingSynchronizationWorkaround= */ false,
                 /* synchronizeCodecInteractionsWithQueueing= */ false)
             .createAdapter(configuration);
     bufferInfo = new MediaCodec.BufferInfo();
-    // After start(), the ShadowMediaCodec offers input buffer 0. We advance the looper to make sure
-    // and messages have been propagated to the adapter.
+    // After starting the MediaCodec, the ShadowMediaCodec offers input buffer 0. We advance the
+    // looper to make sure any messages have been propagated to the adapter.
     shadowOf(callbackThread.getLooper()).idle();
   }
 
@@ -74,7 +71,6 @@ public class AsynchronousMediaCodecAdapterTest {
   public void dequeueInputBufferIndex_withInputBuffer_returnsInputBuffer() {
     assertThat(adapter.dequeueInputBufferIndex()).isEqualTo(0);
   }
-
 
   @Test
   public void dequeueInputBufferIndex_withMediaCodecError_throwsException() throws Exception {

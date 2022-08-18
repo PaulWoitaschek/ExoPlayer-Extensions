@@ -17,6 +17,7 @@ package com.google.android.exoplayer2.source;
 
 import static java.lang.Math.max;
 import static java.lang.Math.min;
+import static java.lang.annotation.ElementType.TYPE_USE;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;
@@ -26,10 +27,12 @@ import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.upstream.Allocator;
 import com.google.android.exoplayer2.upstream.TransferListener;
 import com.google.android.exoplayer2.util.Assertions;
+import com.google.android.exoplayer2.util.Util;
 import java.io.IOException;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.ArrayList;
 
 /**
@@ -47,6 +50,7 @@ public final class ClippingMediaSource extends CompositeMediaSource<Void> {
      */
     @Documented
     @Retention(RetentionPolicy.SOURCE)
+    @Target(TYPE_USE)
     @IntDef({REASON_INVALID_PERIOD_COUNT, REASON_NOT_SEEKABLE_TO_START, REASON_START_EXCEEDS_END})
     public @interface Reason {}
     /** The wrapped source doesn't consist of a single period. */
@@ -188,17 +192,6 @@ public final class ClippingMediaSource extends CompositeMediaSource<Void> {
     window = new Timeline.Window();
   }
 
-  /**
-   * @deprecated Use {@link #getMediaItem()} and {@link MediaItem.PlaybackProperties#tag} instead.
-   */
-  @SuppressWarnings("deprecation")
-  @Deprecated
-  @Override
-  @Nullable
-  public Object getTag() {
-    return mediaSource.getTag();
-  }
-
   @Override
   public MediaItem getMediaItem() {
     return mediaSource.getMediaItem();
@@ -288,14 +281,17 @@ public final class ClippingMediaSource extends CompositeMediaSource<Void> {
       clippingTimeline = new ClippingTimeline(timeline, windowStartUs, windowEndUs);
     } catch (IllegalClippingException e) {
       clippingError = e;
+      // The clipping error won't be propagated while we have existing MediaPeriods. Setting the
+      // error at the MediaPeriods ensures it will be thrown as soon as possible.
+      for (int i = 0; i < mediaPeriods.size(); i++) {
+        mediaPeriods.get(i).setClippingError(clippingError);
+      }
       return;
     }
     refreshSourceInfo(clippingTimeline);
   }
 
-  /**
-   * Provides a clipped view of a specified timeline.
-   */
+  /** Provides a clipped view of a specified timeline. */
   private static final class ClippingTimeline extends ForwardingTimeline {
 
     private final long startUs;
@@ -353,7 +349,7 @@ public final class ClippingMediaSource extends CompositeMediaSource<Void> {
             endUs == C.TIME_UNSET ? window.defaultPositionUs : min(window.defaultPositionUs, endUs);
         window.defaultPositionUs -= startUs;
       }
-      long startMs = C.usToMs(startUs);
+      long startMs = Util.usToMs(startUs);
       if (window.presentationStartTimeMs != C.TIME_UNSET) {
         window.presentationStartTimeMs += startMs;
       }

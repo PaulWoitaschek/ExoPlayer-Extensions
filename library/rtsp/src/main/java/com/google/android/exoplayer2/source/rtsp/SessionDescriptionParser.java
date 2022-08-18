@@ -34,14 +34,15 @@ import java.util.regex.Pattern;
   // under the given tag follows an optional space.
   private static final Pattern SDP_LINE_PATTERN = Pattern.compile("([a-z])=\\s?(.+)");
   // Matches an attribute line (with a= sdp tag removed. Example: range:npt=0-50.0).
-  // Attribute can also be a flag, i.e. without a value, like recvonly.
-  private static final Pattern ATTRIBUTE_PATTERN = Pattern.compile("([0-9A-Za-z-]+)(?::(.*))?");
+  // Attribute can also be a flag, i.e. without a value, like recvonly. Reference RFC4566 Section 9
+  // Page 43, under "token-char".
+  private static final Pattern ATTRIBUTE_PATTERN =
+      Pattern.compile(
+          "([\\x21\\x23-\\x27\\x2a\\x2b\\x2d\\x2e\\x30-\\x39\\x41-\\x5a\\x5e-\\x7e]+)(?::(.*))?");
   // SDP media description line: <mediaType> <port> <transmissionProtocol> <rtpPayloadType>
   // For instance: audio 0 RTP/AVP 97
   private static final Pattern MEDIA_DESCRIPTION_PATTERN =
       Pattern.compile("(\\S+)\\s(\\S+)\\s(\\S+)\\s(\\S+)");
-
-  private static final String CRLF = "\r\n";
 
   private static final String VERSION_TYPE = "v";
   private static final String ORIGIN_TYPE = "o";
@@ -71,14 +72,15 @@ import java.util.regex.Pattern;
     @Nullable MediaDescription.Builder mediaDescriptionBuilder = null;
 
     // Lines are separated by an CRLF.
-    for (String line : Util.split(sdpString, CRLF)) {
+    for (String line : RtspMessageUtil.splitRtspMessageBody(sdpString)) {
       if ("".equals(line)) {
         continue;
       }
 
       Matcher matcher = SDP_LINE_PATTERN.matcher(line);
       if (!matcher.matches()) {
-        throw new ParserException("Malformed SDP line: " + line);
+        throw ParserException.createForMalformedManifest(
+            "Malformed SDP line: " + line, /* cause= */ null);
       }
 
       String sdpType = checkNotNull(matcher.group(1));
@@ -87,7 +89,8 @@ import java.util.regex.Pattern;
       switch (sdpType) {
         case VERSION_TYPE:
           if (!SUPPORTED_SDP_VERSION.equals(sdpValue)) {
-            throw new ParserException(String.format("SDP version %s is not supported.", sdpValue));
+            throw ParserException.createForMalformedManifest(
+                String.format("SDP version %s is not supported.", sdpValue), /* cause= */ null);
           }
           break;
 
@@ -155,7 +158,8 @@ import java.util.regex.Pattern;
         case ATTRIBUTE_TYPE:
           matcher = ATTRIBUTE_PATTERN.matcher(sdpValue);
           if (!matcher.matches()) {
-            throw new ParserException("Malformed Attribute line: " + line);
+            throw ParserException.createForMalformedManifest(
+                "Malformed Attribute line: " + line, /* cause= */ null);
           }
 
           String attributeName = checkNotNull(matcher.group(1));
@@ -188,8 +192,8 @@ import java.util.regex.Pattern;
 
     try {
       return sessionDescriptionBuilder.build();
-    } catch (IllegalStateException e) {
-      throw new ParserException(e);
+    } catch (IllegalArgumentException | IllegalStateException e) {
+      throw ParserException.createForMalformedManifest(/* message= */ null, e);
     }
   }
 
@@ -199,8 +203,8 @@ import java.util.regex.Pattern;
       throws ParserException {
     try {
       sessionDescriptionBuilder.addMediaDescription(mediaDescriptionBuilder.build());
-    } catch (IllegalStateException e) {
-      throw new ParserException(e);
+    } catch (IllegalArgumentException | IllegalStateException e) {
+      throw ParserException.createForMalformedManifest(/* message= */ null, e);
     }
   }
 
@@ -208,7 +212,8 @@ import java.util.regex.Pattern;
       throws ParserException {
     Matcher matcher = MEDIA_DESCRIPTION_PATTERN.matcher(line);
     if (!matcher.matches()) {
-      throw new ParserException("Malformed SDP media description line: " + line);
+      throw ParserException.createForMalformedManifest(
+          "Malformed SDP media description line: " + line, /* cause= */ null);
     }
     String mediaType = checkNotNull(matcher.group(1));
     String portString = checkNotNull(matcher.group(2));
@@ -222,7 +227,8 @@ import java.util.regex.Pattern;
           transportProtocol,
           Integer.parseInt(payloadTypeString));
     } catch (NumberFormatException e) {
-      throw new ParserException("Malformed SDP media description line: " + line, e);
+      throw ParserException.createForMalformedManifest(
+          "Malformed SDP media description line: " + line, e);
     }
   }
 

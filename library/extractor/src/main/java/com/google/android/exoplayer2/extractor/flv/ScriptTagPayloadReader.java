@@ -25,9 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Parses Script Data tags from an FLV stream and extracts metadata information.
- */
+/** Parses Script Data tags from an FLV stream and extracts metadata information. */
 /* package */ final class ScriptTagPayloadReader extends TagPayloadReader {
 
   private static final String NAME_METADATA = "onMetaData";
@@ -89,6 +87,10 @@ import java.util.Map;
     String name = readAmfString(data);
     if (!NAME_METADATA.equals(name)) {
       // We're only interested in metadata.
+      return false;
+    }
+    if (data.bytesLeft() == 0) {
+      // The metadata script tag has no value.
       return false;
     }
     int type = readAmfType(data);

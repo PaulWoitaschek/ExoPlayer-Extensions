@@ -37,22 +37,24 @@
     <item quantity="one">Spol %d sekund frem</item>
     <item quantity="other">Spol %d sekunder frem</item>
   </plurals>
-  <string name="exo_controls_repeat_off_description">Gentag ingen</string>
-  <string name="exo_controls_repeat_one_description">Gentag én</string>
-  <string name="exo_controls_repeat_all_description">Gentag alle</string>
-  <string name="exo_controls_shuffle_on_description">Bland er slået til</string>
-  <string name="exo_controls_shuffle_off_description">Bland er slået fra</string>
+  <string name="exo_controls_repeat_off_description">Tilstand: Gentag ikke. Slå Gentag til/fra.</string>
+  <string name="exo_controls_repeat_one_description">Tilstand: Gentag én. Slå Gentag til/fra.</string>
+  <string name="exo_controls_repeat_all_description">Tilstand: Gentag alle. Slå Gentag til/fra.</string>
+  <string name="exo_controls_shuffle_on_description">Deaktiver Bland</string>
+  <string name="exo_controls_shuffle_off_description">Aktivér Bland</string>
   <string name="exo_controls_vr_description">VR-tilstand</string>
   <string name="exo_controls_cc_enabled_description">Deaktiver undertekster</string>
   <string name="exo_controls_cc_disabled_description">Aktivér undertekster</string>
   <string name="exo_controls_playback_speed">Hastighed</string>
-  <string name="exo_controls_playback_speed_normal">Normal</string>
-  <string name="exo_download_description">Download</string>
-  <string name="exo_download_notification_channel_name">Downloads</string>
-  <string name="exo_download_downloading">Downloader</string>
-  <string name="exo_download_completed">Downloaden er udført</string>
-  <string name="exo_download_failed">Download mislykkedes</string>
-  <string name="exo_download_removing">Fjerner downloads</string>
+  <string-array name="exo_controls_playback_speeds">
+    <item>0,25x</item>
+    <item>0,5x</item>
+    <item>0,75x</item>
+    <item>Normal</item>
+    <item>1,25x</item>
+    <item>1,5x</item>
+    <item>2x</item>
+  </string-array>
   <string name="exo_track_selection_title_video">Video</string>
   <string name="exo_track_selection_title_audio">Lyd</string>
   <string name="exo_track_selection_title_text">Undertekst</string>

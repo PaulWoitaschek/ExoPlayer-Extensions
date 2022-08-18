@@ -16,6 +16,7 @@
 package com.google.android.exoplayer2.extractor.ts;
 
 import static java.lang.Math.min;
+import static java.lang.annotation.ElementType.TYPE_USE;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;
@@ -33,6 +34,7 @@ import com.google.android.exoplayer2.util.ParsableByteArray;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
@@ -41,6 +43,7 @@ public final class Ac4Reader implements ElementaryStreamReader {
 
   @Documented
   @Retention(RetentionPolicy.SOURCE)
+  @Target(TYPE_USE)
   @IntDef({STATE_FINDING_SYNC, STATE_READING_HEADER, STATE_READING_SAMPLE})
   private @interface State {}
 
@@ -55,7 +58,7 @@ public final class Ac4Reader implements ElementaryStreamReader {
   private @MonotonicNonNull String formatId;
   private @MonotonicNonNull TrackOutput output;
 
-  @State private int state;
+  private @State int state;
   private int bytesRead;
 
   // Used to find the header.
@@ -87,6 +90,7 @@ public final class Ac4Reader implements ElementaryStreamReader {
     bytesRead = 0;
     lastByteWasAC = false;
     hasCRC = false;
+    timeUs = C.TIME_UNSET;
     this.language = language;
   }
 
@@ -96,18 +100,21 @@ public final class Ac4Reader implements ElementaryStreamReader {
     bytesRead = 0;
     lastByteWasAC = false;
     hasCRC = false;
+    timeUs = C.TIME_UNSET;
   }
 
   @Override
-  public void createTracks(ExtractorOutput extractorOutput, TrackIdGenerator generator) {
-    generator.generateNewId();
-    formatId = generator.getFormatId();
-    output = extractorOutput.track(generator.getTrackId(), C.TRACK_TYPE_AUDIO);
+  public void createTracks(ExtractorOutput extractorOutput, TrackIdGenerator idGenerator) {
+    idGenerator.generateNewId();
+    formatId = idGenerator.getFormatId();
+    output = extractorOutput.track(idGenerator.getTrackId(), C.TRACK_TYPE_AUDIO);
   }
 
   @Override
   public void packetStarted(long pesTimeUs, @TsPayloadReader.Flags int flags) {
-    timeUs = pesTimeUs;
+    if (pesTimeUs != C.TIME_UNSET) {
+      timeUs = pesTimeUs;
+    }
   }
 
   @Override
@@ -136,8 +143,10 @@ public final class Ac4Reader implements ElementaryStreamReader {
           output.sampleData(data, bytesToRead);
           bytesRead += bytesToRead;
           if (bytesRead == sampleSize) {
-            output.sampleMetadata(timeUs, C.BUFFER_FLAG_KEY_FRAME, sampleSize, 0, null);
-            timeUs += sampleDurationUs;
+            if (timeUs != C.TIME_UNSET) {
+              output.sampleMetadata(timeUs, C.BUFFER_FLAG_KEY_FRAME, sampleSize, 0, null);
+              timeUs += sampleDurationUs;
+            }
             state = STATE_FINDING_SYNC;
           }
           break;

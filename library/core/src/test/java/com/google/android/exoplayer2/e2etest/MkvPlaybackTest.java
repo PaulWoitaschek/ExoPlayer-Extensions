@@ -19,26 +19,25 @@ import android.content.Context;
 import android.graphics.SurfaceTexture;
 import android.view.Surface;
 import androidx.test.core.app.ApplicationProvider;
+import com.google.android.exoplayer2.C;
+import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.Player;
-import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.robolectric.PlaybackOutput;
 import com.google.android.exoplayer2.robolectric.ShadowMediaCodecConfig;
 import com.google.android.exoplayer2.robolectric.TestPlayerRunHelper;
 import com.google.android.exoplayer2.testutil.CapturingRenderersFactory;
 import com.google.android.exoplayer2.testutil.DumpFileAsserts;
 import com.google.android.exoplayer2.testutil.FakeClock;
+import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
 import com.google.common.collect.ImmutableList;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.ParameterizedRobolectricTestRunner;
 import org.robolectric.ParameterizedRobolectricTestRunner.Parameters;
-import org.robolectric.annotation.Config;
 
 /** End-to-end tests using MKV samples. */
-// TODO(b/143232359): Remove once https://issuetracker.google.com/143232359 is resolved.
-@Config(sdk = 29)
 @RunWith(ParameterizedRobolectricTestRunner.class)
 public final class MkvPlaybackTest {
   @Parameters(name = "{0}")
@@ -49,7 +48,9 @@ public final class MkvPlaybackTest {
         "sample_with_ssa_subtitles.mkv",
         "sample_with_null_terminated_ssa_subtitles.mkv",
         "sample_with_srt.mkv",
-        "sample_with_null_terminated_srt.mkv");
+        "sample_with_null_terminated_srt.mkv",
+        "sample_with_vtt_subtitles.mkv",
+        "sample_with_null_terminated_vtt_subtitles.mkv");
   }
 
   @ParameterizedRobolectricTestRunner.Parameter public String inputFile;
@@ -63,10 +64,23 @@ public final class MkvPlaybackTest {
     Context applicationContext = ApplicationProvider.getApplicationContext();
     CapturingRenderersFactory capturingRenderersFactory =
         new CapturingRenderersFactory(applicationContext);
-    SimpleExoPlayer player =
-        new SimpleExoPlayer.Builder(applicationContext, capturingRenderersFactory)
+    ExoPlayer player =
+        new ExoPlayer.Builder(applicationContext, capturingRenderersFactory)
             .setClock(new FakeClock(/* isAutoAdvancing= */ true))
             .build();
+    // TODO(internal b/174661563): Remove the for-loop below to enable the text renderer when
+    //  subtitle output is not flaky.
+    for (int textRendererIndex = 0;
+        textRendererIndex < player.getRendererCount();
+        textRendererIndex++) {
+      if (player.getRendererType(textRendererIndex) == C.TRACK_TYPE_TEXT) {
+        player.setTrackSelectionParameters(
+            new DefaultTrackSelector.ParametersBuilder(applicationContext)
+                .setRendererDisabled(textRendererIndex, /* disabled= */ true)
+                .build());
+        break;
+      }
+    }
     player.setVideoSurface(new Surface(new SurfaceTexture(/* texName= */ 1)));
     PlaybackOutput playbackOutput = PlaybackOutput.register(player, capturingRenderersFactory);
 

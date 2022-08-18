@@ -4,7 +4,7 @@ title: Media items
 
 The [playlist API][] is based on `MediaItem`s, which can be conveniently built
 using `MediaItem.Builder`. Inside the player, media items are converted into
-playable `MediaSource`s by a `MediaSourceFactory`. Without
+playable `MediaSource`s by a `MediaSource.Factory`. Without
 [custom configuration]({{ site.baseurl }}/media-sources.html#customizing-media-source-creation),
 this conversion is carried out by a `DefaultMediaSourceFactory`, which is
 capable of building complex media sources corresponding to the properties of the
@@ -63,10 +63,12 @@ For protected content, the media item's DRM properties should be set:
 ~~~
 MediaItem mediaItem = new MediaItem.Builder()
     .setUri(videoUri)
-    .setDrmUuid(C.WIDEVINE_UUID)
-    .setDrmLicenseUri(licenseUri)
-    .setDrmLicenseRequestHeaders(httpRequestHeaders)
-    .setDrmMultiSession(true)
+    .setDrmConfiguration(
+        new MediaItem.DrmConfiguration.Builder(C.WIDEVINE_UUID)
+            .setLicenseUri(licenseUri)
+            .setMultiSession(true)
+            .setLicenseRequestHeaders(httpRequestHeaders)
+            .build())
     .build();
 ~~~
 {: .language-java}
@@ -84,17 +86,17 @@ To sideload subtitle tracks, `MediaItem.Subtitle` instances can be added when
 when building a media item:
 
 ~~~
-MediaItem.Subtitle subtitle =
-    new MediaItem.Subtitle(
-        subtitleUri,
-        MimeTypes.APPLICATION_SUBRIP, // The correct MIME type.
-        language, // The subtitle language. May be null.
-        selectionFlags); // Selection flags for the track.
-
-MediaItem mediaItem = new MediaItem.Builder()
-    .setUri(videoUri)
-    .setSubtitles(Lists.newArrayList(subtitle))
-    .build();
+MediaItem.SubtitleConfiguration subtitle =
+    new MediaItem.SubtitleConfiguration.Builder(subtitleUri)
+        .setMimeType(MimeTypes.APPLICATION_SUBRIP) // The correct MIME type (required).
+        .setLanguage(language) // The subtitle language (optional).
+        .setSelectionFlags(selectionFlags) // Selection flags for the track (optional).
+        .build();
+MediaItem mediaItem =
+    new MediaItem.Builder()
+        .setUri(videoUri)
+        .setSubtitleConfigurations(ImmutableList.of(subtitle))
+        .build();
 ~~~
 {: .language-java}
 
@@ -108,11 +110,15 @@ It's possible to clip the content referred to by a media item by setting custom
 start and end positions:
 
 ~~~
-MediaItem mediaItem = new MediaItem.Builder()
-    .setUri(videoUri)
-    .setClipStartPositionMs(startPositionMs)
-    .setClipEndPositionMs(endPositionMs)
-    .build();
+MediaItem mediaItem =
+    new MediaItem.Builder()
+        .setUri(videoUri)
+        .setClippingConfiguration(
+            new ClippingConfiguration.Builder()
+                .setStartPositionMs(startPositionMs)
+                .setEndPositionMs(endPositionMs)
+                .build())
+        .build();
 ~~~
 {: .language-java}
 
@@ -135,7 +141,8 @@ To insert ads, a media item's ad tag URI property should be set:
 ~~~
 MediaItem mediaItem = new MediaItem.Builder()
     .setUri(videoUri)
-    .setAdTagUri(adTagUri)
+    .setAdsConfiguration(
+        new MediaItem.AdsConfiguration.Builder(adTagUri).build())
     .build();
 ~~~
 {: .language-java}
@@ -146,4 +153,4 @@ the player also needs to have its `DefaultMediaSourceFactory`
 [configured accordingly]({{ site.baseurl }}/ad-insertion.html#declarative-ad-support).
 
 [playlist API]: {{ site.baseurl }}/playlists.html
-[`MediaItem.Builder` Javadoc]: {{ site.baseurl }}/doc/reference/com/google/android/exoplayer2/MediaItem.Builder.html
+[`MediaItem.Builder` Javadoc]: {{ site.exo_sdk }}/MediaItem.Builder.html

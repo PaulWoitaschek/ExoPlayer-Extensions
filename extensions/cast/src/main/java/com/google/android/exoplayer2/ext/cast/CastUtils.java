@@ -18,13 +18,12 @@ package com.google.android.exoplayer2.ext.cast;
 import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Format;
+import com.google.android.exoplayer2.util.Util;
 import com.google.android.gms.cast.CastStatusCodes;
 import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaTrack;
 
-/**
- * Utility methods for ExoPlayer/Cast integration.
- */
+/** Utility methods for Cast integration. */
 /* package */ final class CastUtils {
 
   /** The duration returned by {@link MediaInfo#getStreamDuration()} for live streams. */
@@ -44,7 +43,7 @@ import com.google.android.gms.cast.MediaTrack;
     }
     long durationMs = mediaInfo.getStreamDuration();
     return durationMs != MediaInfo.UNKNOWN_DURATION && durationMs != LIVE_STREAM_DURATION
-        ? C.msToUs(durationMs)
+        ? Util.msToUs(durationMs)
         : C.TIME_UNSET;
   }
 
@@ -103,8 +102,8 @@ import com.google.android.gms.cast.MediaTrack;
   }
 
   /**
-   * Creates a {@link Format} instance containing all information contained in the given
-   * {@link MediaTrack} object.
+   * Creates a {@link Format} instance containing all information contained in the given {@link
+   * MediaTrack} object.
    *
    * @param mediaTrack The {@link MediaTrack}.
    * @return The equivalent {@link Format}.
@@ -118,5 +117,4 @@ import com.google.android.gms.cast.MediaTrack;
   }
 
   private CastUtils() {}
-
 }

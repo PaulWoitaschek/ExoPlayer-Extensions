@@ -19,13 +19,12 @@ import static com.google.android.exoplayer2.audio.AudioSink.CURRENT_POSITION_NOT
 import static com.google.android.exoplayer2.audio.AudioSink.SINK_FORMAT_SUPPORTED_DIRECTLY;
 import static com.google.android.exoplayer2.audio.AudioSink.SINK_FORMAT_SUPPORTED_WITH_TRANSCODING;
 import static com.google.common.truth.Truth.assertThat;
-import static org.robolectric.annotation.Config.OLDEST_SDK;
-import static org.robolectric.annotation.Config.TARGET_SDK;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.PlaybackParameters;
+import com.google.android.exoplayer2.audio.DefaultAudioSink.DefaultAudioProcessorChain;
 import com.google.android.exoplayer2.util.MimeTypes;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -39,7 +38,6 @@ import org.robolectric.annotation.Config;
 /** Unit tests for {@link DefaultAudioSink}. */
 @RunWith(AndroidJUnit4.class)
 public final class DefaultAudioSinkTest {
-
   private static final int CHANNEL_COUNT_MONO = 1;
   private static final int CHANNEL_COUNT_STEREO = 2;
   private static final int BYTES_PER_FRAME_16_BIT = 2;
@@ -61,19 +59,16 @@ public final class DefaultAudioSinkTest {
     arrayAudioBufferSink = new ArrayAudioBufferSink();
     TeeAudioProcessor teeAudioProcessor = new TeeAudioProcessor(arrayAudioBufferSink);
     defaultAudioSink =
-        new DefaultAudioSink(
-            AudioCapabilities.DEFAULT_AUDIO_CAPABILITIES,
-            new DefaultAudioSink.DefaultAudioProcessorChain(teeAudioProcessor),
-            /* enableFloatOutput= */ false,
-            /* enableAudioTrackPlaybackParams= */ false,
-            DefaultAudioSink.OFFLOAD_MODE_DISABLED);
+        new DefaultAudioSink.Builder()
+            .setAudioProcessorChain(new DefaultAudioProcessorChain(teeAudioProcessor))
+            .setOffloadMode(DefaultAudioSink.OFFLOAD_MODE_DISABLED)
+            .build();
   }
 
   @Test
   public void handlesSpecializedAudioProcessorArray() {
     defaultAudioSink =
-        new DefaultAudioSink(
-            AudioCapabilities.DEFAULT_AUDIO_CAPABILITIES, new TeeAudioProcessor[0]);
+        new DefaultAudioSink.Builder().setAudioProcessors(new TeeAudioProcessor[0]).build();
   }
 
   @Test
@@ -204,11 +199,7 @@ public final class DefaultAudioSinkTest {
 
   @Test
   public void floatPcmNeedsTranscodingIfFloatOutputDisabled() {
-    defaultAudioSink =
-        new DefaultAudioSink(
-            AudioCapabilities.DEFAULT_AUDIO_CAPABILITIES,
-            new AudioProcessor[0],
-            /* enableFloatOutput= */ false);
+    defaultAudioSink = new DefaultAudioSink.Builder().build();
     Format floatFormat =
         STEREO_44_1_FORMAT
             .buildUpon()
@@ -219,14 +210,10 @@ public final class DefaultAudioSinkTest {
         .isEqualTo(SINK_FORMAT_SUPPORTED_WITH_TRANSCODING);
   }
 
-  @Config(minSdk = OLDEST_SDK, maxSdk = 20)
+  @Config(maxSdk = 20)
   @Test
   public void floatPcmNeedsTranscodingIfFloatOutputEnabledBeforeApi21() {
-    defaultAudioSink =
-        new DefaultAudioSink(
-            AudioCapabilities.DEFAULT_AUDIO_CAPABILITIES,
-            new AudioProcessor[0],
-            /* enableFloatOutput= */ true);
+    defaultAudioSink = new DefaultAudioSink.Builder().setEnableFloatOutput(true).build();
     Format floatFormat =
         STEREO_44_1_FORMAT
             .buildUpon()
@@ -237,14 +224,10 @@ public final class DefaultAudioSinkTest {
         .isEqualTo(SINK_FORMAT_SUPPORTED_WITH_TRANSCODING);
   }
 
-  @Config(minSdk = 21, maxSdk = TARGET_SDK)
+  @Config(minSdk = 21)
   @Test
   public void floatOutputSupportedIfFloatOutputEnabledFromApi21() {
-    defaultAudioSink =
-        new DefaultAudioSink(
-            AudioCapabilities.DEFAULT_AUDIO_CAPABILITIES,
-            new AudioProcessor[0],
-            /* enableFloatOutput= */ true);
+    defaultAudioSink = new DefaultAudioSink.Builder().setEnableFloatOutput(true).build();
     Format floatFormat =
         STEREO_44_1_FORMAT
             .buildUpon()
@@ -269,8 +252,9 @@ public final class DefaultAudioSinkTest {
   @Test
   public void audioSinkWithAacAudioCapabilitiesWithoutOffload_doesNotSupportAac() {
     DefaultAudioSink defaultAudioSink =
-        new DefaultAudioSink(
-            new AudioCapabilities(new int[] {C.ENCODING_AAC_LC}, 2), new AudioProcessor[0]);
+        new DefaultAudioSink.Builder()
+            .setAudioCapabilities(new AudioCapabilities(new int[] {C.ENCODING_AAC_LC}, 2))
+            .build();
     Format aacLcFormat =
         STEREO_44_1_FORMAT
             .buildUpon()

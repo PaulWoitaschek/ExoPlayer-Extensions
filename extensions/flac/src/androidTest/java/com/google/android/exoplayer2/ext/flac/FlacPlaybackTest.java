@@ -23,13 +23,12 @@ import android.os.Looper;
 import androidx.annotation.Nullable;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
-import com.google.android.exoplayer2.ExoPlaybackException;
+import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.MediaItem;
+import com.google.android.exoplayer2.PlaybackException;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.Renderer;
 import com.google.android.exoplayer2.RenderersFactory;
-import com.google.android.exoplayer2.SimpleExoPlayer;
-import com.google.android.exoplayer2.audio.AudioProcessor;
 import com.google.android.exoplayer2.audio.AudioSink;
 import com.google.android.exoplayer2.audio.DefaultAudioSink;
 import com.google.android.exoplayer2.extractor.mkv.MatroskaExtractor;
@@ -37,7 +36,7 @@ import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.source.ProgressiveMediaSource;
 import com.google.android.exoplayer2.testutil.CapturingAudioSink;
 import com.google.android.exoplayer2.testutil.DumpFileAsserts;
-import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
+import com.google.android.exoplayer2.upstream.DefaultDataSource;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -67,9 +66,7 @@ public class FlacPlaybackTest {
   }
 
   private static void playAndAssertAudioSinkInput(String fileName) throws Exception {
-    CapturingAudioSink audioSink =
-        new CapturingAudioSink(
-            new DefaultAudioSink(/* audioCapabilities= */ null, new AudioProcessor[0]));
+    CapturingAudioSink audioSink = new CapturingAudioSink(new DefaultAudioSink.Builder().build());
 
     TestPlaybackRunnable testPlaybackRunnable =
         new TestPlaybackRunnable(
@@ -95,8 +92,8 @@ public class FlacPlaybackTest {
     private final Uri uri;
     private final AudioSink audioSink;
 
-    @Nullable private SimpleExoPlayer player;
-    @Nullable private ExoPlaybackException playbackException;
+    @Nullable private ExoPlayer player;
+    @Nullable private PlaybackException playbackException;
 
     public TestPlaybackRunnable(Uri uri, Context context, AudioSink audioSink) {
       this.uri = uri;
@@ -116,11 +113,11 @@ public class FlacPlaybackTest {
               new Renderer[] {
                 new LibflacAudioRenderer(eventHandler, audioRendererEventListener, audioSink)
               };
-      player = new SimpleExoPlayer.Builder(context, renderersFactory).build();
+      player = new ExoPlayer.Builder(context, renderersFactory).build();
       player.addListener(this);
       MediaSource mediaSource =
           new ProgressiveMediaSource.Factory(
-                  new DefaultDataSourceFactory(context), MatroskaExtractor.FACTORY)
+                  new DefaultDataSource.Factory(context), MatroskaExtractor.FACTORY)
               .createMediaSource(MediaItem.fromUri(uri));
       player.setMediaSource(mediaSource);
       player.prepare();
@@ -129,7 +126,7 @@ public class FlacPlaybackTest {
     }
 
     @Override
-    public void onPlayerError(ExoPlaybackException error) {
+    public void onPlayerError(PlaybackException error) {
       playbackException = error;
     }
 

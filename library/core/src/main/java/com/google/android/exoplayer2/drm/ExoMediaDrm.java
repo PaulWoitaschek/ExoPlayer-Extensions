@@ -15,6 +15,8 @@
  */
 package com.google.android.exoplayer2.drm;
 
+import static java.lang.annotation.ElementType.TYPE_USE;
+
 import android.media.DeniedByServerException;
 import android.media.MediaCryptoException;
 import android.media.MediaDrm;
@@ -25,10 +27,14 @@ import android.os.Handler;
 import android.os.PersistableBundle;
 import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;
+import com.google.android.exoplayer2.C;
+import com.google.android.exoplayer2.analytics.PlayerId;
+import com.google.android.exoplayer2.decoder.CryptoConfig;
 import com.google.android.exoplayer2.drm.DrmInitData.SchemeData;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +43,7 @@ import java.util.UUID;
 /**
  * Used to obtain keys for decrypting protected media streams.
  *
- * <h3>Reference counting</h3>
+ * <h2>Reference counting</h2>
  *
  * <p>Access to an instance is managed by reference counting, where {@link #acquire()} increments
  * the reference count and {@link #release()} decrements it. When the reference count drops to 0
@@ -223,6 +229,7 @@ public interface ExoMediaDrm {
      */
     @Documented
     @Retention(RetentionPolicy.SOURCE)
+    @Target(TYPE_USE)
     @IntDef({
       REQUEST_TYPE_UNKNOWN,
       REQUEST_TYPE_INITIAL,
@@ -258,7 +265,7 @@ public interface ExoMediaDrm {
 
     private final byte[] data;
     private final String licenseServerUrl;
-    @RequestType private final int requestType;
+    private final @RequestType int requestType;
 
     /**
      * Creates an instance with {@link #REQUEST_TYPE_UNKNOWN}.
@@ -298,8 +305,7 @@ public interface ExoMediaDrm {
      * request does not specify a type. Note that when using a platform {@link MediaDrm} instance,
      * key requests only specify a type on API levels 23 and above.
      */
-    @RequestType
-    public int getRequestType() {
+    public @RequestType int getRequestType() {
       return requestType;
     }
   }
@@ -394,6 +400,14 @@ public interface ExoMediaDrm {
   void closeSession(byte[] sessionId);
 
   /**
+   * Sets the {@link PlayerId} of the player using a session.
+   *
+   * @param sessionId The ID of the session.
+   * @param playerId The {@link PlayerId} of the player using the session.
+   */
+  default void setPlayerIdForSession(byte[] sessionId, PlayerId playerId) {}
+
+  /**
    * Generates a key request.
    *
    * @param scope If {@code keyType} is {@link #KEY_TYPE_STREAMING} or {@link #KEY_TYPE_OFFLINE},
@@ -459,6 +473,15 @@ public interface ExoMediaDrm {
    * @return The key status for the session.
    */
   Map<String, String> queryKeyStatus(byte[] sessionId);
+
+  /**
+   * Returns whether the given session requires use of a secure decoder for the given MIME type.
+   * Assumes a license policy that requires the highest level of security supported by the session.
+   *
+   * @param sessionId The ID of the session.
+   * @param mimeType The content MIME type to query.
+   */
+  boolean requiresSecureDecoder(byte[] sessionId, String mimeType);
 
   /**
    * Increments the reference count. When the caller no longer needs to use the instance, it must
@@ -529,14 +552,19 @@ public interface ExoMediaDrm {
   void setPropertyByteArray(String propertyName, byte[] value);
 
   /**
-   * Creates an {@link ExoMediaCrypto} for a given session.
+   * Creates a {@link CryptoConfig} that can be passed to a compatible decoder to allow decryption
+   * of protected content using the specified session.
    *
    * @param sessionId The ID of the session.
-   * @return An {@link ExoMediaCrypto} for the given session.
-   * @throws MediaCryptoException If an {@link ExoMediaCrypto} could not be created.
+   * @return A {@link CryptoConfig} for the given session.
+   * @throws MediaCryptoException If a {@link CryptoConfig} could not be created.
    */
-  ExoMediaCrypto createMediaCrypto(byte[] sessionId) throws MediaCryptoException;
+  CryptoConfig createCryptoConfig(byte[] sessionId) throws MediaCryptoException;
 
-  /** Returns the {@link ExoMediaCrypto} type created by {@link #createMediaCrypto(byte[])}. */
-  Class<? extends ExoMediaCrypto> getExoMediaCryptoType();
+  /**
+   * Returns the {@link C.CryptoType type} of {@link CryptoConfig} instances returned by {@link
+   * #createCryptoConfig}.
+   */
+  @C.CryptoType
+  int getCryptoType();
 }

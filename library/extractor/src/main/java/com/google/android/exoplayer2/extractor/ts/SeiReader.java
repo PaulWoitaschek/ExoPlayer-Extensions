@@ -47,8 +47,9 @@ public final class SeiReader {
       TrackOutput output = extractorOutput.track(idGenerator.getTrackId(), C.TRACK_TYPE_TEXT);
       Format channelFormat = closedCaptionFormats.get(i);
       @Nullable String channelMimeType = channelFormat.sampleMimeType;
-      Assertions.checkArgument(MimeTypes.APPLICATION_CEA608.equals(channelMimeType)
-          || MimeTypes.APPLICATION_CEA708.equals(channelMimeType),
+      Assertions.checkArgument(
+          MimeTypes.APPLICATION_CEA608.equals(channelMimeType)
+              || MimeTypes.APPLICATION_CEA708.equals(channelMimeType),
           "Invalid closed caption mime type provided: " + channelMimeType);
       String formatId = channelFormat.id != null ? channelFormat.id : idGenerator.getFormatId();
       output.format(

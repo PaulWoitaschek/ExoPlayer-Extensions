@@ -17,26 +17,23 @@
 package com.google.android.exoplayer2.robolectric;
 
 import static com.google.android.exoplayer2.robolectric.RobolectricUtil.runMainLooperUntil;
-import static com.google.common.truth.Truth.assertThat;
+import static com.google.android.exoplayer2.util.Assertions.checkNotNull;
 
 import android.os.Looper;
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.Player;
-import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
-import com.google.android.exoplayer2.util.Assertions;
 import com.google.android.exoplayer2.util.ConditionVariable;
 import com.google.android.exoplayer2.util.Util;
-import com.google.android.exoplayer2.video.VideoListener;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.checkerframework.checker.nullness.compatqual.NullableType;
 
 /**
- * Helper methods to block the calling thread until the provided {@link SimpleExoPlayer} instance
- * reaches a particular state.
+ * Helper methods to block the calling thread until the provided {@link ExoPlayer} instance reaches
+ * a particular state.
  */
 public class TestPlayerRunHelper {
 
@@ -44,7 +41,9 @@ public class TestPlayerRunHelper {
 
   /**
    * Runs tasks of the main {@link Looper} until {@link Player#getPlaybackState()} matches the
-   * expected state.
+   * expected state or a playback error occurs.
+   *
+   * <p>If a playback error occurs it will be thrown wrapped in an {@link IllegalStateException}.
    *
    * @param player The {@link Player}.
    * @param expectedState The expected {@link Player.State}.
@@ -54,27 +53,18 @@ public class TestPlayerRunHelper {
   public static void runUntilPlaybackState(Player player, @Player.State int expectedState)
       throws TimeoutException {
     verifyMainTestThread(player);
-    if (player.getPlaybackState() == expectedState) {
-      return;
+    runMainLooperUntil(
+        () -> player.getPlaybackState() == expectedState || player.getPlayerError() != null);
+    if (player.getPlayerError() != null) {
+      throw new IllegalStateException(player.getPlayerError());
     }
-    AtomicBoolean receivedExpectedState = new AtomicBoolean(false);
-    Player.Listener listener =
-        new Player.Listener() {
-          @Override
-          public void onPlaybackStateChanged(int state) {
-            if (state == expectedState) {
-              receivedExpectedState.set(true);
-            }
-          }
-        };
-    player.addListener(listener);
-    runMainLooperUntil(receivedExpectedState::get);
-    player.removeListener(listener);
   }
 
   /**
    * Runs tasks of the main {@link Looper} until {@link Player#getPlayWhenReady()} matches the
-   * expected value.
+   * expected value or a playback error occurs.
+   *
+   * <p>If a playback error occurs it will be thrown wrapped in an {@link IllegalStateException}.
    *
    * @param player The {@link Player}.
    * @param expectedPlayWhenReady The expected value for {@link Player#getPlayWhenReady()}.
@@ -84,27 +74,19 @@ public class TestPlayerRunHelper {
   public static void runUntilPlayWhenReady(Player player, boolean expectedPlayWhenReady)
       throws TimeoutException {
     verifyMainTestThread(player);
-    if (player.getPlayWhenReady() == expectedPlayWhenReady) {
-      return;
+    runMainLooperUntil(
+        () ->
+            player.getPlayWhenReady() == expectedPlayWhenReady || player.getPlayerError() != null);
+    if (player.getPlayerError() != null) {
+      throw new IllegalStateException(player.getPlayerError());
     }
-    AtomicBoolean receivedExpectedPlayWhenReady = new AtomicBoolean(false);
-    Player.Listener listener =
-        new Player.Listener() {
-          @Override
-          public void onPlayWhenReadyChanged(boolean playWhenReady, int reason) {
-            if (playWhenReady == expectedPlayWhenReady) {
-              receivedExpectedPlayWhenReady.set(true);
-            }
-            player.removeListener(this);
-          }
-        };
-    player.addListener(listener);
-    runMainLooperUntil(receivedExpectedPlayWhenReady::get);
   }
 
   /**
    * Runs tasks of the main {@link Looper} until {@link Player#getCurrentTimeline()} matches the
-   * expected timeline.
+   * expected timeline or a playback error occurs.
+   *
+   * <p>If a playback error occurs it will be thrown wrapped in an {@link IllegalStateException}.
    *
    * @param player The {@link Player}.
    * @param expectedTimeline The expected {@link Timeline}.
@@ -114,26 +96,19 @@ public class TestPlayerRunHelper {
   public static void runUntilTimelineChanged(Player player, Timeline expectedTimeline)
       throws TimeoutException {
     verifyMainTestThread(player);
-    if (expectedTimeline.equals(player.getCurrentTimeline())) {
-      return;
+    runMainLooperUntil(
+        () ->
+            expectedTimeline.equals(player.getCurrentTimeline())
+                || player.getPlayerError() != null);
+    if (player.getPlayerError() != null) {
+      throw new IllegalStateException(player.getPlayerError());
     }
-    AtomicBoolean receivedExpectedTimeline = new AtomicBoolean(false);
-    Player.Listener listener =
-        new Player.Listener() {
-          @Override
-          public void onTimelineChanged(Timeline timeline, int reason) {
-            if (expectedTimeline.equals(timeline)) {
-              receivedExpectedTimeline.set(true);
-            }
-            player.removeListener(this);
-          }
-        };
-    player.addListener(listener);
-    runMainLooperUntil(receivedExpectedTimeline::get);
   }
 
   /**
-   * Runs tasks of the main {@link Looper} until a timeline change occurred.
+   * Runs tasks of the main {@link Looper} until a timeline change or a playback error occurs.
+   *
+   * <p>If a playback error occurs it will be thrown wrapped in an {@link IllegalStateException}.
    *
    * @param player The {@link Player}.
    * @return The new {@link Timeline}.
@@ -142,24 +117,29 @@ public class TestPlayerRunHelper {
    */
   public static Timeline runUntilTimelineChanged(Player player) throws TimeoutException {
     verifyMainTestThread(player);
-    AtomicReference<Timeline> receivedTimeline = new AtomicReference<>();
+    AtomicReference<@NullableType Timeline> receivedTimeline = new AtomicReference<>();
     Player.Listener listener =
         new Player.Listener() {
           @Override
           public void onTimelineChanged(Timeline timeline, int reason) {
             receivedTimeline.set(timeline);
-            player.removeListener(this);
           }
         };
     player.addListener(listener);
-    runMainLooperUntil(() -> receivedTimeline.get() != null);
-    return receivedTimeline.get();
+    runMainLooperUntil(() -> receivedTimeline.get() != null || player.getPlayerError() != null);
+    player.removeListener(listener);
+    if (player.getPlayerError() != null) {
+      throw new IllegalStateException(player.getPlayerError());
+    }
+    return checkNotNull(receivedTimeline.get());
   }
 
   /**
-   * Runs tasks of the main {@link Looper} until a {@link
-   * Player.Listener#onPositionDiscontinuity(Player.PositionInfo, Player.PositionInfo, int)}
-   * callback with the specified {@link Player.DiscontinuityReason} occurred.
+   * Runs tasks of the main {@link Looper} until {@link
+   * Player.Listener#onPositionDiscontinuity(Player.PositionInfo, Player.PositionInfo, int)} is
+   * called with the specified {@link Player.DiscontinuityReason} or a playback error occurs.
+   *
+   * <p>If a playback error occurs it will be thrown wrapped in an {@link IllegalStateException}.
    *
    * @param player The {@link Player}.
    * @param expectedReason The expected {@link Player.DiscontinuityReason}.
@@ -177,70 +157,37 @@ public class TestPlayerRunHelper {
               Player.PositionInfo oldPosition, Player.PositionInfo newPosition, int reason) {
             if (reason == expectedReason) {
               receivedCallback.set(true);
-              player.removeListener(this);
             }
           }
         };
     player.addListener(listener);
-    runMainLooperUntil(receivedCallback::get);
+    runMainLooperUntil(() -> receivedCallback.get() || player.getPlayerError() != null);
+    player.removeListener(listener);
+    if (player.getPlayerError() != null) {
+      throw new IllegalStateException(player.getPlayerError());
+    }
   }
 
   /**
-   * Runs tasks of the main {@link Looper} until a player error occurred.
+   * Runs tasks of the main {@link Looper} until a player error occurs.
    *
    * @param player The {@link Player}.
    * @return The raised {@link ExoPlaybackException}.
    * @throws TimeoutException If the {@link RobolectricUtil#DEFAULT_TIMEOUT_MS default timeout} is
    *     exceeded.
    */
-  public static ExoPlaybackException runUntilError(Player player) throws TimeoutException {
+  public static ExoPlaybackException runUntilError(ExoPlayer player) throws TimeoutException {
     verifyMainTestThread(player);
-    AtomicReference<ExoPlaybackException> receivedError = new AtomicReference<>();
-    Player.Listener listener =
-        new Player.Listener() {
-          @Override
-          public void onPlayerError(ExoPlaybackException error) {
-            receivedError.set(error);
-            player.removeListener(this);
-          }
-        };
-    player.addListener(listener);
-    runMainLooperUntil(() -> receivedError.get() != null);
-    return receivedError.get();
+    runMainLooperUntil(() -> player.getPlayerError() != null);
+    return checkNotNull(player.getPlayerError());
   }
 
   /**
-   * Runs tasks of the main {@link Looper} until a {@link
-   * ExoPlayer.AudioOffloadListener#onExperimentalOffloadSchedulingEnabledChanged} callback
-   * occurred.
+   * Runs tasks of the main {@link Looper} until {@link
+   * ExoPlayer.AudioOffloadListener#onExperimentalSleepingForOffloadChanged(boolean)} is called or a
+   * playback error occurs.
    *
-   * @param player The {@link Player}.
-   * @return The new offloadSchedulingEnabled state.
-   * @throws TimeoutException If the {@link RobolectricUtil#DEFAULT_TIMEOUT_MS default timeout} is
-   *     exceeded.
-   */
-  public static boolean runUntilReceiveOffloadSchedulingEnabledNewState(ExoPlayer player)
-      throws TimeoutException {
-    verifyMainTestThread(player);
-    AtomicReference<@NullableType Boolean> offloadSchedulingEnabledReceiver =
-        new AtomicReference<>();
-    ExoPlayer.AudioOffloadListener listener =
-        new ExoPlayer.AudioOffloadListener() {
-          @Override
-          public void onExperimentalOffloadSchedulingEnabledChanged(
-              boolean offloadSchedulingEnabled) {
-            offloadSchedulingEnabledReceiver.set(offloadSchedulingEnabled);
-          }
-        };
-    player.addAudioOffloadListener(listener);
-    runMainLooperUntil(() -> offloadSchedulingEnabledReceiver.get() != null);
-    return Assertions.checkNotNull(offloadSchedulingEnabledReceiver.get());
-  }
-
-  /**
-   * Runs tasks of the main {@link Looper} until a {@link
-   * ExoPlayer.AudioOffloadListener#onExperimentalSleepingForOffloadChanged(boolean)} callback
-   * occurred.
+   * <p>If a playback error occurs it will be thrown wrapped in an {@link IllegalStateException}.
    *
    * @param player The {@link Player}.
    * @param expectedSleepForOffload The expected sleep of offload state.
@@ -261,24 +208,23 @@ public class TestPlayerRunHelper {
           }
         };
     player.addAudioOffloadListener(listener);
-    runMainLooperUntil(
-        () -> { // Make sure progress is being made, see [internal: b/170387438#comment2]
-          assertThat(player.getPlayerError()).isNull();
-          assertThat(player.getPlayWhenReady()).isTrue();
-          assertThat(player.getPlaybackState()).isAnyOf(Player.STATE_BUFFERING, Player.STATE_READY);
-          return receiverCallback.get();
-        });
+    runMainLooperUntil(() -> receiverCallback.get() || player.getPlayerError() != null);
+    if (player.getPlayerError() != null) {
+      throw new IllegalStateException(player.getPlayerError());
+    }
   }
 
   /**
-   * Runs tasks of the main {@link Looper} until the {@link VideoListener#onRenderedFirstFrame}
-   * callback has been called.
+   * Runs tasks of the main {@link Looper} until the {@link Player.Listener#onRenderedFirstFrame}
+   * callback is called or a playback error occurs.
+   *
+   * <p>If a playback error occurs it will be thrown wrapped in an {@link IllegalStateException}..
    *
    * @param player The {@link Player}.
    * @throws TimeoutException If the {@link RobolectricUtil#DEFAULT_TIMEOUT_MS default timeout} is
    *     exceeded.
    */
-  public static void runUntilRenderedFirstFrame(SimpleExoPlayer player) throws TimeoutException {
+  public static void runUntilRenderedFirstFrame(ExoPlayer player) throws TimeoutException {
     verifyMainTestThread(player);
     AtomicBoolean receivedCallback = new AtomicBoolean(false);
     Player.Listener listener =
@@ -286,24 +232,29 @@ public class TestPlayerRunHelper {
           @Override
           public void onRenderedFirstFrame() {
             receivedCallback.set(true);
-            player.removeListener(this);
           }
         };
     player.addListener(listener);
-    runMainLooperUntil(receivedCallback::get);
+    runMainLooperUntil(() -> receivedCallback.get() || player.getPlayerError() != null);
+    player.removeListener(listener);
+    if (player.getPlayerError() != null) {
+      throw new IllegalStateException(player.getPlayerError());
+    }
   }
 
   /**
    * Calls {@link Player#play()}, runs tasks of the main {@link Looper} until the {@code player}
-   * reaches the specified position and then pauses the {@code player}.
+   * reaches the specified position or a playback error occurs, and then pauses the {@code player}.
+   *
+   * <p>If a playback error occurs it will be thrown wrapped in an {@link IllegalStateException}.
    *
    * @param player The {@link Player}.
-   * @param windowIndex The window.
-   * @param positionMs The position within the window, in milliseconds.
+   * @param mediaItemIndex The index of the media item.
+   * @param positionMs The position within the media item, in milliseconds.
    * @throws TimeoutException If the {@link RobolectricUtil#DEFAULT_TIMEOUT_MS default timeout} is
    *     exceeded.
    */
-  public static void playUntilPosition(ExoPlayer player, int windowIndex, long positionMs)
+  public static void playUntilPosition(ExoPlayer player, int mediaItemIndex, long positionMs)
       throws TimeoutException {
     verifyMainTestThread(player);
     Looper applicationLooper = Util.getCurrentOrMainLooper();
@@ -329,24 +280,30 @@ public class TestPlayerRunHelper {
                 // Ignore.
               }
             })
-        .setPosition(windowIndex, positionMs)
+        .setPosition(mediaItemIndex, positionMs)
         .send();
     player.play();
-    runMainLooperUntil(messageHandled::get);
+    runMainLooperUntil(() -> messageHandled.get() || player.getPlayerError() != null);
+    if (player.getPlayerError() != null) {
+      throw new IllegalStateException(player.getPlayerError());
+    }
   }
 
   /**
    * Calls {@link Player#play()}, runs tasks of the main {@link Looper} until the {@code player}
-   * reaches the specified window and then pauses the {@code player}.
+   * reaches the specified media item or a playback error occurs, and then pauses the {@code
+   * player}.
+   *
+   * <p>If a playback error occurs it will be thrown wrapped in an {@link IllegalStateException}.
    *
    * @param player The {@link Player}.
-   * @param windowIndex The window.
+   * @param mediaItemIndex The index of the media item.
    * @throws TimeoutException If the {@link RobolectricUtil#DEFAULT_TIMEOUT_MS default timeout} is
    *     exceeded.
    */
-  public static void playUntilStartOfWindow(ExoPlayer player, int windowIndex)
+  public static void playUntilStartOfMediaItem(ExoPlayer player, int mediaItemIndex)
       throws TimeoutException {
-    playUntilPosition(player, windowIndex, /* positionMs= */ 0);
+    playUntilPosition(player, mediaItemIndex, /* positionMs= */ 0);
   }
 
   /**

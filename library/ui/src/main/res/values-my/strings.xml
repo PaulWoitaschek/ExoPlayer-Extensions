@@ -37,22 +37,24 @@
     <item quantity="one">ရှေ့သို့ %d စက္ကန့်ရစ်ရန်</item>
     <item quantity="other">ရှေ့သို့ %d စက္ကန့်ရစ်ရန်</item>
   </plurals>
-  <string name="exo_controls_repeat_off_description">မည်သည်ကိုမျှ ပြန်မကျော့ရန်</string>
-  <string name="exo_controls_repeat_one_description">တစ်ခုကို ပြန်ကျော့ရန်</string>
-  <string name="exo_controls_repeat_all_description">အားလုံး ပြန်ကျော့ရန်</string>
-  <string name="exo_controls_shuffle_on_description">ရောသမမွှေကို ဖွင့်ထားသည်</string>
-  <string name="exo_controls_shuffle_off_description">ရောသမမွှေကို ပိတ်ထားသည်</string>
+  <string name="exo_controls_repeat_off_description">လက်ရှိမုဒ်- ပြန်မကျော့ပါနှင့်။ ပြန်ကျော့မုဒ် ပြောင်းရန်။</string>
+  <string name="exo_controls_repeat_one_description">လက်ရှိမုဒ်- တစ်ခုပြန်ကျော့ရန်။ ပြန်ကျော့မုဒ် ပြောင်းရန်။</string>
+  <string name="exo_controls_repeat_all_description">လက်ရှိမုဒ်- အားလုံးပြန်ကျော့ရန်။ ပြန်ကျော့မုဒ် ပြောင်းရန်။</string>
+  <string name="exo_controls_shuffle_on_description">ရောသမမွှေမုဒ် ပိတ်ရန်</string>
+  <string name="exo_controls_shuffle_off_description">ရောသမမွှေမုဒ် ဖွင့်ရန်</string>
   <string name="exo_controls_vr_description">VR မုဒ်</string>
   <string name="exo_controls_cc_enabled_description">စာတန်းထိုး ပိတ်ပါ</string>
   <string name="exo_controls_cc_disabled_description">စာတန်းထိုး ဖွင့်ပါ</string>
   <string name="exo_controls_playback_speed">မြန်နှုန်း</string>
-  <string name="exo_controls_playback_speed_normal">ပုံမှန်</string>
-  <string name="exo_download_description">ဒေါင်းလုဒ် လုပ်ရန်</string>
-  <string name="exo_download_notification_channel_name">ဒေါင်းလုဒ်များ</string>
-  <string name="exo_download_downloading">ဒေါင်းလုဒ်လုပ်နေသည်</string>
-  <string name="exo_download_completed">ဒေါင်းလုဒ်လုပ်ပြီးပါပြီ</string>
-  <string name="exo_download_failed">ဒေါင်းလုဒ်လုပ်၍ မရပါ</string>
-  <string name="exo_download_removing">ဒေါင်းလုဒ်များ ဖယ်ရှားနေသည်</string>
+  <string-array name="exo_controls_playback_speeds">
+    <item>၀.၂၅ ဆ</item>
+    <item>၀.၅ ဆ</item>
+    <item>၀.၇၅ ဆ</item>
+    <item>ပုံမှန်</item>
+    <item>၁.၂၅ ဆ</item>
+    <item>၁.၅ ဆ</item>
+    <item>၂ ဆ</item>
+  </string-array>
   <string name="exo_track_selection_title_video">ဗီဒီယို</string>
   <string name="exo_track_selection_title_audio">အသံ</string>
   <string name="exo_track_selection_title_text">စာသား</string>

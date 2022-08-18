@@ -15,8 +15,11 @@
  */
 package com.google.android.exoplayer2;
 
+import static java.lang.annotation.ElementType.TYPE_USE;
+
 import android.os.Bundle;
 import androidx.annotation.CheckResult;
+import androidx.annotation.FloatRange;
 import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.util.Assertions;
@@ -24,6 +27,7 @@ import com.google.android.exoplayer2.util.Util;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /** Parameters that apply to playback, including speed setting. */
 public final class PlaybackParameters implements Bundleable {
@@ -57,7 +61,9 @@ public final class PlaybackParameters implements Bundleable {
    *     zero. Useful values are {@code 1} (to time-stretch audio) and the same value as passed in
    *     as the {@code speed} (to resample audio, which is useful for slow-motion videos).
    */
-  public PlaybackParameters(float speed, float pitch) {
+  public PlaybackParameters(
+      @FloatRange(from = 0, fromInclusive = false) float speed,
+      @FloatRange(from = 0, fromInclusive = false) float pitch) {
     Assertions.checkArgument(speed > 0);
     Assertions.checkArgument(pitch > 0);
     this.speed = speed;
@@ -79,11 +85,11 @@ public final class PlaybackParameters implements Bundleable {
   /**
    * Returns a copy with the given speed.
    *
-   * @param speed The new speed.
+   * @param speed The new speed. Must be greater than zero.
    * @return The copied playback parameters.
    */
   @CheckResult
-  public PlaybackParameters withSpeed(float speed) {
+  public PlaybackParameters withSpeed(@FloatRange(from = 0, fromInclusive = false) float speed) {
     return new PlaybackParameters(speed, pitch);
   }
 
@@ -116,6 +122,7 @@ public final class PlaybackParameters implements Bundleable {
 
   @Documented
   @Retention(RetentionPolicy.SOURCE)
+  @Target(TYPE_USE)
   @IntDef({FIELD_SPEED, FIELD_PITCH})
   private @interface FieldNumber {}
 

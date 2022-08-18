@@ -29,7 +29,6 @@ import com.google.android.exoplayer2.source.ads.AdsMediaSource;
 import com.google.android.exoplayer2.ui.AdViewProvider;
 import com.google.android.exoplayer2.util.MimeTypes;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -64,19 +63,6 @@ public final class DefaultMediaSourceFactoryTest {
   }
 
   @Test
-  @SuppressWarnings("deprecation") // Testing deprecated MediaSource.getTag() still works.
-  public void createMediaSource_withTag_tagInSource_deprecated() {
-    Object tag = new Object();
-    DefaultMediaSourceFactory defaultMediaSourceFactory =
-        new DefaultMediaSourceFactory((Context) ApplicationProvider.getApplicationContext());
-    MediaItem mediaItem = new MediaItem.Builder().setUri(URI_MEDIA).setTag(tag).build();
-
-    MediaSource mediaSource = defaultMediaSourceFactory.createMediaSource(mediaItem);
-
-    assertThat(mediaSource.getTag()).isEqualTo(tag);
-  }
-
-  @Test
   public void createMediaSource_withPath_progressiveSource() {
     DefaultMediaSourceFactory defaultMediaSourceFactory =
         new DefaultMediaSourceFactory((Context) ApplicationProvider.getApplicationContext());
@@ -88,31 +74,25 @@ public final class DefaultMediaSourceFactoryTest {
   }
 
   @Test
-  public void createMediaSource_withNull_usesNonNullDefaults() {
-    DefaultMediaSourceFactory defaultMediaSourceFactory =
-        new DefaultMediaSourceFactory((Context) ApplicationProvider.getApplicationContext());
-    MediaItem mediaItem = new MediaItem.Builder().setUri(URI_MEDIA).build();
-
-    MediaSource mediaSource =
-        defaultMediaSourceFactory
-            .setDrmSessionManager(null)
-            .setDrmHttpDataSourceFactory(null)
-            .setLoadErrorHandlingPolicy(null)
-            .createMediaSource(mediaItem);
-
-    assertThat(mediaSource).isNotNull();
-  }
-
-  @Test
   public void createMediaSource_withSubtitle_isMergingMediaSource() {
     DefaultMediaSourceFactory defaultMediaSourceFactory =
         new DefaultMediaSourceFactory((Context) ApplicationProvider.getApplicationContext());
-    List<MediaItem.Subtitle> subtitles =
+    List<MediaItem.SubtitleConfiguration> subtitleConfigurations =
         Arrays.asList(
-            new MediaItem.Subtitle(Uri.parse(URI_TEXT), MimeTypes.APPLICATION_TTML, "en"),
-            new MediaItem.Subtitle(
-                Uri.parse(URI_TEXT), MimeTypes.APPLICATION_TTML, "de", C.SELECTION_FLAG_DEFAULT));
-    MediaItem mediaItem = new MediaItem.Builder().setUri(URI_MEDIA).setSubtitles(subtitles).build();
+            new MediaItem.SubtitleConfiguration.Builder(Uri.parse(URI_TEXT))
+                .setMimeType(MimeTypes.APPLICATION_TTML)
+                .setLanguage("en")
+                .build(),
+            new MediaItem.SubtitleConfiguration.Builder(Uri.parse(URI_TEXT))
+                .setMimeType(MimeTypes.APPLICATION_TTML)
+                .setLanguage("de")
+                .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+                .build());
+    MediaItem mediaItem =
+        new MediaItem.Builder()
+            .setUri(URI_MEDIA)
+            .setSubtitleConfigurations(subtitleConfigurations)
+            .build();
 
     MediaSource mediaSource = defaultMediaSourceFactory.createMediaSource(mediaItem);
 
@@ -120,31 +100,15 @@ public final class DefaultMediaSourceFactoryTest {
   }
 
   @Test
-  @SuppressWarnings("deprecation") // Testing deprecated MediaSource.getTag() still works.
-  public void createMediaSource_withSubtitle_hasTag_deprecated() {
-    DefaultMediaSourceFactory defaultMediaSourceFactory =
-        new DefaultMediaSourceFactory((Context) ApplicationProvider.getApplicationContext());
-    Object tag = new Object();
-    MediaItem mediaItem =
-        new MediaItem.Builder()
-            .setTag(tag)
-            .setUri(URI_MEDIA)
-            .setSubtitles(
-                Collections.singletonList(
-                    new MediaItem.Subtitle(Uri.parse(URI_TEXT), MimeTypes.APPLICATION_TTML, "en")))
-            .build();
-
-    MediaSource mediaSource = defaultMediaSourceFactory.createMediaSource(mediaItem);
-
-    assertThat(mediaSource.getTag()).isEqualTo(tag);
-  }
-
-  @Test
   public void createMediaSource_withStartPosition_isClippingMediaSource() {
     DefaultMediaSourceFactory defaultMediaSourceFactory =
         new DefaultMediaSourceFactory((Context) ApplicationProvider.getApplicationContext());
     MediaItem mediaItem =
-        new MediaItem.Builder().setUri(URI_MEDIA).setClipStartPositionMs(1000L).build();
+        new MediaItem.Builder()
+            .setUri(URI_MEDIA)
+            .setClippingConfiguration(
+                new MediaItem.ClippingConfiguration.Builder().setStartPositionMs(1000L).build())
+            .build();
 
     MediaSource mediaSource = defaultMediaSourceFactory.createMediaSource(mediaItem);
 
@@ -156,7 +120,11 @@ public final class DefaultMediaSourceFactoryTest {
     DefaultMediaSourceFactory defaultMediaSourceFactory =
         new DefaultMediaSourceFactory((Context) ApplicationProvider.getApplicationContext());
     MediaItem mediaItem =
-        new MediaItem.Builder().setUri(URI_MEDIA).setClipEndPositionMs(1000L).build();
+        new MediaItem.Builder()
+            .setUri(URI_MEDIA)
+            .setClippingConfiguration(
+                new MediaItem.ClippingConfiguration.Builder().setEndPositionMs(1000L).build())
+            .build();
 
     MediaSource mediaSource = defaultMediaSourceFactory.createMediaSource(mediaItem);
 
@@ -168,7 +136,13 @@ public final class DefaultMediaSourceFactoryTest {
     DefaultMediaSourceFactory defaultMediaSourceFactory =
         new DefaultMediaSourceFactory((Context) ApplicationProvider.getApplicationContext());
     MediaItem mediaItem =
-        new MediaItem.Builder().setUri(URI_MEDIA).setClipRelativeToDefaultPosition(true).build();
+        new MediaItem.Builder()
+            .setUri(URI_MEDIA)
+            .setClippingConfiguration(
+                new MediaItem.ClippingConfiguration.Builder()
+                    .setRelativeToDefaultPosition(true)
+                    .build())
+            .build();
 
     MediaSource mediaSource = defaultMediaSourceFactory.createMediaSource(mediaItem);
 
@@ -182,7 +156,10 @@ public final class DefaultMediaSourceFactoryTest {
     MediaItem mediaItem =
         new MediaItem.Builder()
             .setUri(URI_MEDIA)
-            .setClipEndPositionMs(C.TIME_END_OF_SOURCE)
+            .setClippingConfiguration(
+                new MediaItem.ClippingConfiguration.Builder()
+                    .setEndPositionMs(C.TIME_END_OF_SOURCE)
+                    .build())
             .build();
 
     MediaSource mediaSource = defaultMediaSourceFactory.createMediaSource(mediaItem);
@@ -196,13 +173,18 @@ public final class DefaultMediaSourceFactoryTest {
         new DefaultMediaSourceFactory((Context) ApplicationProvider.getApplicationContext())
             .getSupportedTypes();
 
-    assertThat(supportedTypes).asList().containsExactly(C.TYPE_OTHER);
+    assertThat(supportedTypes).asList().containsExactly(C.CONTENT_TYPE_OTHER);
   }
 
+  @SuppressWarnings("deprecation") // Testing deprecated setters.
   @Test
-  public void createMediaSource_withAdTagUri_callsAdsLoader() {
+  public void createMediaSource_withDeprecatedAdsConfiguration_callsAdsLoader() {
     Uri adTagUri = Uri.parse(URI_MEDIA);
-    MediaItem mediaItem = new MediaItem.Builder().setUri(URI_MEDIA).setAdTagUri(adTagUri).build();
+    MediaItem mediaItem =
+        new MediaItem.Builder()
+            .setUri(URI_MEDIA)
+            .setAdsConfiguration(new MediaItem.AdsConfiguration.Builder(adTagUri).build())
+            .build();
     DefaultMediaSourceFactory defaultMediaSourceFactory =
         new DefaultMediaSourceFactory((Context) ApplicationProvider.getApplicationContext())
             .setAdsLoaderProvider(ignoredAdsConfiguration -> mock(AdsLoader.class))
@@ -214,9 +196,31 @@ public final class DefaultMediaSourceFactoryTest {
   }
 
   @Test
-  public void createMediaSource_withAdTagUri_adProvidersNotSet_playsWithoutAdNoException() {
+  public void createMediaSource_withAdsConfiguration_callsAdsLoader() {
+    Uri adTagUri = Uri.parse(URI_MEDIA);
     MediaItem mediaItem =
-        new MediaItem.Builder().setUri(URI_MEDIA).setAdTagUri(Uri.parse(URI_MEDIA)).build();
+        new MediaItem.Builder()
+            .setUri(URI_MEDIA)
+            .setAdsConfiguration(new MediaItem.AdsConfiguration.Builder(adTagUri).build())
+            .build();
+    DefaultMediaSourceFactory defaultMediaSourceFactory =
+        new DefaultMediaSourceFactory((Context) ApplicationProvider.getApplicationContext())
+            .setLocalAdInsertionComponents(
+                ignoredAdsConfiguration -> mock(AdsLoader.class), mock(AdViewProvider.class));
+
+    MediaSource mediaSource = defaultMediaSourceFactory.createMediaSource(mediaItem);
+
+    assertThat(mediaSource).isInstanceOf(AdsMediaSource.class);
+  }
+
+  @Test
+  public void createMediaSource_withAdsConfiguration_adProvidersNotSet_playsWithoutAdNoException() {
+    MediaItem mediaItem =
+        new MediaItem.Builder()
+            .setUri(URI_MEDIA)
+            .setAdsConfiguration(
+                new MediaItem.AdsConfiguration.Builder(Uri.parse(URI_MEDIA)).build())
+            .build();
     DefaultMediaSourceFactory defaultMediaSourceFactory =
         new DefaultMediaSourceFactory((Context) ApplicationProvider.getApplicationContext());
 
@@ -226,10 +230,14 @@ public final class DefaultMediaSourceFactoryTest {
   }
 
   @Test
-  public void createMediaSource_withAdTagUriProvidersNull_playsWithoutAdNoException() {
+  public void createMediaSource_withAdsConfigurationProvidersNull_playsWithoutAdNoException() {
     Context applicationContext = ApplicationProvider.getApplicationContext();
     MediaItem mediaItem =
-        new MediaItem.Builder().setUri(URI_MEDIA).setAdTagUri(Uri.parse(URI_MEDIA)).build();
+        new MediaItem.Builder()
+            .setUri(URI_MEDIA)
+            .setAdsConfiguration(
+                new MediaItem.AdsConfiguration.Builder(Uri.parse(URI_MEDIA)).build())
+            .build();
 
     MediaSource mediaSource =
         new DefaultMediaSourceFactory(applicationContext).createMediaSource(mediaItem);
@@ -286,11 +294,14 @@ public final class DefaultMediaSourceFactoryTest {
     MediaItem mediaItem =
         new MediaItem.Builder()
             .setUri(URI_MEDIA + "/file.mp4")
-            .setLiveTargetOffsetMs(10)
-            .setLiveMinOffsetMs(1111)
-            .setLiveMinOffsetMs(3333)
-            .setLiveMinPlaybackSpeed(20.0f)
-            .setLiveMaxPlaybackSpeed(20.0f)
+            .setLiveConfiguration(
+                new MediaItem.LiveConfiguration.Builder()
+                    .setTargetOffsetMs(10)
+                    .setMinOffsetMs(1111)
+                    .setMinOffsetMs(3333)
+                    .setMinPlaybackSpeed(20.0f)
+                    .setMaxPlaybackSpeed(20.0f)
+                    .build())
             .build();
     MediaSource mediaSource = defaultMediaSourceFactory.createMediaSource(mediaItem);
 

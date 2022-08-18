@@ -39,22 +39,24 @@
     <item quantity="few">Premotavanje unaprijed za %d sekunde</item>
     <item quantity="other">Premotavanje unaprijed za %d sekundi</item>
   </plurals>
-  <string name="exo_controls_repeat_off_description">Bez ponavljanja</string>
-  <string name="exo_controls_repeat_one_description">Ponovi jedno</string>
-  <string name="exo_controls_repeat_all_description">Ponovi sve</string>
-  <string name="exo_controls_shuffle_on_description">Nasumična reproduk. uključena</string>
-  <string name="exo_controls_shuffle_off_description">Nasumična reproduk. isključena</string>
+  <string name="exo_controls_repeat_off_description">Trenutačno: Bez ponavljanja. Promijenite način ponavljanja.</string>
+  <string name="exo_controls_repeat_one_description">Trenutačno: Ponovi jedno. Promijenite način ponavljanja.</string>
+  <string name="exo_controls_repeat_all_description">Trenutačno: Ponovi sve. Promijenite način ponavljanja.</string>
+  <string name="exo_controls_shuffle_on_description">Onemogućite način nasumične reprodukcije</string>
+  <string name="exo_controls_shuffle_off_description">Omogućite način nasumične reprodukcije</string>
   <string name="exo_controls_vr_description">VR način</string>
   <string name="exo_controls_cc_enabled_description">Onemogući titlove</string>
   <string name="exo_controls_cc_disabled_description">Omogući titlove</string>
   <string name="exo_controls_playback_speed">Brzina</string>
-  <string name="exo_controls_playback_speed_normal">Obično</string>
-  <string name="exo_download_description">Preuzmi</string>
-  <string name="exo_download_notification_channel_name">Preuzimanja</string>
-  <string name="exo_download_downloading">Preuzimanje</string>
-  <string name="exo_download_completed">Preuzimanje je dovršeno</string>
-  <string name="exo_download_failed">Preuzimanje nije uspjelo</string>
-  <string name="exo_download_removing">Uklanjanje preuzimanja</string>
+  <string-array name="exo_controls_playback_speeds">
+    <item>0,25 x</item>
+    <item>0,5 x</item>
+    <item>0,75 x</item>
+    <item>Uobičajeno</item>
+    <item>1,25 x</item>
+    <item>1,5 x</item>
+    <item>2 x</item>
+  </string-array>
   <string name="exo_track_selection_title_video">Videozapis</string>
   <string name="exo_track_selection_title_audio">Audiozapis</string>
   <string name="exo_track_selection_title_text">Tekst</string>

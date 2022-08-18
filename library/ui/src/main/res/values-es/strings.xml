@@ -37,22 +37,24 @@
     <item quantity="one">Avanzar %d segundo</item>
     <item quantity="other">Avanzar %d segundos</item>
   </plurals>
-  <string name="exo_controls_repeat_off_description">No repetir</string>
-  <string name="exo_controls_repeat_one_description">Repetir uno</string>
-  <string name="exo_controls_repeat_all_description">Repetir todo</string>
-  <string name="exo_controls_shuffle_on_description">Con reproducción aleatoria</string>
-  <string name="exo_controls_shuffle_off_description">Sin reproducción aleatoria</string>
+  <string name="exo_controls_repeat_off_description">Modo actual: No repetir. Cambiar de modo.</string>
+  <string name="exo_controls_repeat_one_description">Modo actual: Repetir uno. Cambiar de modo.</string>
+  <string name="exo_controls_repeat_all_description">Modo actual: Repetir todo. Cambiar de modo.</string>
+  <string name="exo_controls_shuffle_on_description">Inhabilitar modo aleatorio</string>
+  <string name="exo_controls_shuffle_off_description">Habilitar modo aleatorio</string>
   <string name="exo_controls_vr_description">Modo RV</string>
   <string name="exo_controls_cc_enabled_description">Inhabilitar subtítulos</string>
   <string name="exo_controls_cc_disabled_description">Habilitar subtítulos</string>
   <string name="exo_controls_playback_speed">Velocidad</string>
-  <string name="exo_controls_playback_speed_normal">Normal</string>
-  <string name="exo_download_description">Descargar</string>
-  <string name="exo_download_notification_channel_name">Descargas</string>
-  <string name="exo_download_downloading">Descargando</string>
-  <string name="exo_download_completed">Descarga de archivos completado</string>
-  <string name="exo_download_failed">No se ha podido descargar</string>
-  <string name="exo_download_removing">Quitando descargas</string>
+  <string-array name="exo_controls_playback_speeds">
+    <item>×0,25</item>
+    <item>×0,5</item>
+    <item>×0,75</item>
+    <item>Normal</item>
+    <item>×1,25</item>
+    <item>×1,5</item>
+    <item>×2</item>
+  </string-array>
   <string name="exo_track_selection_title_video">Vídeo</string>
   <string name="exo_track_selection_title_audio">Audio</string>
   <string name="exo_track_selection_title_text">Texto</string>

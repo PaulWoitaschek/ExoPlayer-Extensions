@@ -18,16 +18,15 @@ package com.google.android.exoplayer2.extractor;
 import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.ParserException;
 import com.google.android.exoplayer2.extractor.VorbisUtil.CommentHeader;
+import com.google.android.exoplayer2.extractor.flac.FlacConstants;
 import com.google.android.exoplayer2.metadata.Metadata;
 import com.google.android.exoplayer2.metadata.flac.PictureFrame;
 import com.google.android.exoplayer2.metadata.id3.Id3Decoder;
-import com.google.android.exoplayer2.util.FlacConstants;
 import com.google.android.exoplayer2.util.ParsableBitArray;
 import com.google.android.exoplayer2.util.ParsableByteArray;
-import com.google.common.base.Charsets;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -120,7 +119,8 @@ public final class FlacMetadataReader {
     ParsableByteArray scratch = new ParsableByteArray(FlacConstants.STREAM_MARKER_SIZE);
     input.readFully(scratch.getData(), 0, FlacConstants.STREAM_MARKER_SIZE);
     if (scratch.readUnsignedInt() != STREAM_MARKER) {
-      throw new ParserException("Failed to read FLAC stream marker.");
+      throw ParserException.createForMalformedContainer(
+          "Failed to read FLAC stream marker.", /* cause= */ null);
     }
   }
 
@@ -167,9 +167,12 @@ public final class FlacMetadataReader {
         metadataHolder.flacStreamMetadata =
             flacStreamMetadata.copyWithVorbisComments(vorbisComments);
       } else if (type == FlacConstants.METADATA_TYPE_PICTURE) {
-        PictureFrame pictureFrame = readPictureMetadataBlock(input, length);
+        ParsableByteArray pictureBlock = new ParsableByteArray(length);
+        input.readFully(pictureBlock.getData(), 0, length);
+        pictureBlock.skipBytes(FlacConstants.METADATA_BLOCK_HEADER_SIZE);
+        PictureFrame pictureFrame = PictureFrame.fromPictureBlock(pictureBlock);
         metadataHolder.flacStreamMetadata =
-            flacStreamMetadata.copyWithPictureFrames(Collections.singletonList(pictureFrame));
+            flacStreamMetadata.copyWithPictureFrames(ImmutableList.of(pictureFrame));
       } else {
         input.skipFully(length);
       }
@@ -234,7 +237,8 @@ public final class FlacMetadataReader {
     int syncCode = frameStartMarker >> 2;
     if (syncCode != SYNC_CODE) {
       input.resetPeekPosition();
-      throw new ParserException("First frame does not start with sync code.");
+      throw ParserException.createForMalformedContainer(
+          "First frame does not start with sync code.", /* cause= */ null);
     }
 
     input.resetPeekPosition();
@@ -264,29 +268,6 @@ public final class FlacMetadataReader {
         VorbisUtil.readVorbisCommentHeader(
             scratch, /* hasMetadataHeader= */ false, /* hasFramingBit= */ false);
     return Arrays.asList(commentHeader.comments);
-  }
-
-  private static PictureFrame readPictureMetadataBlock(ExtractorInput input, int length)
-      throws IOException {
-    ParsableByteArray scratch = new ParsableByteArray(length);
-    input.readFully(scratch.getData(), 0, length);
-    scratch.skipBytes(FlacConstants.METADATA_BLOCK_HEADER_SIZE);
-
-    int pictureType = scratch.readInt();
-    int mimeTypeLength = scratch.readInt();
-    String mimeType = scratch.readString(mimeTypeLength, Charsets.US_ASCII);
-    int descriptionLength = scratch.readInt();
-    String description = scratch.readString(descriptionLength);
-    int width = scratch.readInt();
-    int height = scratch.readInt();
-    int depth = scratch.readInt();
-    int colors = scratch.readInt();
-    int pictureDataLength = scratch.readInt();
-    byte[] pictureData = new byte[pictureDataLength];
-    scratch.readBytes(pictureData, 0, pictureDataLength);
-
-    return new PictureFrame(
-        pictureType, mimeType, description, width, height, depth, colors, pictureData);
   }
 
   private FlacMetadataReader() {}

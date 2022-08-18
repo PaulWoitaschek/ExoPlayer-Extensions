@@ -15,9 +15,11 @@
  */
 package com.google.android.exoplayer2;
 
+import static com.google.android.exoplayer2.util.Assertions.checkNotNull;
 import static java.lang.Math.max;
 
 import androidx.annotation.Nullable;
+import com.google.android.exoplayer2.analytics.PlayerId;
 import com.google.android.exoplayer2.decoder.DecoderInputBuffer;
 import com.google.android.exoplayer2.decoder.DecoderInputBuffer.InsufficientCapacityException;
 import com.google.android.exoplayer2.source.SampleStream;
@@ -26,15 +28,17 @@ import com.google.android.exoplayer2.source.SampleStream.ReadFlags;
 import com.google.android.exoplayer2.util.Assertions;
 import com.google.android.exoplayer2.util.MediaClock;
 import java.io.IOException;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 
 /** An abstract base class suitable for most {@link Renderer} implementations. */
 public abstract class BaseRenderer implements Renderer, RendererCapabilities {
 
-  private final int trackType;
+  private final @C.TrackType int trackType;
   private final FormatHolder formatHolder;
 
   @Nullable private RendererConfiguration configuration;
   private int index;
+  private @MonotonicNonNull PlayerId playerId;
   private int state;
   @Nullable private SampleStream stream;
   @Nullable private Format[] streamFormats;
@@ -45,17 +49,17 @@ public abstract class BaseRenderer implements Renderer, RendererCapabilities {
   private boolean throwRendererExceptionIsExecuting;
 
   /**
-   * @param trackType The track type that the renderer handles. One of the {@link C}
-   * {@code TRACK_TYPE_*} constants.
+   * @param trackType The track type that the renderer handles. One of the {@link C} {@code
+   *     TRACK_TYPE_*} constants.
    */
-  public BaseRenderer(int trackType) {
+  public BaseRenderer(@C.TrackType int trackType) {
     this.trackType = trackType;
     formatHolder = new FormatHolder();
     readingPositionUs = C.TIME_END_OF_SOURCE;
   }
 
   @Override
-  public final int getTrackType() {
+  public final @C.TrackType int getTrackType() {
     return trackType;
   }
 
@@ -65,8 +69,9 @@ public abstract class BaseRenderer implements Renderer, RendererCapabilities {
   }
 
   @Override
-  public final void setIndex(int index) {
+  public final void init(int index, PlayerId playerId) {
     this.index = index;
+    this.playerId = playerId;
   }
 
   @Override
@@ -94,10 +99,9 @@ public abstract class BaseRenderer implements Renderer, RendererCapabilities {
     Assertions.checkState(state == STATE_DISABLED);
     this.configuration = configuration;
     state = STATE_ENABLED;
-    lastResetPositionUs = positionUs;
     onEnabled(joining, mayRenderStartOfStream);
     replaceStream(formats, stream, startPositionUs, offsetUs);
-    onPositionReset(positionUs, joining);
+    resetPosition(positionUs, joining);
   }
 
   @Override
@@ -113,7 +117,9 @@ public abstract class BaseRenderer implements Renderer, RendererCapabilities {
       throws ExoPlaybackException {
     Assertions.checkState(!streamIsFinal);
     this.stream = stream;
-    readingPositionUs = offsetUs;
+    if (readingPositionUs == C.TIME_END_OF_SOURCE) {
+      readingPositionUs = startPositionUs;
+    }
     streamFormats = formats;
     streamOffsetUs = offsetUs;
     onStreamChanged(formats, startPositionUs, offsetUs);
@@ -152,10 +158,14 @@ public abstract class BaseRenderer implements Renderer, RendererCapabilities {
 
   @Override
   public final void resetPosition(long positionUs) throws ExoPlaybackException {
+    resetPosition(positionUs, /* joining= */ false);
+  }
+
+  private void resetPosition(long positionUs, boolean joining) throws ExoPlaybackException {
     streamIsFinal = false;
     lastResetPositionUs = positionUs;
     readingPositionUs = positionUs;
-    onPositionReset(positionUs, false);
+    onPositionReset(positionUs, joining);
   }
 
   @Override
@@ -186,15 +196,15 @@ public abstract class BaseRenderer implements Renderer, RendererCapabilities {
   // RendererCapabilities implementation.
 
   @Override
-  @AdaptiveSupport
-  public int supportsMixedMimeTypeAdaptation() throws ExoPlaybackException {
+  public @AdaptiveSupport int supportsMixedMimeTypeAdaptation() throws ExoPlaybackException {
     return ADAPTIVE_NOT_SUPPORTED;
   }
 
   // PlayerMessage.Target implementation.
 
   @Override
-  public void handleMessage(int messageType, @Nullable Object payload) throws ExoPlaybackException {
+  public void handleMessage(@MessageType int messageType, @Nullable Object message)
+      throws ExoPlaybackException {
     // Do nothing.
   }
 
@@ -253,8 +263,8 @@ public abstract class BaseRenderer implements Renderer, RendererCapabilities {
 
   /**
    * Called when the renderer is started.
-   * <p>
-   * The default implementation is a no-op.
+   *
+   * <p>The default implementation is a no-op.
    *
    * @throws ExoPlaybackException If an error occurs.
    */
@@ -273,8 +283,8 @@ public abstract class BaseRenderer implements Renderer, RendererCapabilities {
 
   /**
    * Called when the renderer is disabled.
-   * <p>
-   * The default implementation is a no-op.
+   *
+   * <p>The default implementation is a no-op.
    */
   protected void onDisabled() {
     // Do nothing.
@@ -327,9 +337,20 @@ public abstract class BaseRenderer implements Renderer, RendererCapabilities {
 
   /**
    * Returns the index of the renderer within the player.
+   *
+   * <p>Must only be used after the renderer has been initialized by the player.
    */
   protected final int getIndex() {
     return index;
+  }
+
+  /**
+   * Returns the {@link PlayerId} of the player using this renderer.
+   *
+   * <p>Must only be used after the renderer has been initialized by the player.
+   */
+  protected final PlayerId getPlayerId() {
+    return checkNotNull(playerId);
   }
 
   /**
@@ -338,10 +359,14 @@ public abstract class BaseRenderer implements Renderer, RendererCapabilities {
    *
    * @param cause The cause of the exception.
    * @param format The current format used by the renderer. May be null.
+   * @param errorCode A {@link PlaybackException.ErrorCode} to identify the cause of the playback
+   *     failure.
+   * @return The created instance, in which {@link ExoPlaybackException#isRecoverable} is {@code
+   *     false}.
    */
   protected final ExoPlaybackException createRendererException(
-      Throwable cause, @Nullable Format format) {
-    return createRendererException(cause, format, /* isRecoverable= */ false);
+      Throwable cause, @Nullable Format format, @PlaybackException.ErrorCode int errorCode) {
+    return createRendererException(cause, format, /* isRecoverable= */ false, errorCode);
   }
 
   /**
@@ -351,9 +376,15 @@ public abstract class BaseRenderer implements Renderer, RendererCapabilities {
    * @param cause The cause of the exception.
    * @param format The current format used by the renderer. May be null.
    * @param isRecoverable If the error is recoverable by disabling and re-enabling the renderer.
+   * @param errorCode A {@link PlaybackException.ErrorCode} to identify the cause of the playback
+   *     failure.
+   * @return The created instance.
    */
   protected final ExoPlaybackException createRendererException(
-      Throwable cause, @Nullable Format format, boolean isRecoverable) {
+      Throwable cause,
+      @Nullable Format format,
+      boolean isRecoverable,
+      @PlaybackException.ErrorCode int errorCode) {
     @C.FormatSupport int formatSupport = C.FORMAT_HANDLED;
     if (format != null && !throwRendererExceptionIsExecuting) {
       // Prevent recursive re-entry from subclass supportsFormat implementations.
@@ -367,7 +398,7 @@ public abstract class BaseRenderer implements Renderer, RendererCapabilities {
       }
     }
     return ExoPlaybackException.createForRenderer(
-        cause, getName(), getIndex(), format, formatSupport, isRecoverable);
+        cause, getName(), getIndex(), format, formatSupport, isRecoverable, errorCode);
   }
 
   /**
@@ -388,8 +419,7 @@ public abstract class BaseRenderer implements Renderer, RendererCapabilities {
    *     the data of a sample being read. The buffer {@link DecoderInputBuffer#timeUs timestamp} and
    *     flags are populated if this exception is thrown, but the read position is not advanced.
    */
-  @ReadDataResult
-  protected final int readSource(
+  protected final @ReadDataResult int readSource(
       FormatHolder formatHolder, DecoderInputBuffer buffer, @ReadFlags int readFlags) {
     @ReadDataResult
     int result = Assertions.checkNotNull(stream).readData(formatHolder, buffer, readFlags);

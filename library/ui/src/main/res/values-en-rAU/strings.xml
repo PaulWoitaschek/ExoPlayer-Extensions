@@ -37,22 +37,24 @@
     <item quantity="one">Fast-forward %d second</item>
     <item quantity="other">Fast-forward %d seconds</item>
   </plurals>
-  <string name="exo_controls_repeat_off_description">Repeat none</string>
-  <string name="exo_controls_repeat_one_description">Repeat one</string>
-  <string name="exo_controls_repeat_all_description">Repeat all</string>
-  <string name="exo_controls_shuffle_on_description">Shuffle on</string>
-  <string name="exo_controls_shuffle_off_description">Shuffle off</string>
+  <string name="exo_controls_repeat_off_description">Current mode: Repeat none. Toggle repeat mode.</string>
+  <string name="exo_controls_repeat_one_description">Current mode: Repeat one. Toggle repeat mode.</string>
+  <string name="exo_controls_repeat_all_description">Current mode: Repeat all. Toggle repeat mode.</string>
+  <string name="exo_controls_shuffle_on_description">Disable shuffle mode</string>
+  <string name="exo_controls_shuffle_off_description">Enable shuffle mode</string>
   <string name="exo_controls_vr_description">VR mode</string>
   <string name="exo_controls_cc_enabled_description">Disable subtitles</string>
   <string name="exo_controls_cc_disabled_description">Enable subtitles</string>
   <string name="exo_controls_playback_speed">Speed</string>
-  <string name="exo_controls_playback_speed_normal">Normal</string>
-  <string name="exo_download_description">Download</string>
-  <string name="exo_download_notification_channel_name">Downloads</string>
-  <string name="exo_download_downloading">Downloading</string>
-  <string name="exo_download_completed">Download completed</string>
-  <string name="exo_download_failed">Download failed</string>
-  <string name="exo_download_removing">Removing downloads</string>
+  <string-array name="exo_controls_playback_speeds">
+    <item>0.25x</item>
+    <item>0.5x</item>
+    <item>0.75x</item>
+    <item>Normal</item>
+    <item>1.25x</item>
+    <item>1.5x</item>
+    <item>2x</item>
+  </string-array>
   <string name="exo_track_selection_title_video">Video</string>
   <string name="exo_track_selection_title_audio">Audio</string>
   <string name="exo_track_selection_title_text">Text</string>

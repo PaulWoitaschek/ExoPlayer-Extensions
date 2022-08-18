@@ -37,22 +37,24 @@
     <item quantity="one">በ%d ሰከንዶች በፍጥነት ወደፊት ያሳልፉ</item>
     <item quantity="other">በ%d ሰከንዶች በፍጥነት ወደፊት ያሳልፉ</item>
   </plurals>
-  <string name="exo_controls_repeat_off_description">ምንም አትድገም</string>
-  <string name="exo_controls_repeat_one_description">አንድ ድገም</string>
-  <string name="exo_controls_repeat_all_description">ሁሉንም ድገም</string>
-  <string name="exo_controls_shuffle_on_description">መበወዝ በርቷል</string>
-  <string name="exo_controls_shuffle_off_description">መበወዝ ጠፍቷል</string>
+  <string name="exo_controls_repeat_off_description">የአሁኑ ሁነታ፦ ምንም አትድገም። የመድገም ሁነታን ቀያይር።</string>
+  <string name="exo_controls_repeat_one_description">የአሁን ሁነታ፦ አንዱን ድገም። የመድገም ሁነታን ቀያይር።</string>
+  <string name="exo_controls_repeat_all_description">የአሁን ሁነታ፦ ሁሉም ድገም። የመድገም ሁነታን ቀያይር።</string>
+  <string name="exo_controls_shuffle_on_description">የበውዝ ሁነታን አሰናክል</string>
+  <string name="exo_controls_shuffle_off_description">የበውዝ ሁነታን አንቃ</string>
   <string name="exo_controls_vr_description">የቪአር ሁነታ</string>
   <string name="exo_controls_cc_enabled_description">የግርጌ ጽሑፎችን አሰናክል</string>
   <string name="exo_controls_cc_disabled_description">የግርጌ ጽሑፎችን አንቃ</string>
   <string name="exo_controls_playback_speed">ፍጥነት</string>
-  <string name="exo_controls_playback_speed_normal">መደበኛ</string>
-  <string name="exo_download_description">አውርድ</string>
-  <string name="exo_download_notification_channel_name">የወረዱ</string>
-  <string name="exo_download_downloading">በማውረድ ላይ</string>
-  <string name="exo_download_completed">ማውረድ ተጠናቋል</string>
-  <string name="exo_download_failed">ማውረድ አልተሳካም</string>
-  <string name="exo_download_removing">ውርዶችን በማስወገድ ላይ</string>
+  <string-array name="exo_controls_playback_speeds">
+    <item>0.25x</item>
+    <item>0.5x</item>
+    <item>0.75x</item>
+    <item>መደበኛ</item>
+    <item>1.25x</item>
+    <item>1.5x</item>
+    <item>2x</item>
+  </string-array>
   <string name="exo_track_selection_title_video">ቪዲዮ</string>
   <string name="exo_track_selection_title_audio">ኦዲዮ</string>
   <string name="exo_track_selection_title_text">ጽሑፍ</string>

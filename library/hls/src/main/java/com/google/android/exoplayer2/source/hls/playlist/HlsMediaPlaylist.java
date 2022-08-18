@@ -15,6 +15,10 @@
  */
 package com.google.android.exoplayer2.source.hls.playlist;
 
+import static java.lang.Math.max;
+import static java.lang.Math.min;
+import static java.lang.annotation.ElementType.TYPE_USE;
+
 import android.net.Uri;
 import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;
@@ -27,6 +31,7 @@ import com.google.common.collect.Iterables;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -341,7 +346,8 @@ public final class HlsMediaPlaylist extends HlsPlaylist {
     @Override
     public int compareTo(Long relativeStartTimeUs) {
       return this.relativeStartTimeUs > relativeStartTimeUs
-          ? 1 : (this.relativeStartTimeUs < relativeStartTimeUs ? -1 : 0);
+          ? 1
+          : (this.relativeStartTimeUs < relativeStartTimeUs ? -1 : 0);
     }
   }
 
@@ -381,6 +387,7 @@ public final class HlsMediaPlaylist extends HlsPlaylist {
    */
   @Documented
   @Retention(RetentionPolicy.SOURCE)
+  @Target(TYPE_USE)
   @IntDef({PLAYLIST_TYPE_UNKNOWN, PLAYLIST_TYPE_VOD, PLAYLIST_TYPE_EVENT})
   public @interface PlaylistType {}
 
@@ -388,23 +395,28 @@ public final class HlsMediaPlaylist extends HlsPlaylist {
   public static final int PLAYLIST_TYPE_VOD = 1;
   public static final int PLAYLIST_TYPE_EVENT = 2;
 
+  /** The type of the playlist. See {@link PlaylistType}. */
+  public final @PlaylistType int playlistType;
   /**
-   * The type of the playlist. See {@link PlaylistType}.
-   */
-  @PlaylistType public final int playlistType;
-  /**
-   * The start offset in microseconds, as defined by #EXT-X-START.
+   * The start offset in microseconds from the beginning of the playlist, as defined by
+   * #EXT-X-START, or {@link C#TIME_UNSET} if undefined. The value is guaranteed to be between 0 and
+   * {@link #durationUs}, inclusive.
    */
   public final long startOffsetUs;
+  /**
+   * Whether the {@link #startOffsetUs} was explicitly defined by #EXT-X-START as a positive value
+   * or zero.
+   */
+  public final boolean hasPositiveStartOffset;
+  /** Whether the start position should be precise, as defined by #EXT-X-START. */
+  public final boolean preciseStart;
   /**
    * If {@link #hasProgramDateTime} is true, contains the datetime as microseconds since epoch.
    * Otherwise, contains the aggregated duration of removed segments up to this snapshot of the
    * playlist.
    */
   public final long startTimeUs;
-  /**
-   * Whether the playlist contains the #EXT-X-DISCONTINUITY-SEQUENCE tag.
-   */
+  /** Whether the playlist contains the #EXT-X-DISCONTINUITY-SEQUENCE tag. */
   public final boolean hasDiscontinuitySequence;
   /**
    * The discontinuity sequence number of the first media segment in the playlist, as defined by
@@ -416,13 +428,9 @@ public final class HlsMediaPlaylist extends HlsPlaylist {
    * #EXT-X-MEDIA-SEQUENCE.
    */
   public final long mediaSequence;
-  /**
-   * The compatibility version, as defined by #EXT-X-VERSION.
-   */
+  /** The compatibility version, as defined by #EXT-X-VERSION. */
   public final int version;
-  /**
-   * The target duration in microseconds, as defined by #EXT-X-TARGETDURATION.
-   */
+  /** The target duration in microseconds, as defined by #EXT-X-TARGETDURATION. */
   public final long targetDurationUs;
   /**
    * The target duration for segment parts, as defined by #EXT-X-PART-INF, or {@link C#TIME_UNSET}
@@ -431,18 +439,14 @@ public final class HlsMediaPlaylist extends HlsPlaylist {
   public final long partTargetDurationUs;
   /** Whether the playlist contains the #EXT-X-ENDLIST tag. */
   public final boolean hasEndTag;
-  /**
-   * Whether the playlist contains a #EXT-X-PROGRAM-DATE-TIME tag.
-   */
+  /** Whether the playlist contains a #EXT-X-PROGRAM-DATE-TIME tag. */
   public final boolean hasProgramDateTime;
   /**
    * Contains the CDM protection schemes used by segments in this playlist. Does not contain any key
    * acquisition data. Null if none of the segments in the playlist is CDM-encrypted.
    */
   @Nullable public final DrmInitData protectionSchemes;
-  /**
-   * The list of segments in the playlist.
-   */
+  /** The list of segments in the playlist. */
   public final List<Segment> segments;
   /**
    * The list of parts at the end of the playlist for which the segment is not in the playlist yet.
@@ -480,6 +484,7 @@ public final class HlsMediaPlaylist extends HlsPlaylist {
       String baseUri,
       List<String> tags,
       long startOffsetUs,
+      boolean preciseStart,
       long startTimeUs,
       boolean hasDiscontinuitySequence,
       int discontinuitySequence,
@@ -498,6 +503,7 @@ public final class HlsMediaPlaylist extends HlsPlaylist {
     super(baseUri, tags, hasIndependentSegments);
     this.playlistType = playlistType;
     this.startTimeUs = startTimeUs;
+    this.preciseStart = preciseStart;
     this.hasDiscontinuitySequence = hasDiscontinuitySequence;
     this.discontinuitySequence = discontinuitySequence;
     this.mediaSequence = mediaSequence;
@@ -519,8 +525,16 @@ public final class HlsMediaPlaylist extends HlsPlaylist {
     } else {
       durationUs = 0;
     }
-    this.startOffsetUs = startOffsetUs == C.TIME_UNSET ? C.TIME_UNSET
-        : startOffsetUs >= 0 ? startOffsetUs : durationUs + startOffsetUs;
+    // From RFC 8216, section 4.4.2.2: If startOffsetUs is negative, it indicates the offset from
+    // the end of the playlist. If the absolute value exceeds the duration of the playlist, it
+    // indicates the beginning (if negative) or the end (if positive) of the playlist.
+    this.startOffsetUs =
+        startOffsetUs == C.TIME_UNSET
+            ? C.TIME_UNSET
+            : startOffsetUs >= 0
+                ? min(durationUs, startOffsetUs)
+                : max(0, durationUs + startOffsetUs);
+    this.hasPositiveStartOffset = startOffsetUs >= 0;
     this.serverControl = serverControl;
   }
 
@@ -553,9 +567,7 @@ public final class HlsMediaPlaylist extends HlsPlaylist {
         || (partCount == otherPartCount && hasEndTag && !other.hasEndTag);
   }
 
-  /**
-   * Returns the result of adding the duration of the playlist to its start time.
-   */
+  /** Returns the result of adding the duration of the playlist to its start time. */
   public long getEndTimeUs() {
     return startTimeUs + durationUs;
   }
@@ -575,6 +587,7 @@ public final class HlsMediaPlaylist extends HlsPlaylist {
         baseUri,
         tags,
         startOffsetUs,
+        preciseStart,
         startTimeUs,
         /* hasDiscontinuitySequence= */ true,
         discontinuitySequence,
@@ -605,6 +618,7 @@ public final class HlsMediaPlaylist extends HlsPlaylist {
         baseUri,
         tags,
         startOffsetUs,
+        preciseStart,
         startTimeUs,
         hasDiscontinuitySequence,
         discontinuitySequence,
@@ -621,5 +635,4 @@ public final class HlsMediaPlaylist extends HlsPlaylist {
         serverControl,
         renditionReports);
   }
-
 }

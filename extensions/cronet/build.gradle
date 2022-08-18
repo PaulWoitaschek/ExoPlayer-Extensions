@@ -20,8 +20,9 @@ android {
 }
 
 dependencies {
-    api "com.google.android.gms:play-services-cronet:17.0.0"
+    api "com.google.android.gms:play-services-cronet:18.0.1"
     implementation project(modulePrefix + 'library-common')
+    implementation project(modulePrefix + 'library-datasource')
     implementation 'androidx.annotation:annotation:' + androidxAnnotationVersion
     compileOnly 'org.checkerframework:checker-qual:' + checkerframeworkVersion
     compileOnly 'org.jetbrains.kotlin:kotlin-annotations-jvm:' + kotlinAnnotationsVersion
@@ -31,11 +32,10 @@ dependencies {
     androidTestImplementation 'com.linkedin.dexmaker:dexmaker-mockito:' + dexmakerVersion
     // Instrumentation tests assume that an app-packaged version of cronet is
     // available.
-    androidTestImplementation 'org.chromium.net:cronet-embedded:72.3626.96'
-    androidTestImplementation(project(modulePrefix + 'testutils'))
-    testImplementation project(modulePrefix + 'library')
+    androidTestImplementation 'org.chromium.net:cronet-embedded:95.4638.50'
+    androidTestImplementation project(modulePrefix + 'testutils')
     testImplementation project(modulePrefix + 'testutils')
-    testImplementation 'com.squareup.okhttp3:mockwebserver:' + mockWebServerVersion
+    testImplementation 'com.squareup.okhttp3:mockwebserver:' + okhttpVersion
     testImplementation 'org.robolectric:robolectric:' + robolectricVersion
 }
 
@@ -45,7 +45,7 @@ ext {
 apply from: '../../javadoc_library.gradle'
 
 ext {
-    releaseArtifact = 'extension-cronet'
+    releaseArtifactId = 'extension-cronet'
     releaseDescription = 'Cronet extension for ExoPlayer.'
 }
 apply from: '../../publish.gradle'

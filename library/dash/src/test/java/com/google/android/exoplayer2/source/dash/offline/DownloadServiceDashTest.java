@@ -35,6 +35,7 @@ import com.google.android.exoplayer2.offline.DownloadRequest;
 import com.google.android.exoplayer2.offline.DownloadService;
 import com.google.android.exoplayer2.offline.StreamKey;
 import com.google.android.exoplayer2.robolectric.TestDownloadManagerListener;
+import com.google.android.exoplayer2.scheduler.Requirements;
 import com.google.android.exoplayer2.scheduler.Scheduler;
 import com.google.android.exoplayer2.testutil.DummyMainThread;
 import com.google.android.exoplayer2.testutil.FakeDataSet;
@@ -139,7 +140,9 @@ public class DownloadServiceDashTest {
                 }
 
                 @Override
-                protected Notification getForegroundNotification(List<Download> downloads) {
+                protected Notification getForegroundNotification(
+                    List<Download> downloads,
+                    @Requirements.RequirementFlags int notMetRequirements) {
                   throw new UnsupportedOperationException();
                 }
               };
@@ -154,7 +157,7 @@ public class DownloadServiceDashTest {
     testThread.release();
   }
 
-  @Ignore // b/78877092
+  @Ignore("Internal ref: b/78877092")
   @Test
   public void multipleDownloadRequest() throws Throwable {
     downloadKeys(fakeStreamKey1);
@@ -165,7 +168,7 @@ public class DownloadServiceDashTest {
     assertCachedData(cache, fakeDataSet);
   }
 
-  @Ignore // b/78877092
+  @Ignore("Internal ref: b/78877092")
   @Test
   public void removeAction() throws Throwable {
     downloadKeys(fakeStreamKey1, fakeStreamKey2);
@@ -179,7 +182,7 @@ public class DownloadServiceDashTest {
     assertCacheEmpty(cache);
   }
 
-  @Ignore // b/78877092
+  @Ignore("Internal ref: b/78877092")
   @Test
   public void removeBeforeDownloadComplete() throws Throwable {
     pauseDownloadCondition = new ConditionVariable();

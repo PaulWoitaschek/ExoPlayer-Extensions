@@ -14,7 +14,7 @@ For simple use cases, getting started with `ExoPlayer` consists of implementing
 the following steps:
 
 1. Add ExoPlayer as a dependency to your project.
-1. Create a `SimpleExoPlayer` instance.
+1. Create an `ExoPlayer` instance.
 1. Attach the player to a view (for video output and user input).
 1. Prepare the player with a `MediaItem` to play.
 1. Release the player when done.
@@ -24,24 +24,11 @@ These steps are described in more detail below. For a complete example, refer to
 
 ## Adding ExoPlayer as a dependency ##
 
-### Add repositories ###
-
-The first step to getting started is to make sure you have the Google and
-JCenter repositories included in the `build.gradle` file in the root of your
-project.
-
-~~~
-repositories {
-    google()
-    jcenter()
-}
-~~~
-{: .language-gradle}
-
 ### Add ExoPlayer modules ###
 
-Next add a dependency in the `build.gradle` file of your app module. The
-following will add a dependency to the full ExoPlayer library:
+The easiest way to get started using ExoPlayer is to add it as a gradle
+dependency in the `build.gradle` file of your app module. The following will add
+a dependency to the full library:
 
 ~~~
 implementation 'com.google.android.exoplayer:exoplayer:2.X.X'
@@ -63,21 +50,15 @@ implementation 'com.google.android.exoplayer:exoplayer-ui:2.X.X'
 ~~~
 {: .language-gradle}
 
-The available library modules are listed below. Adding a dependency to the full
-ExoPlayer library is equivalent to adding dependencies on all of the library
-modules individually.
+When depending on individual modules, they must all be the same version. You can
+browse the list of available modules on the [Google Maven ExoPlayer page][]. The
+full library includes all of the library modules prefixed with `exoplayer-`,
+except for `exoplayer-transformer`.
 
-* `exoplayer-core`: Core functionality (required).
-* `exoplayer-dash`: Support for DASH content.
-* `exoplayer-hls`: Support for HLS content.
-* `exoplayer-rtsp`: Support for RTSP content.
-* `exoplayer-smoothstreaming`: Support for SmoothStreaming content.
-* `exoplayer-transformer`: Media transformation functionality.
-* `exoplayer-ui`: UI components and resources for use with ExoPlayer.
-
-In addition to library modules, ExoPlayer has multiple extension modules that
-depend on external libraries to provide additional functionality. Browse the
-[extensions directory][] and their individual READMEs for details.
+In addition to library modules, ExoPlayer has extension modules that depend on
+external libraries to provide additional functionality. Some extensions are
+available from the Maven repository, whereas others must be built manually.
+Browse the [extensions directory][] and their individual READMEs for details.
 
 ### Turn on Java 8 support ###
 
@@ -99,12 +80,12 @@ to prevent build errors.
 
 ## Creating the player ##
 
-You can create an `ExoPlayer` instance using `SimpleExoPlayer.Builder`, which
-provides a range of customization options. The code below is the simplest
-example of creating an instance.
+You can create an `ExoPlayer` instance using `ExoPlayer.Builder`, which provides
+a range of customization options. The code below is the simplest example of
+creating an instance.
 
 ~~~
-SimpleExoPlayer player = new SimpleExoPlayer.Builder(context).build();
+ExoPlayer player = new ExoPlayer.Builder(context).build();
 ~~~
 {: .language-java}
 
@@ -124,16 +105,12 @@ which the player must be accessed can be queried using
 `Player.getApplicationLooper`.
 
 If you see `IllegalStateException` being thrown with the message "Player is
-accessed on the wrong thread", then some code in your app is accessing a
-`SimpleExoPlayer` instance on the wrong thread (the exception's stack trace
-shows you where). You can temporarily opt out from these exceptions being thrown
-by calling `SimpleExoPlayer.setThrowsWhenUsingWrongThread(false)`, in which case
-the issue will be logged as a warning instead. Using this opt out is not safe
-and may result in unexpected or obscure errors. It will be removed in ExoPlayer
-2.16.
+accessed on the wrong thread", then some code in your app is accessing an
+`ExoPlayer` instance on the wrong thread (the exception's stack trace shows you
+where).
 {:.info}
 
-For more information about ExoPlayer's treading model, see the
+For more information about ExoPlayer's threading model, see the
 ["Threading model" section of the ExoPlayer Javadoc][].
 
 ## Attaching the player to a view ##
@@ -155,10 +132,10 @@ useful for audio only use cases.
 
 Use of ExoPlayer's pre-built UI components is optional. For video applications
 that implement their own UI, the target `SurfaceView`, `TextureView`,
-`SurfaceHolder` or `Surface` can be set using `SimpleExoPlayer`'s
+`SurfaceHolder` or `Surface` can be set using `ExoPlayer`'s
 `setVideoSurfaceView`, `setVideoTextureView`, `setVideoSurfaceHolder` and
-`setVideoSurface` methods respectively. `SimpleExoPlayer`'s `addTextOutput`
-method can be used to receive captions that should be rendered during playback.
+`setVideoSurface` methods respectively. `ExoPlayer`'s `addTextOutput` method can
+be used to receive captions that should be rendered during playback.
 
 ## Populating the playlist and preparing the player ##
 
@@ -239,4 +216,4 @@ can be done by calling `ExoPlayer.release`.
 [Playlists page]: {{ site.baseurl }}/playlists.html
 [Media items page]: {{ site.baseurl }}/media-items.html
 [Media sources page]: {{ site.baseurl }}/media-sources.html
-
+[Google Maven ExoPlayer page]: https://maven.google.com/web/index.html#com.google.android.exoplayer

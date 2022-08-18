@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.google.android.exoplayer2.mediacodec;
 
 import android.media.MediaCodec;
@@ -21,6 +20,7 @@ import android.media.MediaCrypto;
 import android.media.MediaFormat;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.PersistableBundle;
 import android.view.Surface;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -39,24 +39,62 @@ import java.nio.ByteBuffer;
 public interface MediaCodecAdapter {
   /** Configuration parameters for a {@link MediaCodecAdapter}. */
   final class Configuration {
+
+    /**
+     * Creates a configuration for audio decoding.
+     *
+     * @param codecInfo See {@link #codecInfo}.
+     * @param mediaFormat See {@link #mediaFormat}.
+     * @param format See {@link #format}.
+     * @param crypto See {@link #crypto}.
+     * @return The created instance.
+     */
+    public static Configuration createForAudioDecoding(
+        MediaCodecInfo codecInfo,
+        MediaFormat mediaFormat,
+        Format format,
+        @Nullable MediaCrypto crypto) {
+      return new Configuration(
+          codecInfo, mediaFormat, format, /* surface= */ null, crypto, /* flags= */ 0);
+    }
+
+    /**
+     * Creates a configuration for video decoding.
+     *
+     * @param codecInfo See {@link #codecInfo}.
+     * @param mediaFormat See {@link #mediaFormat}.
+     * @param format See {@link #format}.
+     * @param surface See {@link #surface}.
+     * @param crypto See {@link #crypto}.
+     * @return The created instance.
+     */
+    public static Configuration createForVideoDecoding(
+        MediaCodecInfo codecInfo,
+        MediaFormat mediaFormat,
+        Format format,
+        @Nullable Surface surface,
+        @Nullable MediaCrypto crypto) {
+      return new Configuration(codecInfo, mediaFormat, format, surface, crypto, /* flags= */ 0);
+    }
+
     /** Information about the {@link MediaCodec} being configured. */
     public final MediaCodecInfo codecInfo;
     /** The {@link MediaFormat} for which the codec is being configured. */
     public final MediaFormat mediaFormat;
     /** The {@link Format} for which the codec is being configured. */
     public final Format format;
-    /** For video playbacks, the output where the object will render the decoded frames. */
+    /**
+     * For video decoding, the output where the object will render the decoded frames. This must be
+     * null if the codec is not a video decoder, or if it is configured for {@link ByteBuffer}
+     * output.
+     */
     @Nullable public final Surface surface;
     /** For DRM protected playbacks, a {@link MediaCrypto} to use for decryption. */
     @Nullable public final MediaCrypto crypto;
-    /**
-     * Specify CONFIGURE_FLAG_ENCODE to configure the component as an encoder.
-     *
-     * @see MediaCodec#configure
-     */
+    /** See {@link MediaCodec#configure}. */
     public final int flags;
 
-    public Configuration(
+    private Configuration(
         MediaCodecInfo codecInfo,
         MediaFormat mediaFormat,
         Format format,
@@ -76,7 +114,7 @@ public interface MediaCodecAdapter {
   interface Factory {
 
     /** Default factory used in most cases. */
-    Factory DEFAULT = new SynchronousMediaCodecAdapter.Factory();
+    Factory DEFAULT = new DefaultMediaCodecAdapterFactory();
 
     /** Creates a {@link MediaCodecAdapter} instance. */
     MediaCodecAdapter createAdapter(Configuration configuration) throws IOException;
@@ -214,4 +252,15 @@ public interface MediaCodecAdapter {
    * @see MediaCodec#setVideoScalingMode(int)
    */
   void setVideoScalingMode(@C.VideoScalingMode int scalingMode);
+
+  /** Whether the adapter needs to be reconfigured before it is used. */
+  boolean needsReconfiguration();
+
+  /**
+   * Returns metrics data about the current codec instance.
+   *
+   * @see MediaCodec#getMetrics()
+   */
+  @RequiresApi(26)
+  PersistableBundle getMetrics();
 }

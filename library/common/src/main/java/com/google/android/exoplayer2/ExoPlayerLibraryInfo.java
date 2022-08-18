@@ -15,24 +15,23 @@
  */
 package com.google.android.exoplayer2;
 
-import android.os.Build;
+import com.google.android.exoplayer2.util.Assertions;
+import com.google.android.exoplayer2.util.TraceUtil;
 import java.util.HashSet;
 
-/** Information about the ExoPlayer library. */
+/** Information about the media libraries. */
 public final class ExoPlayerLibraryInfo {
 
-  /**
-   * A tag to use when logging library information.
-   */
-  public static final String TAG = "ExoPlayer";
+  /** A tag to use when logging library information. */
+  public static final String TAG = "ExoPlayerLib";
 
   /** The version of the library expressed as a string, for example "1.2.3". */
   // Intentionally hardcoded. Do not derive from other constants (e.g. VERSION_INT) or vice versa.
-  public static final String VERSION = "2.14.0";
+  public static final String VERSION = "2.18.1";
 
-  /** The version of the library expressed as {@code "ExoPlayerLib/" + VERSION}. */
+  /** The version of the library expressed as {@code TAG + "/" + VERSION}. */
   // Intentionally hardcoded. Do not derive from other constants (e.g. VERSION) or vice versa.
-  public static final String VERSION_SLASHY = "ExoPlayerLib/2.14.0";
+  public static final String VERSION_SLASHY = "ExoPlayerLib/2.18.1";
 
   /**
    * The version of the library expressed as an integer, for example 1002003.
@@ -42,30 +41,12 @@ public final class ExoPlayerLibraryInfo {
    * integer version 123045006 (123-045-006).
    */
   // Intentionally hardcoded. Do not derive from other constants (e.g. VERSION) or vice versa.
-  public static final int VERSION_INT = 2014000;
+  public static final int VERSION_INT = 2_018_001;
 
-  /**
-   * The default user agent for requests made by the library.
-   *
-   * @deprecated ExoPlayer now uses the user agent of the underlying network stack by default.
-   */
-  @Deprecated
-  public static final String DEFAULT_USER_AGENT =
-      VERSION_SLASHY + " (Linux; Android " + Build.VERSION.RELEASE + ") " + VERSION_SLASHY;
-
-  /**
-   * Whether the library was compiled with {@link com.google.android.exoplayer2.util.Assertions}
-   * checks enabled.
-   */
+  /** Whether the library was compiled with {@link Assertions} checks enabled. */
   public static final boolean ASSERTIONS_ENABLED = true;
 
-  /** Whether an exception should be thrown in case of an OpenGl error. */
-  public static final boolean GL_ASSERTIONS_ENABLED = false;
-
-  /**
-   * Whether the library was compiled with {@link com.google.android.exoplayer2.util.TraceUtil}
-   * trace enabled.
-   */
+  /** Whether the library was compiled with {@link TraceUtil} trace enabled. */
   public static final boolean TRACE_ENABLED = true;
 
   private static final HashSet<String> registeredModules = new HashSet<>();
@@ -73,9 +54,7 @@ public final class ExoPlayerLibraryInfo {
 
   private ExoPlayerLibraryInfo() {} // Prevents instantiation.
 
-  /**
-   * Returns a string consisting of registered module names separated by ", ".
-   */
+  /** Returns a string consisting of registered module names separated by ", ". */
   public static synchronized String registeredModules() {
     return registeredModulesString;
   }
@@ -90,5 +69,4 @@ public final class ExoPlayerLibraryInfo {
       registeredModulesString = registeredModulesString + ", " + name;
     }
   }
-
 }

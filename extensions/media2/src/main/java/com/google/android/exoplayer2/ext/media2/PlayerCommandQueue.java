@@ -16,8 +16,10 @@
 package com.google.android.exoplayer2.ext.media2;
 
 import static com.google.android.exoplayer2.util.Util.postOrRun;
+import static java.lang.annotation.ElementType.TYPE_USE;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+import android.annotation.SuppressLint;
 import android.os.Handler;
 import androidx.annotation.GuardedBy;
 import androidx.annotation.IntDef;
@@ -32,6 +34,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -103,6 +106,7 @@ import java.util.concurrent.Callable;
   /** List of session commands whose result would be set after the command is finished. */
   @Documented
   @Retention(RetentionPolicy.SOURCE)
+  @Target(TYPE_USE)
   @IntDef(
       value = {
         COMMAND_CODE_PLAYER_SET_AUDIO_ATTRIBUTES,
@@ -129,6 +133,7 @@ import java.util.concurrent.Callable;
   /** Command whose result would be set later via listener after the command is finished. */
   @Documented
   @Retention(RetentionPolicy.SOURCE)
+  @Target(TYPE_USE)
   @IntDef(
       value = {COMMAND_CODE_PLAYER_PREPARE, COMMAND_CODE_PLAYER_PLAY, COMMAND_CODE_PLAYER_PAUSE})
   public @interface AsyncCommandCode {}
@@ -151,6 +156,7 @@ import java.util.concurrent.Callable;
     pendingPlayerCommandQueue = new ArrayDeque<>();
   }
 
+  @SuppressLint("RestrictedApi")
   public void reset() {
     handler.removeCallbacksAndMessages(/* token= */ null);
     List<PlayerCommand> queue;
@@ -169,6 +175,7 @@ import java.util.concurrent.Callable;
     return addCommand(commandCode, command, /* tag= */ null);
   }
 
+  @SuppressLint("RestrictedApi")
   public ListenableFuture<PlayerResult> addCommand(
       @CommandCode int commandCode, Callable<Boolean> command, @Nullable Object tag) {
     SettableFuture<PlayerResult> result = SettableFuture.create();
@@ -206,6 +213,7 @@ import java.util.concurrent.Callable;
     return result;
   }
 
+  @SuppressLint("RestrictedApi")
   public void notifyCommandError() {
     postOrRun(
         handler,
@@ -227,6 +235,7 @@ import java.util.concurrent.Callable;
         });
   }
 
+  @SuppressLint("RestrictedApi")
   public void notifyCommandCompleted(@AsyncCommandCode int completedCommandCode) {
     if (DEBUG) {
       Log.d(TAG, "notifyCommandCompleted, completedCommandCode=" + completedCommandCode);
@@ -259,6 +268,7 @@ import java.util.concurrent.Callable;
     postOrRun(handler, this::processPendingCommandOnHandler);
   }
 
+  @SuppressLint("RestrictedApi")
   private void processPendingCommandOnHandler() {
     while (pendingAsyncPlayerCommandResult == null) {
       @Nullable PlayerCommand playerCommand;

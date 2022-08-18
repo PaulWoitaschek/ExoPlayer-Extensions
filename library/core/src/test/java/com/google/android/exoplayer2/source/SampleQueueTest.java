@@ -35,17 +35,18 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.FormatHolder;
+import com.google.android.exoplayer2.PlaybackException;
+import com.google.android.exoplayer2.analytics.PlayerId;
 import com.google.android.exoplayer2.decoder.DecoderInputBuffer;
 import com.google.android.exoplayer2.drm.DrmInitData;
 import com.google.android.exoplayer2.drm.DrmSession;
 import com.google.android.exoplayer2.drm.DrmSessionEventListener;
 import com.google.android.exoplayer2.drm.DrmSessionManager;
-import com.google.android.exoplayer2.drm.ExoMediaCrypto;
 import com.google.android.exoplayer2.extractor.TrackOutput;
+import com.google.android.exoplayer2.testutil.FakeCryptoConfig;
 import com.google.android.exoplayer2.testutil.TestUtil;
 import com.google.android.exoplayer2.upstream.Allocator;
 import com.google.android.exoplayer2.upstream.DefaultAllocator;
-import com.google.android.exoplayer2.util.Assertions;
 import com.google.android.exoplayer2.util.MimeTypes;
 import com.google.android.exoplayer2.util.ParsableByteArray;
 import com.google.common.primitives.Bytes;
@@ -72,7 +73,7 @@ public final class SampleQueueTest {
   private static final Format FORMAT_ENCRYPTED =
       new Format.Builder().setId(/* id= */ "encrypted").setDrmInitData(new DrmInitData()).build();
   private static final Format FORMAT_ENCRYPTED_WITH_EXO_MEDIA_CRYPTO_TYPE =
-      FORMAT_ENCRYPTED.copyWithExoMediaCryptoType(MockExoMediaCrypto.class);
+      FORMAT_ENCRYPTED.copyWithCryptoType(FakeCryptoConfig.TYPE);
   private static final byte[] DATA = TestUtil.buildTestData(ALLOCATION_SIZE * 10);
 
   /*
@@ -145,12 +146,7 @@ public final class SampleQueueTest {
     mockDrmSession = Mockito.mock(DrmSession.class);
     mockDrmSessionManager = new MockDrmSessionManager(mockDrmSession);
     eventDispatcher = new DrmSessionEventListener.EventDispatcher();
-    sampleQueue =
-        new SampleQueue(
-            allocator,
-            /* playbackLooper= */ Assertions.checkNotNull(Looper.myLooper()),
-            mockDrmSessionManager,
-            eventDispatcher);
+    sampleQueue = new SampleQueue(allocator, mockDrmSessionManager, eventDispatcher);
     formatHolder = new FormatHolder();
     inputBuffer = new DecoderInputBuffer(DecoderInputBuffer.BUFFER_REPLACEMENT_MODE_NORMAL);
   }
@@ -423,12 +419,7 @@ public final class SampleQueueTest {
   public void isReadyReturnsTrueForClearSampleAndPlayClearSamplesWithoutKeysIsTrue() {
     when(mockDrmSession.playClearSamplesWithoutKeys()).thenReturn(true);
     // We recreate the queue to ensure the mock DRM session manager flags are taken into account.
-    sampleQueue =
-        new SampleQueue(
-            allocator,
-            /* playbackLooper= */ Assertions.checkNotNull(Looper.myLooper()),
-            mockDrmSessionManager,
-            eventDispatcher);
+    sampleQueue = new SampleQueue(allocator, mockDrmSessionManager, eventDispatcher);
     writeTestDataWithEncryptedSections();
     assertThat(sampleQueue.isReady(/* loadingFinished= */ false)).isTrue();
   }
@@ -554,7 +545,10 @@ public final class SampleQueueTest {
     assertReadNothing(/* formatRequired= */ false);
     sampleQueue.maybeThrowError();
     when(mockDrmSession.getState()).thenReturn(DrmSession.STATE_ERROR);
-    when(mockDrmSession.getError()).thenReturn(new DrmSession.DrmSessionException(new Exception()));
+    when(mockDrmSession.getError())
+        .thenReturn(
+            new DrmSession.DrmSessionException(
+                new Exception(), PlaybackException.ERROR_CODE_DRM_SYSTEM_ERROR));
     assertReadNothing(/* formatRequired= */ false);
     try {
       sampleQueue.maybeThrowError();
@@ -570,12 +564,7 @@ public final class SampleQueueTest {
   public void allowPlayClearSamplesWithoutKeysReadsClearSamples() {
     when(mockDrmSession.playClearSamplesWithoutKeys()).thenReturn(true);
     // We recreate the queue to ensure the mock DRM session manager flags are taken into account.
-    sampleQueue =
-        new SampleQueue(
-            allocator,
-            /* playbackLooper= */ Assertions.checkNotNull(Looper.myLooper()),
-            mockDrmSessionManager,
-            eventDispatcher);
+    sampleQueue = new SampleQueue(allocator, mockDrmSessionManager, eventDispatcher);
     when(mockDrmSession.getState()).thenReturn(DrmSession.STATE_OPENED);
     writeTestDataWithEncryptedSections();
 
@@ -1242,11 +1231,7 @@ public final class SampleQueueTest {
   public void adjustUpstreamFormat() {
     String label = "label";
     sampleQueue =
-        new SampleQueue(
-            allocator,
-            /* playbackLooper= */ Assertions.checkNotNull(Looper.myLooper()),
-            mockDrmSessionManager,
-            eventDispatcher) {
+        new SampleQueue(allocator, mockDrmSessionManager, eventDispatcher) {
           @Override
           public Format getAdjustedUpstreamFormat(Format format) {
             return super.getAdjustedUpstreamFormat(copyWithLabel(format, label));
@@ -1262,11 +1247,7 @@ public final class SampleQueueTest {
   public void invalidateUpstreamFormatAdjustment() {
     AtomicReference<String> label = new AtomicReference<>("label1");
     sampleQueue =
-        new SampleQueue(
-            allocator,
-            /* playbackLooper= */ Assertions.checkNotNull(Looper.myLooper()),
-            mockDrmSessionManager,
-            eventDispatcher) {
+        new SampleQueue(allocator, mockDrmSessionManager, eventDispatcher) {
           @Override
           public Format getAdjustedUpstreamFormat(Format format) {
             return super.getAdjustedUpstreamFormat(copyWithLabel(format, label.get()));
@@ -1384,30 +1365,21 @@ public final class SampleQueueTest {
 
   // Internal methods.
 
-  /**
-   * Writes standard test data to {@code sampleQueue}.
-   */
+  /** Writes standard test data to {@code sampleQueue}. */
   private void writeTestData() {
     writeTestData(
         DATA, SAMPLE_SIZES, SAMPLE_OFFSETS, SAMPLE_TIMESTAMPS, SAMPLE_FORMATS, SAMPLE_FLAGS);
   }
 
-  private void writeTestDataWithEncryptedSections() {
-    writeTestData(
-        ENCRYPTED_SAMPLE_DATA,
-        ENCRYPTED_SAMPLE_SIZES,
-        ENCRYPTED_SAMPLE_OFFSETS,
-        ENCRYPTED_SAMPLE_TIMESTAMPS,
-        ENCRYPTED_SAMPLE_FORMATS,
-        ENCRYPTED_SAMPLES_FLAGS);
-  }
-
-  /**
-   * Writes the specified test data to {@code sampleQueue}.
-   */
+  /** Writes the specified test data to {@code sampleQueue}. */
   @SuppressWarnings("ReferenceEquality")
-  private void writeTestData(byte[] data, int[] sampleSizes, int[] sampleOffsets,
-      long[] sampleTimestamps, Format[] sampleFormats, int[] sampleFlags) {
+  private void writeTestData(
+      byte[] data,
+      int[] sampleSizes,
+      int[] sampleOffsets,
+      long[] sampleTimestamps,
+      Format[] sampleFormats,
+      int[] sampleFlags) {
     sampleQueue.sampleData(new ParsableByteArray(data), data.length);
     Format format = null;
     for (int i = 0; i < sampleTimestamps.length; i++) {
@@ -1422,6 +1394,16 @@ public final class SampleQueueTest {
           sampleOffsets[i],
           (sampleFlags[i] & C.BUFFER_FLAG_ENCRYPTED) != 0 ? CRYPTO_DATA : null);
     }
+  }
+
+  private void writeTestDataWithEncryptedSections() {
+    writeTestData(
+        ENCRYPTED_SAMPLE_DATA,
+        ENCRYPTED_SAMPLE_SIZES,
+        ENCRYPTED_SAMPLE_OFFSETS,
+        ENCRYPTED_SAMPLE_TIMESTAMPS,
+        ENCRYPTED_SAMPLE_FORMATS,
+        ENCRYPTED_SAMPLES_FLAGS);
   }
 
   /** Writes a {@link Format} to the {@code sampleQueue}. */
@@ -1440,9 +1422,7 @@ public final class SampleQueueTest {
         (sampleFlags & C.BUFFER_FLAG_ENCRYPTED) != 0 ? CRYPTO_DATA : null);
   }
 
-  /**
-   * Asserts correct reading of standard test data from {@code sampleQueue}.
-   */
+  /** Asserts correct reading of standard test data from {@code sampleQueue}. */
   private void assertReadTestData() {
     assertReadTestData(/* startFormat= */ null, 0);
   }
@@ -1724,9 +1704,7 @@ public final class SampleQueueTest {
     assertThat(allocator.getTotalBytesAllocated()).isEqualTo(ALLOCATION_SIZE * count);
   }
 
-  /**
-   * Asserts {@code inputBuffer} does not contain any sample data.
-   */
+  /** Asserts {@code inputBuffer} does not contain any sample data. */
   private void assertInputBufferContainsNoSampleData() {
     if (inputBuffer.data == null) {
       return;
@@ -1760,8 +1738,6 @@ public final class SampleQueueTest {
     return format.buildUpon().setLabel(label).build();
   }
 
-  private static final class MockExoMediaCrypto implements ExoMediaCrypto {}
-
   private static final class MockDrmSessionManager implements DrmSessionManager {
 
     private final DrmSession mockDrmSession;
@@ -1771,21 +1747,21 @@ public final class SampleQueueTest {
       this.mockDrmSession = mockDrmSession;
     }
 
-    @Nullable
     @Override
+    public void setPlayer(Looper playbackLooper, PlayerId playerId) {}
+
+    @Override
+    @Nullable
     public DrmSession acquireSession(
-        Looper playbackLooper,
-        @Nullable DrmSessionEventListener.EventDispatcher eventDispatcher,
-        Format format) {
+        @Nullable DrmSessionEventListener.EventDispatcher eventDispatcher, Format format) {
       return format.drmInitData != null ? mockDrmSession : mockPlaceholderDrmSession;
     }
 
-    @Nullable
     @Override
-    public Class<? extends ExoMediaCrypto> getExoMediaCryptoType(Format format) {
+    public @C.CryptoType int getCryptoType(Format format) {
       return mockPlaceholderDrmSession != null || format.drmInitData != null
-          ? MockExoMediaCrypto.class
-          : null;
+          ? FakeCryptoConfig.TYPE
+          : C.CRYPTO_TYPE_NONE;
     }
   }
 }

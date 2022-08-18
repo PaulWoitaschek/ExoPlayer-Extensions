@@ -17,7 +17,9 @@ package com.google.android.exoplayer2.source.ads;
 
 import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.C;
+import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.Player;
+import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.source.ads.AdsMediaSource.AdLoadException;
 import com.google.android.exoplayer2.ui.AdViewProvider;
 import com.google.android.exoplayer2.upstream.DataSpec;
@@ -45,12 +47,30 @@ import java.io.IOException;
  */
 public interface AdsLoader {
 
+  /**
+   * Provides {@link AdsLoader} instances for media items that have {@link
+   * MediaItem.LocalConfiguration#adsConfiguration ad tag URIs}.
+   */
+  interface Provider {
+
+    /**
+     * Returns an {@link AdsLoader} for the given {@link
+     * MediaItem.LocalConfiguration#adsConfiguration ads configuration}, or {@code null} if no ads
+     * loader is available for the given ads configuration.
+     *
+     * <p>This method is called each time a {@link MediaSource} is created from a {@link MediaItem}
+     * that defines an {@link MediaItem.LocalConfiguration#adsConfiguration ads configuration}.
+     */
+    @Nullable
+    AdsLoader getAdsLoader(MediaItem.AdsConfiguration adsConfiguration);
+  }
+
   /** Listener for ads loader events. All methods are called on the main thread. */
   interface EventListener {
 
     /**
      * Called when the ad playback state has been updated. The number of {@link
-     * AdPlaybackState#adGroups ad groups} may not change after the first call.
+     * AdPlaybackState#adGroupCount ad groups} may not change after the first call.
      *
      * @param adPlaybackState The new ad playback state.
      */
@@ -101,7 +121,8 @@ public interface AdsLoader {
    * be ignored. Called on the main thread by {@link AdsMediaSource}.
    *
    * @param contentTypes The supported content types for ad media. Each element must be one of
-   *     {@link C#TYPE_DASH}, {@link C#TYPE_HLS}, {@link C#TYPE_SS} and {@link C#TYPE_OTHER}.
+   *     {@link C#CONTENT_TYPE_DASH}, {@link C#CONTENT_TYPE_HLS}, {@link C#CONTENT_TYPE_SS} and
+   *     {@link C#CONTENT_TYPE_OTHER}.
    */
   void setSupportedContentTypes(@C.ContentType int... contentTypes);
 

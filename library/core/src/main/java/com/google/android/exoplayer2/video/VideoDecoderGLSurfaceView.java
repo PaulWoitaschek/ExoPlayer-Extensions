@@ -15,12 +15,16 @@
  */
 package com.google.android.exoplayer2.video;
 
+import static com.google.android.exoplayer2.util.Assertions.checkNotNull;
+
 import android.content.Context;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.util.AttributeSet;
 import androidx.annotation.Nullable;
+import com.google.android.exoplayer2.decoder.VideoDecoderOutputBuffer;
 import com.google.android.exoplayer2.util.Assertions;
+import com.google.android.exoplayer2.util.GlProgram;
 import com.google.android.exoplayer2.util.GlUtil;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
@@ -29,6 +33,7 @@ import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 import org.checkerframework.checker.nullness.compatqual.NullableType;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
 /**
  * GLSurfaceView implementing {@link VideoDecoderOutputBufferRenderer} for rendering {@link
@@ -43,7 +48,9 @@ public final class VideoDecoderGLSurfaceView extends GLSurfaceView
 
   private final Renderer renderer;
 
-  /** @param context A {@link Context}. */
+  /**
+   * @param context A {@link Context}.
+   */
   public VideoDecoderGLSurfaceView(Context context) {
     this(context, /* attrs= */ null);
   }
@@ -52,11 +59,7 @@ public final class VideoDecoderGLSurfaceView extends GLSurfaceView
    * @param context A {@link Context}.
    * @param attrs Custom attributes.
    */
-  @SuppressWarnings({
-    "nullness:assignment.type.incompatible",
-    "nullness:argument.type.incompatible",
-    "nullness:method.invocation.invalid"
-  })
+  @SuppressWarnings({"nullness:assignment", "nullness:argument", "nullness:method.invocation"})
   public VideoDecoderGLSurfaceView(Context context, @Nullable AttributeSet attrs) {
     super(context, attrs);
     renderer = new Renderer(/* surfaceView= */ this);
@@ -71,7 +74,9 @@ public final class VideoDecoderGLSurfaceView extends GLSurfaceView
     renderer.setOutputBuffer(outputBuffer);
   }
 
-  /** @deprecated This class implements {@link VideoDecoderOutputBufferRenderer} directly. */
+  /**
+   * @deprecated This class implements {@link VideoDecoderOutputBufferRenderer} directly.
+   */
   @Deprecated
   public VideoDecoderOutputBufferRenderer getVideoDecoderOutputBufferRenderer() {
     return this;
@@ -144,7 +149,7 @@ public final class VideoDecoderGLSurfaceView extends GLSurfaceView
     // glDrawArrays uses it.
     private final FloatBuffer[] textureCoords;
 
-    private int program;
+    private @MonotonicNonNull GlProgram program;
     private int colorMatrixLocation;
 
     // Accessed only from the GL thread.
@@ -165,10 +170,8 @@ public final class VideoDecoderGLSurfaceView extends GLSurfaceView
 
     @Override
     public void onSurfaceCreated(GL10 unused, EGLConfig config) {
-      program = GlUtil.compileProgram(VERTEX_SHADER, FRAGMENT_SHADER);
-      GLES20.glUseProgram(program);
-      int posLocation = GLES20.glGetAttribLocation(program, "in_pos");
-      GLES20.glEnableVertexAttribArray(posLocation);
+      program = new GlProgram(VERTEX_SHADER, FRAGMENT_SHADER);
+      int posLocation = program.getAttributeArrayLocationAndEnable("in_pos");
       GLES20.glVertexAttribPointer(
           posLocation,
           2,
@@ -176,14 +179,10 @@ public final class VideoDecoderGLSurfaceView extends GLSurfaceView
           /* normalized= */ false,
           /* stride= */ 0,
           TEXTURE_VERTICES);
-      texLocations[0] = GLES20.glGetAttribLocation(program, "in_tc_y");
-      GLES20.glEnableVertexAttribArray(texLocations[0]);
-      texLocations[1] = GLES20.glGetAttribLocation(program, "in_tc_u");
-      GLES20.glEnableVertexAttribArray(texLocations[1]);
-      texLocations[2] = GLES20.glGetAttribLocation(program, "in_tc_v");
-      GLES20.glEnableVertexAttribArray(texLocations[2]);
-      GlUtil.checkGlError();
-      colorMatrixLocation = GLES20.glGetUniformLocation(program, "mColorConversion");
+      texLocations[0] = program.getAttributeArrayLocationAndEnable("in_tc_y");
+      texLocations[1] = program.getAttributeArrayLocationAndEnable("in_tc_u");
+      texLocations[2] = program.getAttributeArrayLocationAndEnable("in_tc_v");
+      colorMatrixLocation = program.getUniformLocation("mColorConversion");
       GlUtil.checkGlError();
       setupTextures();
       GlUtil.checkGlError();
@@ -210,7 +209,7 @@ public final class VideoDecoderGLSurfaceView extends GLSurfaceView
         renderedOutputBuffer = pendingOutputBuffer;
       }
 
-      VideoDecoderOutputBuffer outputBuffer = Assertions.checkNotNull(renderedOutputBuffer);
+      VideoDecoderOutputBuffer outputBuffer = checkNotNull(renderedOutputBuffer);
 
       // Set color matrix. Assume BT709 if the color space is unknown.
       float[] colorConversion = kColorConversion709;
@@ -233,8 +232,8 @@ public final class VideoDecoderGLSurfaceView extends GLSurfaceView
           colorConversion,
           /* offset= */ 0);
 
-      int[] yuvStrides = Assertions.checkNotNull(outputBuffer.yuvStrides);
-      ByteBuffer[] yuvPlanes = Assertions.checkNotNull(outputBuffer.yuvPlanes);
+      int[] yuvStrides = checkNotNull(outputBuffer.yuvStrides);
+      ByteBuffer[] yuvPlanes = checkNotNull(outputBuffer.yuvPlanes);
 
       for (int i = 0; i < 3; i++) {
         int h = (i == 0) ? outputBuffer.height : (outputBuffer.height + 1) / 2;
@@ -255,9 +254,9 @@ public final class VideoDecoderGLSurfaceView extends GLSurfaceView
 
       int[] widths = new int[3];
       widths[0] = outputBuffer.width;
-      // TODO: Handle streams where chroma channels are not stored at half width and height
-      // compared to luma channel. See [Internal: b/142097774].
-      // U and V planes are being stored at half width compared to Y.
+      // TODO(b/142097774): Handle streams where chroma channels are not stored at half width and
+      // height compared to the luma channel. U and V planes are being stored at half width compared
+      // to Y.
       widths[1] = widths[2] = (widths[0] + 1) / 2;
       for (int i = 0; i < 3; i++) {
         // Set cropping of stride if either width or stride has changed.
@@ -297,20 +296,13 @@ public final class VideoDecoderGLSurfaceView extends GLSurfaceView
       surfaceView.requestRender();
     }
 
+    @RequiresNonNull("program")
     private void setupTextures() {
-      GLES20.glGenTextures(3, yuvTextures, /* offset= */ 0);
+      GLES20.glGenTextures(/* n= */ 3, yuvTextures, /* offset= */ 0);
       for (int i = 0; i < 3; i++) {
-        GLES20.glUniform1i(GLES20.glGetUniformLocation(program, TEXTURE_UNIFORMS[i]), i);
+        GLES20.glUniform1i(program.getUniformLocation(TEXTURE_UNIFORMS[i]), i);
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0 + i);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, yuvTextures[i]);
-        GLES20.glTexParameterf(
-            GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
-        GLES20.glTexParameterf(
-            GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
-        GLES20.glTexParameterf(
-            GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
-        GLES20.glTexParameterf(
-            GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
+        GlUtil.bindTexture(GLES20.GL_TEXTURE_2D, yuvTextures[i]);
       }
       GlUtil.checkGlError();
     }

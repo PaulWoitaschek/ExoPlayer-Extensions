@@ -44,7 +44,7 @@ implementations. You can easily add your own listener and override only the
 methods you are interested in:
 
 ~~~
-simpleExoPlayer.addAnalyticsListener(new AnalyticsListener() {
+exoPlayer.addAnalyticsListener(new AnalyticsListener() {
     @Override
     public void onPlaybackStateChanged(
         EventTime eventTime, @Player.State int state) {
@@ -98,7 +98,7 @@ current playback session at any time using
 `PlaybackStatsListener.getPlaybackStats()`.
 
 ~~~
-simpleExoPlayer.addAnalyticsListener(
+exoPlayer.addAnalyticsListener(
     new PlaybackStatsListener(
         /* keepHistory= */ true, (eventTime, playbackStats) -> {
           // Analytics data for the session started at `eventTime` is ready.
@@ -215,7 +215,7 @@ new PlaybackStatsListener(
     /* keepHistory= */ false, (eventTime, playbackStats) -> {
       Object mediaTag =
           eventTime.timeline.getWindow(eventTime.windowIndex, new Window())
-              .mediaItem.playbackProperties.tag;
+              .mediaItem.localConfiguration.tag;
       // Report playbackStats with mediaTag metadata.
     });
 ~~~
@@ -225,16 +225,16 @@ new PlaybackStatsListener(
 
 In case you need to add custom events to the analytics data, you need to save
 these events in your own data structure and combine them with the reported
-`PlaybackStats` later. If it helps, you can extend `AnalyticsCollector` to be
-able to generate `EventTime` instances for your custom events and send them to
-the already registered listeners as shown in the following example.
+`PlaybackStats` later. If it helps, you can extend `DefaultAnalyticsCollector`
+to be able to generate `EventTime` instances for your custom events and send
+them to the already registered listeners as shown in the following example.
 
 ~~~
 interface ExtendedListener extends AnalyticsListener {
   void onCustomEvent(EventTime eventTime);
 }
 
-class ExtendedCollector extends AnalyticsCollector {
+class ExtendedCollector extends DefaultAnalyticsCollector {
  public void customEvent() {
    EventTime eventTime = generateCurrentPlayerMediaPeriodEventTime();
    sendEvent(eventTime, CUSTOM_EVENT_ID, listener -> {
@@ -246,7 +246,7 @@ class ExtendedCollector extends AnalyticsCollector {
 }
 
 // Usage - Setup and listener registration.
-SimpleExoPlayer player = new SimpleExoPlayer.Builder(context)
+ExoPlayer player = new ExoPlayer.Builder(context)
     .setAnalyticsCollector(new ExtendedCollector())
     .build();
 player.addAnalyticsListener(new ExtendedListener() {

@@ -21,7 +21,6 @@ import static com.google.android.exoplayer2.AudioFocusManager.PLAYER_COMMAND_WAI
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.fail;
 import static org.robolectric.Shadows.shadowOf;
-import static org.robolectric.annotation.Config.TARGET_SDK;
 
 import android.content.Context;
 import android.media.AudioFocusRequest;
@@ -100,7 +99,7 @@ public class AudioFocusManagerTest {
   }
 
   @Test
-  @Config(minSdk = 26, maxSdk = TARGET_SDK)
+  @Config(minSdk = 26)
   public void setAudioAttributes_withNullUsage_abandonsAudioFocus_v26() {
     Shadows.shadowOf(audioManager)
         .setNextFocusRequestResponse(AudioManager.AUDIOFOCUS_REQUEST_GRANTED);
@@ -286,7 +285,7 @@ public class AudioFocusManagerTest {
   }
 
   @Test
-  @Config(minSdk = 26, maxSdk = TARGET_SDK)
+  @Config(minSdk = 26)
   public void updateAudioFocus_readyToIdle_abandonsAudioFocus_v26() {
     Shadows.shadowOf(audioManager)
         .setNextFocusRequestResponse(AudioManager.AUDIOFOCUS_REQUEST_GRANTED);
@@ -324,7 +323,7 @@ public class AudioFocusManagerTest {
   }
 
   @Test
-  @Config(minSdk = 26, maxSdk = TARGET_SDK)
+  @Config(minSdk = 26)
   public void updateAudioFocus_readyToIdle_withoutFocus_isNoOp_v26() {
     Shadows.shadowOf(audioManager)
         .setNextFocusRequestResponse(AudioManager.AUDIOFOCUS_REQUEST_GRANTED);
@@ -396,7 +395,7 @@ public class AudioFocusManagerTest {
     AudioAttributes speechAudioAttributes =
         new AudioAttributes.Builder()
             .setUsage(C.USAGE_MEDIA)
-            .setContentType(C.CONTENT_TYPE_SPEECH)
+            .setContentType(C.AUDIO_CONTENT_TYPE_SPEECH)
             .build();
     audioFocusManager.setAudioAttributes(speechAudioAttributes);
 
@@ -455,7 +454,7 @@ public class AudioFocusManagerTest {
   }
 
   @Test
-  @Config(minSdk = 26, maxSdk = TARGET_SDK)
+  @Config(minSdk = 26)
   public void onAudioFocusChange_withFocusLoss_sendsDoNotPlayAndAbandonsFocus_v26() {
     Shadows.shadowOf(audioManager)
         .setNextFocusRequestResponse(AudioManager.AUDIOFOCUS_REQUEST_GRANTED);

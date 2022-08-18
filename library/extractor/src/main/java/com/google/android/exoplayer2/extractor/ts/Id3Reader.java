@@ -49,11 +49,13 @@ public final class Id3Reader implements ElementaryStreamReader {
 
   public Id3Reader() {
     id3Header = new ParsableByteArray(ID3_HEADER_LENGTH);
+    sampleTimeUs = C.TIME_UNSET;
   }
 
   @Override
   public void seek() {
     writingSample = false;
+    sampleTimeUs = C.TIME_UNSET;
   }
 
   @Override
@@ -73,7 +75,9 @@ public final class Id3Reader implements ElementaryStreamReader {
       return;
     }
     writingSample = true;
-    sampleTimeUs = pesTimeUs;
+    if (pesTimeUs != C.TIME_UNSET) {
+      sampleTimeUs = pesTimeUs;
+    }
     sampleSize = 0;
     sampleBytesRead = 0;
   }
@@ -97,7 +101,8 @@ public final class Id3Reader implements ElementaryStreamReader {
       if (sampleBytesRead + headerBytesAvailable == ID3_HEADER_LENGTH) {
         // We've finished reading the ID3 header. Extract the sample size.
         id3Header.setPosition(0);
-        if ('I' != id3Header.readUnsignedByte() || 'D' != id3Header.readUnsignedByte()
+        if ('I' != id3Header.readUnsignedByte()
+            || 'D' != id3Header.readUnsignedByte()
             || '3' != id3Header.readUnsignedByte()) {
           Log.w(TAG, "Discarding invalid ID3 tag");
           writingSample = false;
@@ -119,8 +124,9 @@ public final class Id3Reader implements ElementaryStreamReader {
     if (!writingSample || sampleSize == 0 || sampleBytesRead != sampleSize) {
       return;
     }
-    output.sampleMetadata(sampleTimeUs, C.BUFFER_FLAG_KEY_FRAME, sampleSize, 0, null);
+    if (sampleTimeUs != C.TIME_UNSET) {
+      output.sampleMetadata(sampleTimeUs, C.BUFFER_FLAG_KEY_FRAME, sampleSize, 0, null);
+    }
     writingSample = false;
   }
-
 }

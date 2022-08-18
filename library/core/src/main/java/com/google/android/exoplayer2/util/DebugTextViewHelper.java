@@ -18,35 +18,37 @@ package com.google.android.exoplayer2.util;
 import android.annotation.SuppressLint;
 import android.os.Looper;
 import android.widget.TextView;
+import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.Player;
-import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.decoder.DecoderCounters;
 import java.util.Locale;
 
 /**
  * A helper class for periodically updating a {@link TextView} with debug information obtained from
- * a {@link SimpleExoPlayer}.
+ * an {@link ExoPlayer}.
  */
-public class DebugTextViewHelper implements Player.Listener, Runnable {
+public class DebugTextViewHelper {
 
   private static final int REFRESH_INTERVAL_MS = 1000;
 
-  private final SimpleExoPlayer player;
+  private final ExoPlayer player;
   private final TextView textView;
+  private final Updater updater;
 
   private boolean started;
 
   /**
-   * @param player The {@link SimpleExoPlayer} from which debug information should be obtained. Only
+   * @param player The {@link ExoPlayer} from which debug information should be obtained. Only
    *     players which are accessed on the main thread are supported ({@code
    *     player.getApplicationLooper() == Looper.getMainLooper()}).
    * @param textView The {@link TextView} that should be updated to display the information.
    */
-  public DebugTextViewHelper(SimpleExoPlayer player, TextView textView) {
+  public DebugTextViewHelper(ExoPlayer player, TextView textView) {
     Assertions.checkArgument(player.getApplicationLooper() == Looper.getMainLooper());
     this.player = player;
     this.textView = textView;
+    this.updater = new Updater();
   }
 
   /**
@@ -58,7 +60,7 @@ public class DebugTextViewHelper implements Player.Listener, Runnable {
       return;
     }
     started = true;
-    player.addListener(this);
+    player.addListener(updater);
     updateAndPost();
   }
 
@@ -71,36 +73,8 @@ public class DebugTextViewHelper implements Player.Listener, Runnable {
       return;
     }
     started = false;
-    player.removeListener(this);
-    textView.removeCallbacks(this);
-  }
-
-  // Player.Listener implementation.
-
-  @Override
-  public final void onPlaybackStateChanged(@Player.State int playbackState) {
-    updateAndPost();
-  }
-
-  @Override
-  public final void onPlayWhenReadyChanged(
-      boolean playWhenReady, @Player.PlayWhenReadyChangeReason int playbackState) {
-    updateAndPost();
-  }
-
-  @Override
-  public final void onPositionDiscontinuity(
-      Player.PositionInfo oldPosition,
-      Player.PositionInfo newPosition,
-      @Player.DiscontinuityReason int reason) {
-    updateAndPost();
-  }
-
-  // Runnable implementation.
-
-  @Override
-  public final void run() {
-    updateAndPost();
+    player.removeListener(updater);
+    textView.removeCallbacks(updater);
   }
 
   // Protected methods.
@@ -108,8 +82,8 @@ public class DebugTextViewHelper implements Player.Listener, Runnable {
   @SuppressLint("SetTextI18n")
   protected final void updateAndPost() {
     textView.setText(getDebugString());
-    textView.removeCallbacks(this);
-    textView.postDelayed(this, REFRESH_INTERVAL_MS);
+    textView.removeCallbacks(updater);
+    textView.postDelayed(updater, REFRESH_INTERVAL_MS);
   }
 
   /** Returns the debugging information string to be shown by the target {@link TextView}. */
@@ -138,8 +112,8 @@ public class DebugTextViewHelper implements Player.Listener, Runnable {
         break;
     }
     return String.format(
-        "playWhenReady:%s playbackState:%s window:%s",
-        player.getPlayWhenReady(), playbackStateString, player.getCurrentWindowIndex());
+        "playWhenReady:%s playbackState:%s item:%s",
+        player.getPlayWhenReady(), playbackStateString, player.getCurrentMediaItemIndex());
   }
 
   /** Returns a string containing video debugging information. */
@@ -190,16 +164,23 @@ public class DebugTextViewHelper implements Player.Listener, Runnable {
       return "";
     }
     counters.ensureUpdated();
-    return " sib:" + counters.skippedInputBufferCount
-        + " sb:" + counters.skippedOutputBufferCount
-        + " rb:" + counters.renderedOutputBufferCount
-        + " db:" + counters.droppedBufferCount
-        + " mcdb:" + counters.maxConsecutiveDroppedBufferCount
-        + " dk:" + counters.droppedToKeyframeCount;
+    return " sib:"
+        + counters.skippedInputBufferCount
+        + " sb:"
+        + counters.skippedOutputBufferCount
+        + " rb:"
+        + counters.renderedOutputBufferCount
+        + " db:"
+        + counters.droppedBufferCount
+        + " mcdb:"
+        + counters.maxConsecutiveDroppedBufferCount
+        + " dk:"
+        + counters.droppedToKeyframeCount;
   }
 
   private static String getPixelAspectRatioString(float pixelAspectRatio) {
-    return pixelAspectRatio == Format.NO_VALUE || pixelAspectRatio == 1f ? ""
+    return pixelAspectRatio == Format.NO_VALUE || pixelAspectRatio == 1f
+        ? ""
         : (" par:" + String.format(Locale.US, "%.02f", pixelAspectRatio));
   }
 
@@ -210,6 +191,37 @@ public class DebugTextViewHelper implements Player.Listener, Runnable {
     } else {
       long averageUs = (long) ((double) totalOffsetUs / frameCount);
       return String.valueOf(averageUs);
+    }
+  }
+
+  private final class Updater implements Player.Listener, Runnable {
+
+    // Player.Listener implementation.
+
+    @Override
+    public void onPlaybackStateChanged(@Player.State int playbackState) {
+      updateAndPost();
+    }
+
+    @Override
+    public void onPlayWhenReadyChanged(
+        boolean playWhenReady, @Player.PlayWhenReadyChangeReason int reason) {
+      updateAndPost();
+    }
+
+    @Override
+    public void onPositionDiscontinuity(
+        Player.PositionInfo oldPosition,
+        Player.PositionInfo newPosition,
+        @Player.DiscontinuityReason int reason) {
+      updateAndPost();
+    }
+
+    // Runnable implementation.
+
+    @Override
+    public void run() {
+      updateAndPost();
     }
   }
 }

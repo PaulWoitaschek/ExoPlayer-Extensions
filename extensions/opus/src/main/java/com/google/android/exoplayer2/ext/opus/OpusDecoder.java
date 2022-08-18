@@ -20,22 +20,28 @@ import static androidx.annotation.VisibleForTesting.PACKAGE_PRIVATE;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.audio.OpusUtil;
+import com.google.android.exoplayer2.decoder.CryptoConfig;
+import com.google.android.exoplayer2.decoder.CryptoException;
 import com.google.android.exoplayer2.decoder.CryptoInfo;
 import com.google.android.exoplayer2.decoder.DecoderInputBuffer;
 import com.google.android.exoplayer2.decoder.SimpleDecoder;
-import com.google.android.exoplayer2.decoder.SimpleOutputBuffer;
-import com.google.android.exoplayer2.drm.DecryptionException;
-import com.google.android.exoplayer2.drm.ExoMediaCrypto;
+import com.google.android.exoplayer2.decoder.SimpleDecoderOutputBuffer;
 import com.google.android.exoplayer2.util.Assertions;
 import com.google.android.exoplayer2.util.Util;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.List;
 
 /** Opus decoder. */
 @VisibleForTesting(otherwise = PACKAGE_PRIVATE)
 public final class OpusDecoder
-    extends SimpleDecoder<DecoderInputBuffer, SimpleOutputBuffer, OpusDecoderException> {
+    extends SimpleDecoder<DecoderInputBuffer, SimpleDecoderOutputBuffer, OpusDecoderException> {
+
+  /** Opus streams are always 48000 Hz. */
+  /* package */ static final int SAMPLE_RATE = 48_000;
+
+  private static final int DEFAULT_SEEK_PRE_ROLL_SAMPLES = 3840;
+  private static final int FULL_CODEC_INITIALIZATION_DATA_BUFFER_COUNT = 3;
 
   private static final int NO_ERROR = 0;
   private static final int DECODE_ERROR = -1;
@@ -44,10 +50,11 @@ public final class OpusDecoder
   public final boolean outputFloat;
   public final int channelCount;
 
-  @Nullable private final ExoMediaCrypto exoMediaCrypto;
+  @Nullable private final CryptoConfig cryptoConfig;
   private final int preSkipSamples;
   private final int seekPreRollSamples;
   private final long nativeDecoderContext;
+  private boolean experimentalDiscardPaddingEnabled;
 
   private int skipSamples;
 
@@ -60,8 +67,8 @@ public final class OpusDecoder
    * @param initializationData Codec-specific initialization data. The first element must contain an
    *     opus header. Optionally, the list may contain two additional buffers, which must contain
    *     the encoder delay and seek pre roll values in nanoseconds, encoded as longs.
-   * @param exoMediaCrypto The {@link ExoMediaCrypto} object required for decoding encrypted
-   *     content. Maybe null and can be ignored if decoder does not handle encrypted content.
+   * @param cryptoConfig The {@link CryptoConfig} object required for decoding encrypted content.
+   *     May be null and can be ignored if decoder does not handle encrypted content.
    * @param outputFloat Forces the decoder to output float PCM samples when set
    * @throws OpusDecoderException Thrown if an exception occurs when initializing the decoder.
    */
@@ -70,15 +77,15 @@ public final class OpusDecoder
       int numOutputBuffers,
       int initialInputBufferSize,
       List<byte[]> initializationData,
-      @Nullable ExoMediaCrypto exoMediaCrypto,
+      @Nullable CryptoConfig cryptoConfig,
       boolean outputFloat)
       throws OpusDecoderException {
-    super(new DecoderInputBuffer[numInputBuffers], new SimpleOutputBuffer[numOutputBuffers]);
+    super(new DecoderInputBuffer[numInputBuffers], new SimpleDecoderOutputBuffer[numOutputBuffers]);
     if (!OpusLibrary.isAvailable()) {
       throw new OpusDecoderException("Failed to load decoder native libraries");
     }
-    this.exoMediaCrypto = exoMediaCrypto;
-    if (exoMediaCrypto != null && !OpusLibrary.opusIsSecureDecodeSupported()) {
+    this.cryptoConfig = cryptoConfig;
+    if (cryptoConfig != null && !OpusLibrary.opusIsSecureDecodeSupported()) {
       throw new OpusDecoderException("Opus decoder does not support secure decode");
     }
     int initializationDataSize = initializationData.size();
@@ -89,14 +96,15 @@ public final class OpusDecoder
         && (initializationData.get(1).length != 8 || initializationData.get(2).length != 8)) {
       throw new OpusDecoderException("Invalid pre-skip or seek pre-roll");
     }
-    preSkipSamples = OpusUtil.getPreSkipSamples(initializationData);
-    seekPreRollSamples = OpusUtil.getSeekPreRollSamples(initializationData);
+    preSkipSamples = getPreSkipSamples(initializationData);
+    seekPreRollSamples = getSeekPreRollSamples(initializationData);
+    skipSamples = preSkipSamples;
 
     byte[] headerBytes = initializationData.get(0);
     if (headerBytes.length < 19) {
       throw new OpusDecoderException("Invalid header length");
     }
-    channelCount = OpusUtil.getChannelCount(headerBytes);
+    channelCount = getChannelCount(headerBytes);
     if (channelCount > 8) {
       throw new OpusDecoderException("Invalid channel count: " + channelCount);
     }
@@ -124,7 +132,7 @@ public final class OpusDecoder
       System.arraycopy(headerBytes, 21, streamMap, 0, channelCount);
     }
     nativeDecoderContext =
-        opusInit(OpusUtil.SAMPLE_RATE, channelCount, numStreams, numCoupled, gain, streamMap);
+        opusInit(SAMPLE_RATE, channelCount, numStreams, numCoupled, gain, streamMap);
     if (nativeDecoderContext == 0) {
       throw new OpusDecoderException("Failed to initialize decoder");
     }
@@ -134,6 +142,16 @@ public final class OpusDecoder
     if (outputFloat) {
       opusSetFloatOutput();
     }
+  }
+
+  /**
+   * Sets whether discard padding is enabled. When enabled, discard padding samples (provided as
+   * supplemental data on the input buffer) will be removed from the end of the decoder output.
+   *
+   * <p>This method is experimental, and will be renamed or removed in a future release.
+   */
+  public void experimentalSetDiscardPaddingEnabled(boolean enabled) {
+    this.experimentalDiscardPaddingEnabled = enabled;
   }
 
   @Override
@@ -147,8 +165,8 @@ public final class OpusDecoder
   }
 
   @Override
-  protected SimpleOutputBuffer createOutputBuffer() {
-    return new SimpleOutputBuffer(this::releaseOutputBuffer);
+  protected SimpleDecoderOutputBuffer createOutputBuffer() {
+    return new SimpleDecoderOutputBuffer(this::releaseOutputBuffer);
   }
 
   @Override
@@ -159,7 +177,7 @@ public final class OpusDecoder
   @Override
   @Nullable
   protected OpusDecoderException decode(
-      DecoderInputBuffer inputBuffer, SimpleOutputBuffer outputBuffer, boolean reset) {
+      DecoderInputBuffer inputBuffer, SimpleDecoderOutputBuffer outputBuffer, boolean reset) {
     if (reset) {
       opusReset(nativeDecoderContext);
       // When seeking to 0, skip number of samples as specified in opus header. When seeking to
@@ -176,8 +194,8 @@ public final class OpusDecoder
                 inputData,
                 inputData.limit(),
                 outputBuffer,
-                OpusUtil.SAMPLE_RATE,
-                exoMediaCrypto,
+                SAMPLE_RATE,
+                cryptoConfig,
                 cryptoInfo.mode,
                 Assertions.checkNotNull(cryptoInfo.key),
                 Assertions.checkNotNull(cryptoInfo.iv),
@@ -193,8 +211,8 @@ public final class OpusDecoder
     if (result < 0) {
       if (result == DRM_ERROR) {
         String message = "Drm error: " + opusGetErrorMessage(nativeDecoderContext);
-        DecryptionException cause =
-            new DecryptionException(opusGetErrorCode(nativeDecoderContext), message);
+        CryptoException cause =
+            new CryptoException(opusGetErrorCode(nativeDecoderContext), message);
         return new OpusDecoderException(message, cause);
       } else {
         return new OpusDecoderException("Decode error: " + opusGetErrorMessage(result));
@@ -205,7 +223,7 @@ public final class OpusDecoder
     outputData.position(0);
     outputData.limit(result);
     if (skipSamples > 0) {
-      int bytesPerSample = channelCount * 2;
+      int bytesPerSample = samplesToBytes(1, channelCount, outputFloat);
       int skipBytes = skipSamples * bytesPerSample;
       if (result <= skipBytes) {
         skipSamples -= result / bytesPerSample;
@@ -215,6 +233,14 @@ public final class OpusDecoder
         skipSamples = 0;
         outputData.position(skipBytes);
       }
+    } else if (experimentalDiscardPaddingEnabled && inputBuffer.hasSupplementalData()) {
+      int discardPaddingSamples = getDiscardPaddingSamples(inputBuffer.supplementalData);
+      if (discardPaddingSamples > 0) {
+        int discardBytes = samplesToBytes(discardPaddingSamples, channelCount, outputFloat);
+        if (result >= discardBytes) {
+          outputData.limit(result - discardBytes);
+        }
+      }
     }
     return null;
   }
@@ -223,6 +249,78 @@ public final class OpusDecoder
   public void release() {
     super.release();
     opusClose(nativeDecoderContext);
+  }
+
+  /**
+   * Parses the channel count from an Opus Identification Header.
+   *
+   * @param header An Opus Identification Header, as defined by RFC 7845.
+   * @return The parsed channel count.
+   */
+  @VisibleForTesting
+  /* package */ static int getChannelCount(byte[] header) {
+    return header[9] & 0xFF;
+  }
+
+  /**
+   * Returns the number of pre-skip samples specified by the given Opus codec initialization data.
+   *
+   * @param initializationData The codec initialization data.
+   * @return The number of pre-skip samples.
+   */
+  @VisibleForTesting
+  /* package */ static int getPreSkipSamples(List<byte[]> initializationData) {
+    if (initializationData.size() == FULL_CODEC_INITIALIZATION_DATA_BUFFER_COUNT) {
+      long codecDelayNs =
+          ByteBuffer.wrap(initializationData.get(1)).order(ByteOrder.nativeOrder()).getLong();
+      return (int) ((codecDelayNs * SAMPLE_RATE) / C.NANOS_PER_SECOND);
+    }
+    // Fall back to parsing directly from the Opus Identification header.
+    byte[] headerData = initializationData.get(0);
+    return ((headerData[11] & 0xFF) << 8) | (headerData[10] & 0xFF);
+  }
+
+  /**
+   * Returns the number of seek per-roll samples specified by the given Opus codec initialization
+   * data.
+   *
+   * @param initializationData The codec initialization data.
+   * @return The number of seek pre-roll samples.
+   */
+  @VisibleForTesting
+  /* package */ static int getSeekPreRollSamples(List<byte[]> initializationData) {
+    if (initializationData.size() == FULL_CODEC_INITIALIZATION_DATA_BUFFER_COUNT) {
+      long seekPreRollNs =
+          ByteBuffer.wrap(initializationData.get(2)).order(ByteOrder.nativeOrder()).getLong();
+      return (int) ((seekPreRollNs * SAMPLE_RATE) / C.NANOS_PER_SECOND);
+    }
+    // Fall back to returning the default seek pre-roll.
+    return DEFAULT_SEEK_PRE_ROLL_SAMPLES;
+  }
+
+  /**
+   * Returns the number of discard padding samples specified by the supplemental data attached to an
+   * input buffer.
+   *
+   * @param supplementalData Supplemental data related to the an input buffer.
+   * @return The number of discard padding samples to remove from the decoder output.
+   */
+  @VisibleForTesting
+  /* package */ static int getDiscardPaddingSamples(@Nullable ByteBuffer supplementalData) {
+    if (supplementalData == null || supplementalData.remaining() != 8) {
+      return 0;
+    }
+    long discardPaddingNs = supplementalData.order(ByteOrder.LITTLE_ENDIAN).getLong();
+    if (discardPaddingNs < 0) {
+      return 0;
+    }
+    return (int) ((discardPaddingNs * SAMPLE_RATE) / C.NANOS_PER_SECOND);
+  }
+
+  /** Returns number of bytes to represent {@code samples}. */
+  private static int samplesToBytes(int samples, int channelCount, boolean outputFloat) {
+    int bytesPerChannel = outputFloat ? 4 : 2;
+    return samples * channelCount * bytesPerChannel;
   }
 
   private static int readSignedLittleEndian16(byte[] input, int offset) {
@@ -239,16 +337,16 @@ public final class OpusDecoder
       long timeUs,
       ByteBuffer inputBuffer,
       int inputSize,
-      SimpleOutputBuffer outputBuffer);
+      SimpleDecoderOutputBuffer outputBuffer);
 
   private native int opusSecureDecode(
       long decoder,
       long timeUs,
       ByteBuffer inputBuffer,
       int inputSize,
-      SimpleOutputBuffer outputBuffer,
+      SimpleDecoderOutputBuffer outputBuffer,
       int sampleRate,
-      @Nullable ExoMediaCrypto mediaCrypto,
+      @Nullable CryptoConfig mediaCrypto,
       int inputMode,
       byte[] key,
       byte[] iv,

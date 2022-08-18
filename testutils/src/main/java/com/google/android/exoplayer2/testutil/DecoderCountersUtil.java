@@ -32,66 +32,64 @@ public final class DecoderCountersUtil {
    */
   public static int getTotalBufferCount(DecoderCounters counters) {
     counters.ensureUpdated();
-    return counters.skippedOutputBufferCount + counters.droppedBufferCount
+    return counters.skippedInputBufferCount
+        + counters.skippedOutputBufferCount
+        + counters.droppedBufferCount
         + counters.renderedOutputBufferCount;
   }
 
-  public static void assertSkippedOutputBufferCount(String name, DecoderCounters counters,
-      int expected) {
+  public static void assertSkippedOutputBufferCount(
+      String name, DecoderCounters counters, int expected) {
     counters.ensureUpdated();
     int actual = counters.skippedOutputBufferCount;
     assertWithMessage(
-            "Codec(" + name + ") skipped " + actual + " buffers. Expected " + expected + ".")
+            "Codec(%s) skipped an unexpected number of buffers. Counters:\n%s", name, counters)
         .that(actual)
         .isEqualTo(expected);
   }
 
-  public static void assertTotalBufferCount(String name, DecoderCounters counters, int minCount,
-      int maxCount) {
+  /** Asserts that the input and output values in {@code counters} are self-consistent. */
+  public static void assertTotalBufferCount(String name, DecoderCounters counters) {
+    // We allow one fewer output buffer due to the way that MediaCodecRenderer and the
+    // underlying decoders handle the end of stream. This should be tightened up in the future.
+    int totalInputBufferCount =
+        counters.skippedInputBufferCount
+            + counters.droppedInputBufferCount
+            + counters.queuedInputBufferCount;
+    assertTotalBufferCount(
+        name,
+        counters,
+        /* minCount= */ totalInputBufferCount - 1,
+        /* maxCount= */ totalInputBufferCount);
+  }
+
+  public static void assertTotalBufferCount(
+      String name, DecoderCounters counters, int minCount, int maxCount) {
     int actual = getTotalBufferCount(counters);
-    assertWithMessage(
-            "Codec("
-                + name
-                + ") output "
-                + actual
-                + " buffers. Expected in range ["
-                + minCount
-                + ", "
-                + maxCount
-                + "].")
-        .that(minCount <= actual && actual <= maxCount)
-        .isTrue();
+    assertWithMessage("Codec(%s) output too few buffers. Counters:\n%s", name, counters)
+        .that(actual)
+        .isAtLeast(minCount);
+    assertWithMessage("Codec(%s) output too many buffers. Counters:\n%s", name, counters)
+        .that(actual)
+        .isAtMost(maxCount);
   }
 
   public static void assertDroppedBufferLimit(String name, DecoderCounters counters, int limit) {
     counters.ensureUpdated();
     int actual = counters.droppedBufferCount;
     assertWithMessage(
-            "Codec("
-                + name
-                + ") was late decoding: "
-                + actual
-                + " buffers. "
-                + "Limit: "
-                + limit
-                + ".")
+            "Codec(%s) was late decoding too many buffers. Counters:\n%s: ", name, counters)
         .that(actual)
         .isAtMost(limit);
   }
 
-  public static void assertConsecutiveDroppedBufferLimit(String name, DecoderCounters counters,
-      int limit) {
+  public static void assertConsecutiveDroppedBufferLimit(
+      String name, DecoderCounters counters, int limit) {
     counters.ensureUpdated();
     int actual = counters.maxConsecutiveDroppedBufferCount;
     assertWithMessage(
-            "Codec("
-                + name
-                + ") was late decoding: "
-                + actual
-                + " buffers consecutively. "
-                + "Limit: "
-                + limit
-                + ".")
+            "Codec(%s) was late decoding too many buffers consecutively. Counters:\n%s",
+            name, counters)
         .that(actual)
         .isAtMost(limit);
   }
@@ -100,16 +98,14 @@ public final class DecoderCountersUtil {
       String name, DecoderCounters counters, int minCount, int maxCount) {
     int actual = counters.videoFrameProcessingOffsetCount;
     assertWithMessage(
-            "Codec("
-                + name
-                + ") videoFrameProcessingOffsetSampleCount "
-                + actual
-                + ". Expected in range ["
-                + minCount
-                + ", "
-                + maxCount
-                + "].")
-        .that(minCount <= actual && actual <= maxCount)
-        .isTrue();
+            "Codec(%s) videoFrameProcessingOffsetSampleCount too low. Counters:\n%s",
+            name, counters)
+        .that(actual)
+        .isAtLeast(minCount);
+    assertWithMessage(
+            "Codec(%s) videoFrameProcessingOffsetSampleCount too high. Counters:\n%s",
+            name, counters)
+        .that(actual)
+        .isAtMost(maxCount);
   }
 }

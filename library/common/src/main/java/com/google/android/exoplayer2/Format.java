@@ -15,21 +15,29 @@
  */
 package com.google.android.exoplayer2;
 
-import android.os.Parcel;
-import android.os.Parcelable;
+import static java.lang.annotation.ElementType.TYPE_USE;
+
+import android.os.Bundle;
+import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.drm.DrmInitData;
-import com.google.android.exoplayer2.drm.ExoMediaCrypto;
-import com.google.android.exoplayer2.drm.UnsupportedMediaCrypto;
 import com.google.android.exoplayer2.metadata.Metadata;
-import com.google.android.exoplayer2.util.Assertions;
+import com.google.android.exoplayer2.util.BundleableUtil;
 import com.google.android.exoplayer2.util.MimeTypes;
 import com.google.android.exoplayer2.util.Util;
 import com.google.android.exoplayer2.video.ColorInfo;
+import com.google.common.base.Joiner;
+import java.lang.annotation.Documented;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Represents a media format.
@@ -38,7 +46,7 @@ import java.util.List;
  * format being constructed. For information about different types of format, see ExoPlayer's <a
  * href="https://exoplayer.dev/supported-formats.html">Supported formats page</a>.
  *
- * <h3>Fields commonly relevant to all formats</h3>
+ * <h2>Fields commonly relevant to all formats</h2>
  *
  * <ul>
  *   <li>{@link #id}
@@ -52,7 +60,7 @@ import java.util.List;
  *   <li>{@link #metadata}
  * </ul>
  *
- * <h3 id="container-formats">Fields relevant to container formats</h3>
+ * <h2 id="container-formats">Fields relevant to container formats</h2>
  *
  * <ul>
  *   <li>{@link #containerMimeType}
@@ -65,7 +73,7 @@ import java.util.List;
  *       href="#audio-formats">audio</a> and <a href="#text-formats">text</a> formats.
  * </ul>
  *
- * <h3 id="sample-formats">Fields relevant to sample formats</h3>
+ * <h2 id="sample-formats">Fields relevant to sample formats</h2>
  *
  * <ul>
  *   <li>{@link #sampleMimeType}
@@ -78,7 +86,7 @@ import java.util.List;
  *       href="#text-formats">text</a> formats.
  * </ul>
  *
- * <h3 id="video-formats">Fields relevant to video formats</h3>
+ * <h2 id="video-formats">Fields relevant to video formats</h2>
  *
  * <ul>
  *   <li>{@link #width}
@@ -91,7 +99,7 @@ import java.util.List;
  *   <li>{@link #colorInfo}
  * </ul>
  *
- * <h3 id="audio-formats">Fields relevant to audio formats</h3>
+ * <h2 id="audio-formats">Fields relevant to audio formats</h2>
  *
  * <ul>
  *   <li>{@link #channelCount}
@@ -101,13 +109,13 @@ import java.util.List;
  *   <li>{@link #encoderPadding}
  * </ul>
  *
- * <h3 id="text-formats">Fields relevant to text formats</h3>
+ * <h2 id="text-formats">Fields relevant to text formats</h2>
  *
  * <ul>
  *   <li>{@link #accessibilityChannel}
  * </ul>
  */
-public final class Format implements Parcelable {
+public final class Format implements Bundleable {
 
   /**
    * Builds {@link Format} instances.
@@ -123,8 +131,8 @@ public final class Format implements Parcelable {
     @Nullable private String id;
     @Nullable private String label;
     @Nullable private String language;
-    @C.SelectionFlags private int selectionFlags;
-    @C.RoleFlags private int roleFlags;
+    private @C.SelectionFlags int selectionFlags;
+    private @C.RoleFlags int roleFlags;
     private int averageBitrate;
     private int peakBitrate;
     @Nullable private String codecs;
@@ -150,14 +158,14 @@ public final class Format implements Parcelable {
     private int rotationDegrees;
     private float pixelWidthHeightRatio;
     @Nullable private byte[] projectionData;
-    @C.StereoMode private int stereoMode;
+    private @C.StereoMode int stereoMode;
     @Nullable private ColorInfo colorInfo;
 
     // Audio specific.
 
     private int channelCount;
     private int sampleRate;
-    @C.PcmEncoding private int pcmEncoding;
+    private @C.PcmEncoding int pcmEncoding;
     private int encoderDelay;
     private int encoderPadding;
 
@@ -167,7 +175,7 @@ public final class Format implements Parcelable {
 
     // Provided by the source.
 
-    @Nullable private Class<? extends ExoMediaCrypto> exoMediaCryptoType;
+    private @C.CryptoType int cryptoType;
 
     /** Creates a new instance with default values. */
     public Builder() {
@@ -188,6 +196,8 @@ public final class Format implements Parcelable {
       pcmEncoding = NO_VALUE;
       // Text specific.
       accessibilityChannel = NO_VALUE;
+      // Provided by the source.
+      cryptoType = C.CRYPTO_TYPE_NONE;
     }
 
     /**
@@ -231,7 +241,7 @@ public final class Format implements Parcelable {
       // Text specific.
       this.accessibilityChannel = format.accessibilityChannel;
       // Provided by the source.
-      this.exoMediaCryptoType = format.exoMediaCryptoType;
+      this.cryptoType = format.cryptoType;
     }
 
     /**
@@ -578,14 +588,13 @@ public final class Format implements Parcelable {
     // Provided by source.
 
     /**
-     * Sets {@link Format#exoMediaCryptoType}. The default value is {@code null}.
+     * Sets {@link Format#cryptoType}. The default value is {@link C#CRYPTO_TYPE_NONE}.
      *
-     * @param exoMediaCryptoType The {@link Format#exoMediaCryptoType}.
+     * @param cryptoType The {@link C.CryptoType}.
      * @return The builder.
      */
-    public Builder setExoMediaCryptoType(
-        @Nullable Class<? extends ExoMediaCrypto> exoMediaCryptoType) {
-      this.exoMediaCryptoType = exoMediaCryptoType;
+    public Builder setCryptoType(@C.CryptoType int cryptoType) {
+      this.cryptoType = cryptoType;
       return this;
     }
 
@@ -605,6 +614,8 @@ public final class Format implements Parcelable {
    */
   public static final long OFFSET_SAMPLE_RELATIVE = Long.MAX_VALUE;
 
+  private static final Format DEFAULT = new Builder().build();
+
   /** An identifier for the format, or null if unknown or not applicable. */
   @Nullable public final String id;
   /** The human readable label, or null if unknown or not applicable. */
@@ -612,9 +623,9 @@ public final class Format implements Parcelable {
   /** The language as an IETF BCP 47 conformant tag, or null if unknown or not applicable. */
   @Nullable public final String language;
   /** Track selection flags. */
-  @C.SelectionFlags public final int selectionFlags;
+  public final @C.SelectionFlags int selectionFlags;
   /** Track role flags. */
-  @C.RoleFlags public final int roleFlags;
+  public final @C.RoleFlags int roleFlags;
   /**
    * The average bitrate in bits per second, or {@link #NO_VALUE} if unknown or not applicable. The
    * way in which this field is populated depends on the type of media to which the format
@@ -623,7 +634,8 @@ public final class Format implements Parcelable {
    * <ul>
    *   <li>DASH representations: Always {@link Format#NO_VALUE}.
    *   <li>HLS variants: The {@code AVERAGE-BANDWIDTH} attribute defined on the corresponding {@code
-   *       EXT-X-STREAM-INF} tag in the master playlist, or {@link Format#NO_VALUE} if not present.
+   *       EXT-X-STREAM-INF} tag in the multivariant playlist, or {@link Format#NO_VALUE} if not
+   *       present.
    *   <li>SmoothStreaming track elements: The {@code Bitrate} attribute defined on the
    *       corresponding {@code TrackElement} in the manifest, or {@link Format#NO_VALUE} if not
    *       present.
@@ -681,8 +693,8 @@ public final class Format implements Parcelable {
    */
   public final int maxInputSize;
   /**
-   * Initialization data that must be provided to the decoder. Will not be null, but may be empty
-   * if initialization data is not required.
+   * Initialization data that must be provided to the decoder. Will not be null, but may be empty if
+   * initialization data is not required.
    */
   public final List<byte[]> initializationData;
   /** DRM initialization data if the stream is protected, or null otherwise. */
@@ -697,17 +709,11 @@ public final class Format implements Parcelable {
 
   // Video specific.
 
-  /**
-   * The width of the video in pixels, or {@link #NO_VALUE} if unknown or not applicable.
-   */
+  /** The width of the video in pixels, or {@link #NO_VALUE} if unknown or not applicable. */
   public final int width;
-  /**
-   * The height of the video in pixels, or {@link #NO_VALUE} if unknown or not applicable.
-   */
+  /** The height of the video in pixels, or {@link #NO_VALUE} if unknown or not applicable. */
   public final int height;
-  /**
-   * The frame rate in frames per second, or {@link #NO_VALUE} if unknown or not applicable.
-   */
+  /** The frame rate in frames per second, or {@link #NO_VALUE} if unknown or not applicable. */
   public final float frameRate;
   /**
    * The clockwise rotation that should be applied to the video for it to be rendered in the correct
@@ -723,22 +729,18 @@ public final class Format implements Parcelable {
    * modes are {@link C#STEREO_MODE_MONO}, {@link C#STEREO_MODE_TOP_BOTTOM}, {@link
    * C#STEREO_MODE_LEFT_RIGHT}, {@link C#STEREO_MODE_STEREO_MESH}.
    */
-  @C.StereoMode public final int stereoMode;
+  public final @C.StereoMode int stereoMode;
   /** The color metadata associated with the video, or null if not applicable. */
   @Nullable public final ColorInfo colorInfo;
 
   // Audio specific.
 
-  /**
-   * The number of audio channels, or {@link #NO_VALUE} if unknown or not applicable.
-   */
+  /** The number of audio channels, or {@link #NO_VALUE} if unknown or not applicable. */
   public final int channelCount;
-  /**
-   * The audio sampling rate in Hz, or {@link #NO_VALUE} if unknown or not applicable.
-   */
+  /** The audio sampling rate in Hz, or {@link #NO_VALUE} if unknown or not applicable. */
   public final int sampleRate;
   /** The {@link C.PcmEncoding} for PCM audio. Set to {@link #NO_VALUE} for other media types. */
-  @C.PcmEncoding public final int pcmEncoding;
+  public final @C.PcmEncoding int pcmEncoding;
   /**
    * The number of frames to trim from the start of the decoded audio stream, or 0 if not
    * applicable.
@@ -757,52 +759,21 @@ public final class Format implements Parcelable {
   // Provided by source.
 
   /**
-   * The type of {@link ExoMediaCrypto} that will be associated with the content this format
-   * describes, or {@code null} if the content is not encrypted. Cannot be null if {@link
-   * #drmInitData} is non-null.
+   * The type of crypto that must be used to decode samples associated with this format, or {@link
+   * C#CRYPTO_TYPE_NONE} if the content is not encrypted. Cannot be {@link C#CRYPTO_TYPE_NONE} if
+   * {@link #drmInitData} is non-null, but may be {@link C#CRYPTO_TYPE_UNSUPPORTED} to indicate that
+   * the samples are encrypted using an unsupported crypto type.
    */
-  @Nullable public final Class<? extends ExoMediaCrypto> exoMediaCryptoType;
+  public final @C.CryptoType int cryptoType;
 
   // Lazily initialized hashcode.
   private int hashCode;
 
   // Video.
 
-  /** @deprecated Use {@link Format.Builder}. */
-  @Deprecated
-  public static Format createVideoContainerFormat(
-      @Nullable String id,
-      @Nullable String label,
-      @Nullable String containerMimeType,
-      @Nullable String sampleMimeType,
-      @Nullable String codecs,
-      @Nullable Metadata metadata,
-      int bitrate,
-      int width,
-      int height,
-      float frameRate,
-      @Nullable List<byte[]> initializationData,
-      @C.SelectionFlags int selectionFlags,
-      @C.RoleFlags int roleFlags) {
-    return new Builder()
-        .setId(id)
-        .setLabel(label)
-        .setSelectionFlags(selectionFlags)
-        .setRoleFlags(roleFlags)
-        .setAverageBitrate(bitrate)
-        .setPeakBitrate(bitrate)
-        .setCodecs(codecs)
-        .setMetadata(metadata)
-        .setContainerMimeType(containerMimeType)
-        .setSampleMimeType(sampleMimeType)
-        .setInitializationData(initializationData)
-        .setWidth(width)
-        .setHeight(height)
-        .setFrameRate(frameRate)
-        .build();
-  }
-
-  /** @deprecated Use {@link Format.Builder}. */
+  /**
+   * @deprecated Use {@link Format.Builder}.
+   */
   @Deprecated
   public static Format createVideoSampleFormat(
       @Nullable String id,
@@ -830,7 +801,9 @@ public final class Format implements Parcelable {
         .build();
   }
 
-  /** @deprecated Use {@link Format.Builder}. */
+  /**
+   * @deprecated Use {@link Format.Builder}.
+   */
   @Deprecated
   public static Format createVideoSampleFormat(
       @Nullable String id,
@@ -859,84 +832,14 @@ public final class Format implements Parcelable {
         .setFrameRate(frameRate)
         .setRotationDegrees(rotationDegrees)
         .setPixelWidthHeightRatio(pixelWidthHeightRatio)
-        .build();
-  }
-
-  /** @deprecated Use {@link Format.Builder}. */
-  @Deprecated
-  public static Format createVideoSampleFormat(
-      @Nullable String id,
-      @Nullable String sampleMimeType,
-      @Nullable String codecs,
-      int bitrate,
-      int maxInputSize,
-      int width,
-      int height,
-      float frameRate,
-      @Nullable List<byte[]> initializationData,
-      int rotationDegrees,
-      float pixelWidthHeightRatio,
-      @Nullable byte[] projectionData,
-      @C.StereoMode int stereoMode,
-      @Nullable ColorInfo colorInfo,
-      @Nullable DrmInitData drmInitData) {
-    return new Builder()
-        .setId(id)
-        .setAverageBitrate(bitrate)
-        .setPeakBitrate(bitrate)
-        .setCodecs(codecs)
-        .setSampleMimeType(sampleMimeType)
-        .setMaxInputSize(maxInputSize)
-        .setInitializationData(initializationData)
-        .setDrmInitData(drmInitData)
-        .setWidth(width)
-        .setHeight(height)
-        .setFrameRate(frameRate)
-        .setRotationDegrees(rotationDegrees)
-        .setPixelWidthHeightRatio(pixelWidthHeightRatio)
-        .setProjectionData(projectionData)
-        .setStereoMode(stereoMode)
-        .setColorInfo(colorInfo)
         .build();
   }
 
   // Audio.
 
-  /** @deprecated Use {@link Format.Builder}. */
-  @Deprecated
-  public static Format createAudioContainerFormat(
-      @Nullable String id,
-      @Nullable String label,
-      @Nullable String containerMimeType,
-      @Nullable String sampleMimeType,
-      @Nullable String codecs,
-      @Nullable Metadata metadata,
-      int bitrate,
-      int channelCount,
-      int sampleRate,
-      @Nullable List<byte[]> initializationData,
-      @C.SelectionFlags int selectionFlags,
-      @C.RoleFlags int roleFlags,
-      @Nullable String language) {
-    return new Builder()
-        .setId(id)
-        .setLabel(label)
-        .setLanguage(language)
-        .setSelectionFlags(selectionFlags)
-        .setRoleFlags(roleFlags)
-        .setAverageBitrate(bitrate)
-        .setPeakBitrate(bitrate)
-        .setCodecs(codecs)
-        .setMetadata(metadata)
-        .setContainerMimeType(containerMimeType)
-        .setSampleMimeType(sampleMimeType)
-        .setInitializationData(initializationData)
-        .setChannelCount(channelCount)
-        .setSampleRate(sampleRate)
-        .build();
-  }
-
-  /** @deprecated Use {@link Format.Builder}. */
+  /**
+   * @deprecated Use {@link Format.Builder}.
+   */
   @Deprecated
   public static Format createAudioSampleFormat(
       @Nullable String id,
@@ -966,7 +869,9 @@ public final class Format implements Parcelable {
         .build();
   }
 
-  /** @deprecated Use {@link Format.Builder}. */
+  /**
+   * @deprecated Use {@link Format.Builder}.
+   */
   @Deprecated
   public static Format createAudioSampleFormat(
       @Nullable String id,
@@ -995,161 +900,14 @@ public final class Format implements Parcelable {
         .setChannelCount(channelCount)
         .setSampleRate(sampleRate)
         .setPcmEncoding(pcmEncoding)
-        .build();
-  }
-
-  /** @deprecated Use {@link Format.Builder}. */
-  @Deprecated
-  public static Format createAudioSampleFormat(
-      @Nullable String id,
-      @Nullable String sampleMimeType,
-      @Nullable String codecs,
-      int bitrate,
-      int maxInputSize,
-      int channelCount,
-      int sampleRate,
-      @C.PcmEncoding int pcmEncoding,
-      int encoderDelay,
-      int encoderPadding,
-      @Nullable List<byte[]> initializationData,
-      @Nullable DrmInitData drmInitData,
-      @C.SelectionFlags int selectionFlags,
-      @Nullable String language,
-      @Nullable Metadata metadata) {
-    return new Builder()
-        .setId(id)
-        .setLanguage(language)
-        .setSelectionFlags(selectionFlags)
-        .setAverageBitrate(bitrate)
-        .setPeakBitrate(bitrate)
-        .setCodecs(codecs)
-        .setMetadata(metadata)
-        .setSampleMimeType(sampleMimeType)
-        .setMaxInputSize(maxInputSize)
-        .setInitializationData(initializationData)
-        .setDrmInitData(drmInitData)
-        .setChannelCount(channelCount)
-        .setSampleRate(sampleRate)
-        .setPcmEncoding(pcmEncoding)
-        .setEncoderDelay(encoderDelay)
-        .setEncoderPadding(encoderPadding)
-        .build();
-  }
-
-  // Text.
-
-  /** @deprecated Use {@link Format.Builder}. */
-  @Deprecated
-  public static Format createTextContainerFormat(
-      @Nullable String id,
-      @Nullable String label,
-      @Nullable String containerMimeType,
-      @Nullable String sampleMimeType,
-      @Nullable String codecs,
-      int bitrate,
-      @C.SelectionFlags int selectionFlags,
-      @C.RoleFlags int roleFlags,
-      @Nullable String language) {
-    return new Builder()
-        .setId(id)
-        .setLabel(label)
-        .setLanguage(language)
-        .setSelectionFlags(selectionFlags)
-        .setRoleFlags(roleFlags)
-        .setAverageBitrate(bitrate)
-        .setPeakBitrate(bitrate)
-        .setCodecs(codecs)
-        .setContainerMimeType(containerMimeType)
-        .setSampleMimeType(sampleMimeType)
-        .build();
-  }
-
-  /** @deprecated Use {@link Format.Builder}. */
-  @Deprecated
-  public static Format createTextContainerFormat(
-      @Nullable String id,
-      @Nullable String label,
-      @Nullable String containerMimeType,
-      @Nullable String sampleMimeType,
-      @Nullable String codecs,
-      int bitrate,
-      @C.SelectionFlags int selectionFlags,
-      @C.RoleFlags int roleFlags,
-      @Nullable String language,
-      int accessibilityChannel) {
-    return new Builder()
-        .setId(id)
-        .setLabel(label)
-        .setLanguage(language)
-        .setSelectionFlags(selectionFlags)
-        .setRoleFlags(roleFlags)
-        .setAverageBitrate(bitrate)
-        .setPeakBitrate(bitrate)
-        .setCodecs(codecs)
-        .setContainerMimeType(containerMimeType)
-        .setSampleMimeType(sampleMimeType)
-        .setAccessibilityChannel(accessibilityChannel)
-        .build();
-  }
-
-  /** @deprecated Use {@link Format.Builder}. */
-  @Deprecated
-  public static Format createTextSampleFormat(
-      @Nullable String id,
-      @Nullable String sampleMimeType,
-      @C.SelectionFlags int selectionFlags,
-      @Nullable String language) {
-    return new Builder()
-        .setId(id)
-        .setLanguage(language)
-        .setSelectionFlags(selectionFlags)
-        .setSampleMimeType(sampleMimeType)
-        .build();
-  }
-
-  /** @deprecated Use {@link Format.Builder}. */
-  @Deprecated
-  public static Format createTextSampleFormat(
-      @Nullable String id,
-      @Nullable String sampleMimeType,
-      @C.SelectionFlags int selectionFlags,
-      @Nullable String language,
-      int accessibilityChannel,
-      long subsampleOffsetUs,
-      @Nullable List<byte[]> initializationData) {
-    return new Builder()
-        .setId(id)
-        .setLanguage(language)
-        .setSelectionFlags(selectionFlags)
-        .setSampleMimeType(sampleMimeType)
-        .setInitializationData(initializationData)
-        .setSubsampleOffsetUs(subsampleOffsetUs)
-        .setAccessibilityChannel(accessibilityChannel)
-        .build();
-  }
-
-  // Image.
-
-  /** @deprecated Use {@link Format.Builder}. */
-  @Deprecated
-  public static Format createImageSampleFormat(
-      @Nullable String id,
-      @Nullable String sampleMimeType,
-      @C.SelectionFlags int selectionFlags,
-      @Nullable List<byte[]> initializationData,
-      @Nullable String language) {
-    return new Builder()
-        .setId(id)
-        .setLanguage(language)
-        .setSelectionFlags(selectionFlags)
-        .setSampleMimeType(sampleMimeType)
-        .setInitializationData(initializationData)
         .build();
   }
 
   // Generic.
 
-  /** @deprecated Use {@link Format.Builder}. */
+  /**
+   * @deprecated Use {@link Format.Builder}.
+   */
   @Deprecated
   public static Format createContainerFormat(
       @Nullable String id,
@@ -1175,7 +933,9 @@ public final class Format implements Parcelable {
         .build();
   }
 
-  /** @deprecated Use {@link Format.Builder}. */
+  /**
+   * @deprecated Use {@link Format.Builder}.
+   */
   @Deprecated
   public static Format createSampleFormat(@Nullable String id, @Nullable String sampleMimeType) {
     return new Builder().setId(id).setSampleMimeType(sampleMimeType).build();
@@ -1220,60 +980,12 @@ public final class Format implements Parcelable {
     // Text specific.
     accessibilityChannel = builder.accessibilityChannel;
     // Provided by source.
-    if (builder.exoMediaCryptoType == null && drmInitData != null) {
-      // Encrypted content must always have a non-null exoMediaCryptoType.
-      exoMediaCryptoType = UnsupportedMediaCrypto.class;
+    if (builder.cryptoType == C.CRYPTO_TYPE_NONE && drmInitData != null) {
+      // Encrypted content cannot use CRYPTO_TYPE_NONE.
+      cryptoType = C.CRYPTO_TYPE_UNSUPPORTED;
     } else {
-      exoMediaCryptoType = builder.exoMediaCryptoType;
+      cryptoType = builder.cryptoType;
     }
-  }
-
-  // Some fields are deprecated but they're still assigned below.
-  @SuppressWarnings({"ResourceType"})
-  /* package */ Format(Parcel in) {
-    id = in.readString();
-    label = in.readString();
-    language = in.readString();
-    selectionFlags = in.readInt();
-    roleFlags = in.readInt();
-    averageBitrate = in.readInt();
-    peakBitrate = in.readInt();
-    bitrate = peakBitrate != NO_VALUE ? peakBitrate : averageBitrate;
-    codecs = in.readString();
-    metadata = in.readParcelable(Metadata.class.getClassLoader());
-    // Container specific.
-    containerMimeType = in.readString();
-    // Sample specific.
-    sampleMimeType = in.readString();
-    maxInputSize = in.readInt();
-    int initializationDataSize = in.readInt();
-    initializationData = new ArrayList<>(initializationDataSize);
-    for (int i = 0; i < initializationDataSize; i++) {
-      initializationData.add(Assertions.checkNotNull(in.createByteArray()));
-    }
-    drmInitData = in.readParcelable(DrmInitData.class.getClassLoader());
-    subsampleOffsetUs = in.readLong();
-    // Video specific.
-    width = in.readInt();
-    height = in.readInt();
-    frameRate = in.readFloat();
-    rotationDegrees = in.readInt();
-    pixelWidthHeightRatio = in.readFloat();
-    boolean hasProjectionData = Util.readBoolean(in);
-    projectionData = hasProjectionData ? in.createByteArray() : null;
-    stereoMode = in.readInt();
-    colorInfo = in.readParcelable(ColorInfo.class.getClassLoader());
-    // Audio specific.
-    channelCount = in.readInt();
-    sampleRate = in.readInt();
-    pcmEncoding = in.readInt();
-    encoderDelay = in.readInt();
-    encoderPadding = in.readInt();
-    // Text specific.
-    accessibilityChannel = in.readInt();
-    // Provided by source.
-    // Encrypted content must always have a non-null exoMediaCryptoType.
-    exoMediaCryptoType = drmInitData != null ? UnsupportedMediaCrypto.class : null;
   }
 
   /** Returns a {@link Format.Builder} initialized with the values of this instance. */
@@ -1281,25 +993,33 @@ public final class Format implements Parcelable {
     return new Builder(this);
   }
 
-  /** @deprecated Use {@link #buildUpon()} and {@link Builder#setMaxInputSize(int)}. */
+  /**
+   * @deprecated Use {@link #buildUpon()} and {@link Builder#setMaxInputSize(int)}.
+   */
   @Deprecated
   public Format copyWithMaxInputSize(int maxInputSize) {
     return buildUpon().setMaxInputSize(maxInputSize).build();
   }
 
-  /** @deprecated Use {@link #buildUpon()} and {@link Builder#setSubsampleOffsetUs(long)}. */
+  /**
+   * @deprecated Use {@link #buildUpon()} and {@link Builder#setSubsampleOffsetUs(long)}.
+   */
   @Deprecated
   public Format copyWithSubsampleOffsetUs(long subsampleOffsetUs) {
     return buildUpon().setSubsampleOffsetUs(subsampleOffsetUs).build();
   }
 
-  /** @deprecated Use {@link #buildUpon()} and {@link Builder#setLabel(String)} . */
+  /**
+   * @deprecated Use {@link #buildUpon()} and {@link Builder#setLabel(String)} .
+   */
   @Deprecated
   public Format copyWithLabel(@Nullable String label) {
     return buildUpon().setLabel(label).build();
   }
 
-  /** @deprecated Use {@link #withManifestFormatInfo(Format)}. */
+  /**
+   * @deprecated Use {@link #withManifestFormatInfo(Format)}.
+   */
   @Deprecated
   public Format copyWithManifestFormatInfo(Format manifestFormat) {
     return withManifestFormatInfo(manifestFormat);
@@ -1312,7 +1032,7 @@ public final class Format implements Parcelable {
       return this;
     }
 
-    int trackType = MimeTypes.getTrackType(sampleMimeType);
+    @C.TrackType int trackType = MimeTypes.getTrackType(sampleMimeType);
 
     // Use manifest value only.
     @Nullable String id = manifestFormat.id;
@@ -1381,19 +1101,25 @@ public final class Format implements Parcelable {
     return buildUpon().setEncoderDelay(encoderDelay).setEncoderPadding(encoderPadding).build();
   }
 
-  /** @deprecated Use {@link #buildUpon()} and {@link Builder#setFrameRate(float)}. */
+  /**
+   * @deprecated Use {@link #buildUpon()} and {@link Builder#setFrameRate(float)}.
+   */
   @Deprecated
   public Format copyWithFrameRate(float frameRate) {
     return buildUpon().setFrameRate(frameRate).build();
   }
 
-  /** @deprecated Use {@link #buildUpon()} and {@link Builder#setDrmInitData(DrmInitData)}. */
+  /**
+   * @deprecated Use {@link #buildUpon()} and {@link Builder#setDrmInitData(DrmInitData)}.
+   */
   @Deprecated
   public Format copyWithDrmInitData(@Nullable DrmInitData drmInitData) {
     return buildUpon().setDrmInitData(drmInitData).build();
   }
 
-  /** @deprecated Use {@link #buildUpon()} and {@link Builder#setMetadata(Metadata)}. */
+  /**
+   * @deprecated Use {@link #buildUpon()} and {@link Builder#setMetadata(Metadata)}.
+   */
   @Deprecated
   public Format copyWithMetadata(@Nullable Metadata metadata) {
     return buildUpon().setMetadata(metadata).build();
@@ -1417,10 +1143,9 @@ public final class Format implements Parcelable {
     return buildUpon().setWidth(width).setHeight(height).build();
   }
 
-  /** Returns a copy of this format with the specified {@link #exoMediaCryptoType}. */
-  public Format copyWithExoMediaCryptoType(
-      @Nullable Class<? extends ExoMediaCrypto> exoMediaCryptoType) {
-    return buildUpon().setExoMediaCryptoType(exoMediaCryptoType).build();
+  /** Returns a copy of this format with the specified {@link #cryptoType}. */
+  public Format copyWithCryptoType(@C.CryptoType int cryptoType) {
+    return buildUpon().setCryptoType(cryptoType).build();
   }
 
   /**
@@ -1501,7 +1226,7 @@ public final class Format implements Parcelable {
       // Text specific.
       result = 31 * result + accessibilityChannel;
       // Provided by the source.
-      result = 31 * result + (exoMediaCryptoType == null ? 0 : exoMediaCryptoType.hashCode());
+      result = 31 * result + cryptoType;
       hashCode = result;
     }
     return hashCode;
@@ -1536,9 +1261,9 @@ public final class Format implements Parcelable {
         && encoderDelay == other.encoderDelay
         && encoderPadding == other.encoderPadding
         && accessibilityChannel == other.accessibilityChannel
+        && cryptoType == other.cryptoType
         && Float.compare(frameRate, other.frameRate) == 0
         && Float.compare(pixelWidthHeightRatio, other.pixelWidthHeightRatio) == 0
-        && Util.areEqual(exoMediaCryptoType, other.exoMediaCryptoType)
         && Util.areEqual(id, other.id)
         && Util.areEqual(label, other.label)
         && Util.areEqual(codecs, other.codecs)
@@ -1587,6 +1312,28 @@ public final class Format implements Parcelable {
     if (format.codecs != null) {
       builder.append(", codecs=").append(format.codecs);
     }
+    if (format.drmInitData != null) {
+      Set<String> schemes = new LinkedHashSet<>();
+      for (int i = 0; i < format.drmInitData.schemeDataCount; i++) {
+        UUID schemeUuid = format.drmInitData.get(i).uuid;
+        if (schemeUuid.equals(C.COMMON_PSSH_UUID)) {
+          schemes.add("cenc");
+        } else if (schemeUuid.equals(C.CLEARKEY_UUID)) {
+          schemes.add("clearkey");
+        } else if (schemeUuid.equals(C.PLAYREADY_UUID)) {
+          schemes.add("playready");
+        } else if (schemeUuid.equals(C.WIDEVINE_UUID)) {
+          schemes.add("widevine");
+        } else if (schemeUuid.equals(C.UUID_NIL)) {
+          schemes.add("universal");
+        } else {
+          schemes.add("unknown (" + schemeUuid + ")");
+        }
+      }
+      builder.append(", drm=[");
+      Joiner.on(',').appendTo(builder, schemes);
+      builder.append(']');
+    }
     if (format.width != NO_VALUE && format.height != NO_VALUE) {
       builder.append(", res=").append(format.width).append("x").append(format.height);
     }
@@ -1605,72 +1352,284 @@ public final class Format implements Parcelable {
     if (format.label != null) {
       builder.append(", label=").append(format.label);
     }
+    if (format.selectionFlags != 0) {
+      List<String> selectionFlags = new ArrayList<>();
+      // LINT.IfChange(selection_flags)
+      if ((format.selectionFlags & C.SELECTION_FLAG_AUTOSELECT) != 0) {
+        selectionFlags.add("auto");
+      }
+      if ((format.selectionFlags & C.SELECTION_FLAG_DEFAULT) != 0) {
+        selectionFlags.add("default");
+      }
+      if ((format.selectionFlags & C.SELECTION_FLAG_FORCED) != 0) {
+        selectionFlags.add("forced");
+      }
+      builder.append(", selectionFlags=[");
+      Joiner.on(',').appendTo(builder, selectionFlags);
+      builder.append("]");
+    }
+    if (format.roleFlags != 0) {
+      // LINT.IfChange(role_flags)
+      List<String> roleFlags = new ArrayList<>();
+      if ((format.roleFlags & C.ROLE_FLAG_MAIN) != 0) {
+        roleFlags.add("main");
+      }
+      if ((format.roleFlags & C.ROLE_FLAG_ALTERNATE) != 0) {
+        roleFlags.add("alt");
+      }
+      if ((format.roleFlags & C.ROLE_FLAG_SUPPLEMENTARY) != 0) {
+        roleFlags.add("supplementary");
+      }
+      if ((format.roleFlags & C.ROLE_FLAG_COMMENTARY) != 0) {
+        roleFlags.add("commentary");
+      }
+      if ((format.roleFlags & C.ROLE_FLAG_DUB) != 0) {
+        roleFlags.add("dub");
+      }
+      if ((format.roleFlags & C.ROLE_FLAG_EMERGENCY) != 0) {
+        roleFlags.add("emergency");
+      }
+      if ((format.roleFlags & C.ROLE_FLAG_CAPTION) != 0) {
+        roleFlags.add("caption");
+      }
+      if ((format.roleFlags & C.ROLE_FLAG_SUBTITLE) != 0) {
+        roleFlags.add("subtitle");
+      }
+      if ((format.roleFlags & C.ROLE_FLAG_SIGN) != 0) {
+        roleFlags.add("sign");
+      }
+      if ((format.roleFlags & C.ROLE_FLAG_DESCRIBES_VIDEO) != 0) {
+        roleFlags.add("describes-video");
+      }
+      if ((format.roleFlags & C.ROLE_FLAG_DESCRIBES_MUSIC_AND_SOUND) != 0) {
+        roleFlags.add("describes-music");
+      }
+      if ((format.roleFlags & C.ROLE_FLAG_ENHANCED_DIALOG_INTELLIGIBILITY) != 0) {
+        roleFlags.add("enhanced-intelligibility");
+      }
+      if ((format.roleFlags & C.ROLE_FLAG_TRANSCRIBES_DIALOG) != 0) {
+        roleFlags.add("transcribes-dialog");
+      }
+      if ((format.roleFlags & C.ROLE_FLAG_EASY_TO_READ) != 0) {
+        roleFlags.add("easy-read");
+      }
+      if ((format.roleFlags & C.ROLE_FLAG_TRICK_PLAY) != 0) {
+        roleFlags.add("trick-play");
+      }
+      builder.append(", roleFlags=[");
+      Joiner.on(',').appendTo(builder, roleFlags);
+      builder.append("]");
+    }
     return builder.toString();
   }
 
-  // Parcelable implementation.
+  // Bundleable implementation.
+  @Documented
+  @Retention(RetentionPolicy.SOURCE)
+  @Target(TYPE_USE)
+  @IntDef({
+    FIELD_ID,
+    FIELD_LABEL,
+    FIELD_LANGUAGE,
+    FIELD_SELECTION_FLAGS,
+    FIELD_ROLE_FLAGS,
+    FIELD_AVERAGE_BITRATE,
+    FIELD_PEAK_BITRATE,
+    FIELD_CODECS,
+    FIELD_METADATA,
+    FIELD_CONTAINER_MIME_TYPE,
+    FIELD_SAMPLE_MIME_TYPE,
+    FIELD_MAX_INPUT_SIZE,
+    FIELD_INITIALIZATION_DATA,
+    FIELD_DRM_INIT_DATA,
+    FIELD_SUBSAMPLE_OFFSET_US,
+    FIELD_WIDTH,
+    FIELD_HEIGHT,
+    FIELD_FRAME_RATE,
+    FIELD_ROTATION_DEGREES,
+    FIELD_PIXEL_WIDTH_HEIGHT_RATIO,
+    FIELD_PROJECTION_DATA,
+    FIELD_STEREO_MODE,
+    FIELD_COLOR_INFO,
+    FIELD_CHANNEL_COUNT,
+    FIELD_SAMPLE_RATE,
+    FIELD_PCM_ENCODING,
+    FIELD_ENCODER_DELAY,
+    FIELD_ENCODER_PADDING,
+    FIELD_ACCESSIBILITY_CHANNEL,
+    FIELD_CRYPTO_TYPE,
+  })
+  private @interface FieldNumber {}
+
+  private static final int FIELD_ID = 0;
+  private static final int FIELD_LABEL = 1;
+  private static final int FIELD_LANGUAGE = 2;
+  private static final int FIELD_SELECTION_FLAGS = 3;
+  private static final int FIELD_ROLE_FLAGS = 4;
+  private static final int FIELD_AVERAGE_BITRATE = 5;
+  private static final int FIELD_PEAK_BITRATE = 6;
+  private static final int FIELD_CODECS = 7;
+  private static final int FIELD_METADATA = 8;
+  private static final int FIELD_CONTAINER_MIME_TYPE = 9;
+  private static final int FIELD_SAMPLE_MIME_TYPE = 10;
+  private static final int FIELD_MAX_INPUT_SIZE = 11;
+  private static final int FIELD_INITIALIZATION_DATA = 12;
+  private static final int FIELD_DRM_INIT_DATA = 13;
+  private static final int FIELD_SUBSAMPLE_OFFSET_US = 14;
+  private static final int FIELD_WIDTH = 15;
+  private static final int FIELD_HEIGHT = 16;
+  private static final int FIELD_FRAME_RATE = 17;
+  private static final int FIELD_ROTATION_DEGREES = 18;
+  private static final int FIELD_PIXEL_WIDTH_HEIGHT_RATIO = 19;
+  private static final int FIELD_PROJECTION_DATA = 20;
+  private static final int FIELD_STEREO_MODE = 21;
+  private static final int FIELD_COLOR_INFO = 22;
+  private static final int FIELD_CHANNEL_COUNT = 23;
+  private static final int FIELD_SAMPLE_RATE = 24;
+  private static final int FIELD_PCM_ENCODING = 25;
+  private static final int FIELD_ENCODER_DELAY = 26;
+  private static final int FIELD_ENCODER_PADDING = 27;
+  private static final int FIELD_ACCESSIBILITY_CHANNEL = 28;
+  private static final int FIELD_CRYPTO_TYPE = 29;
 
   @Override
-  public int describeContents() {
-    return 0;
-  }
-
-  @Override
-  public void writeToParcel(Parcel dest, int flags) {
-    dest.writeString(id);
-    dest.writeString(label);
-    dest.writeString(language);
-    dest.writeInt(selectionFlags);
-    dest.writeInt(roleFlags);
-    dest.writeInt(averageBitrate);
-    dest.writeInt(peakBitrate);
-    dest.writeString(codecs);
-    dest.writeParcelable(metadata, 0);
+  public Bundle toBundle() {
+    Bundle bundle = new Bundle();
+    bundle.putString(keyForField(FIELD_ID), id);
+    bundle.putString(keyForField(FIELD_LABEL), label);
+    bundle.putString(keyForField(FIELD_LANGUAGE), language);
+    bundle.putInt(keyForField(FIELD_SELECTION_FLAGS), selectionFlags);
+    bundle.putInt(keyForField(FIELD_ROLE_FLAGS), roleFlags);
+    bundle.putInt(keyForField(FIELD_AVERAGE_BITRATE), averageBitrate);
+    bundle.putInt(keyForField(FIELD_PEAK_BITRATE), peakBitrate);
+    bundle.putString(keyForField(FIELD_CODECS), codecs);
+    // Metadata is currently not Bundleable because Metadata.Entry is an Interface,
+    // which would be difficult to unbundle in a backward compatible way.
+    // The entries are additionally of limited usefulness to remote processes.
+    bundle.putParcelable(keyForField(FIELD_METADATA), metadata);
     // Container specific.
-    dest.writeString(containerMimeType);
+    bundle.putString(keyForField(FIELD_CONTAINER_MIME_TYPE), containerMimeType);
     // Sample specific.
-    dest.writeString(sampleMimeType);
-    dest.writeInt(maxInputSize);
-    int initializationDataSize = initializationData.size();
-    dest.writeInt(initializationDataSize);
-    for (int i = 0; i < initializationDataSize; i++) {
-      dest.writeByteArray(initializationData.get(i));
+    bundle.putString(keyForField(FIELD_SAMPLE_MIME_TYPE), sampleMimeType);
+    bundle.putInt(keyForField(FIELD_MAX_INPUT_SIZE), maxInputSize);
+    for (int i = 0; i < initializationData.size(); i++) {
+      bundle.putByteArray(keyForInitializationData(i), initializationData.get(i));
     }
-    dest.writeParcelable(drmInitData, 0);
-    dest.writeLong(subsampleOffsetUs);
+    // DrmInitData doesn't need to be Bundleable as it's only used in the playing process to
+    // initialize the decoder.
+    bundle.putParcelable(keyForField(FIELD_DRM_INIT_DATA), drmInitData);
+    bundle.putLong(keyForField(FIELD_SUBSAMPLE_OFFSET_US), subsampleOffsetUs);
     // Video specific.
-    dest.writeInt(width);
-    dest.writeInt(height);
-    dest.writeFloat(frameRate);
-    dest.writeInt(rotationDegrees);
-    dest.writeFloat(pixelWidthHeightRatio);
-    Util.writeBoolean(dest, projectionData != null);
-    if (projectionData != null) {
-      dest.writeByteArray(projectionData);
+    bundle.putInt(keyForField(FIELD_WIDTH), width);
+    bundle.putInt(keyForField(FIELD_HEIGHT), height);
+    bundle.putFloat(keyForField(FIELD_FRAME_RATE), frameRate);
+    bundle.putInt(keyForField(FIELD_ROTATION_DEGREES), rotationDegrees);
+    bundle.putFloat(keyForField(FIELD_PIXEL_WIDTH_HEIGHT_RATIO), pixelWidthHeightRatio);
+    bundle.putByteArray(keyForField(FIELD_PROJECTION_DATA), projectionData);
+    bundle.putInt(keyForField(FIELD_STEREO_MODE), stereoMode);
+    if (colorInfo != null) {
+      bundle.putBundle(keyForField(FIELD_COLOR_INFO), colorInfo.toBundle());
     }
-    dest.writeInt(stereoMode);
-    dest.writeParcelable(colorInfo, flags);
     // Audio specific.
-    dest.writeInt(channelCount);
-    dest.writeInt(sampleRate);
-    dest.writeInt(pcmEncoding);
-    dest.writeInt(encoderDelay);
-    dest.writeInt(encoderPadding);
+    bundle.putInt(keyForField(FIELD_CHANNEL_COUNT), channelCount);
+    bundle.putInt(keyForField(FIELD_SAMPLE_RATE), sampleRate);
+    bundle.putInt(keyForField(FIELD_PCM_ENCODING), pcmEncoding);
+    bundle.putInt(keyForField(FIELD_ENCODER_DELAY), encoderDelay);
+    bundle.putInt(keyForField(FIELD_ENCODER_PADDING), encoderPadding);
     // Text specific.
-    dest.writeInt(accessibilityChannel);
+    bundle.putInt(keyForField(FIELD_ACCESSIBILITY_CHANNEL), accessibilityChannel);
+    // Source specific.
+    bundle.putInt(keyForField(FIELD_CRYPTO_TYPE), cryptoType);
+    return bundle;
   }
 
-  public static final Creator<Format> CREATOR = new Creator<Format>() {
+  /** Object that can restore {@code Format} from a {@link Bundle}. */
+  public static final Creator<Format> CREATOR = Format::fromBundle;
 
-    @Override
-    public Format createFromParcel(Parcel in) {
-      return new Format(in);
+  private static Format fromBundle(Bundle bundle) {
+    Builder builder = new Builder();
+    BundleableUtil.ensureClassLoader(bundle);
+    builder
+        .setId(defaultIfNull(bundle.getString(keyForField(FIELD_ID)), DEFAULT.id))
+        .setLabel(defaultIfNull(bundle.getString(keyForField(FIELD_LABEL)), DEFAULT.label))
+        .setLanguage(defaultIfNull(bundle.getString(keyForField(FIELD_LANGUAGE)), DEFAULT.language))
+        .setSelectionFlags(
+            bundle.getInt(keyForField(FIELD_SELECTION_FLAGS), DEFAULT.selectionFlags))
+        .setRoleFlags(bundle.getInt(keyForField(FIELD_ROLE_FLAGS), DEFAULT.roleFlags))
+        .setAverageBitrate(
+            bundle.getInt(keyForField(FIELD_AVERAGE_BITRATE), DEFAULT.averageBitrate))
+        .setPeakBitrate(bundle.getInt(keyForField(FIELD_PEAK_BITRATE), DEFAULT.peakBitrate))
+        .setCodecs(defaultIfNull(bundle.getString(keyForField(FIELD_CODECS)), DEFAULT.codecs))
+        .setMetadata(
+            defaultIfNull(bundle.getParcelable(keyForField(FIELD_METADATA)), DEFAULT.metadata))
+        // Container specific.
+        .setContainerMimeType(
+            defaultIfNull(
+                bundle.getString(keyForField(FIELD_CONTAINER_MIME_TYPE)),
+                DEFAULT.containerMimeType))
+        // Sample specific.
+        .setSampleMimeType(
+            defaultIfNull(
+                bundle.getString(keyForField(FIELD_SAMPLE_MIME_TYPE)), DEFAULT.sampleMimeType))
+        .setMaxInputSize(bundle.getInt(keyForField(FIELD_MAX_INPUT_SIZE), DEFAULT.maxInputSize));
+
+    List<byte[]> initializationData = new ArrayList<>();
+    for (int i = 0; ; i++) {
+      @Nullable byte[] data = bundle.getByteArray(keyForInitializationData(i));
+      if (data == null) {
+        break;
+      }
+      initializationData.add(data);
     }
-
-    @Override
-    public Format[] newArray(int size) {
-      return new Format[size];
+    builder
+        .setInitializationData(initializationData)
+        .setDrmInitData(bundle.getParcelable(keyForField(FIELD_DRM_INIT_DATA)))
+        .setSubsampleOffsetUs(
+            bundle.getLong(keyForField(FIELD_SUBSAMPLE_OFFSET_US), DEFAULT.subsampleOffsetUs))
+        // Video specific.
+        .setWidth(bundle.getInt(keyForField(FIELD_WIDTH), DEFAULT.width))
+        .setHeight(bundle.getInt(keyForField(FIELD_HEIGHT), DEFAULT.height))
+        .setFrameRate(bundle.getFloat(keyForField(FIELD_FRAME_RATE), DEFAULT.frameRate))
+        .setRotationDegrees(
+            bundle.getInt(keyForField(FIELD_ROTATION_DEGREES), DEFAULT.rotationDegrees))
+        .setPixelWidthHeightRatio(
+            bundle.getFloat(
+                keyForField(FIELD_PIXEL_WIDTH_HEIGHT_RATIO), DEFAULT.pixelWidthHeightRatio))
+        .setProjectionData(bundle.getByteArray(keyForField(FIELD_PROJECTION_DATA)))
+        .setStereoMode(bundle.getInt(keyForField(FIELD_STEREO_MODE), DEFAULT.stereoMode));
+    Bundle colorInfoBundle = bundle.getBundle(keyForField(FIELD_COLOR_INFO));
+    if (colorInfoBundle != null) {
+      builder.setColorInfo(ColorInfo.CREATOR.fromBundle(colorInfoBundle));
     }
+    // Audio specific.
+    builder
+        .setChannelCount(bundle.getInt(keyForField(FIELD_CHANNEL_COUNT), DEFAULT.channelCount))
+        .setSampleRate(bundle.getInt(keyForField(FIELD_SAMPLE_RATE), DEFAULT.sampleRate))
+        .setPcmEncoding(bundle.getInt(keyForField(FIELD_PCM_ENCODING), DEFAULT.pcmEncoding))
+        .setEncoderDelay(bundle.getInt(keyForField(FIELD_ENCODER_DELAY), DEFAULT.encoderDelay))
+        .setEncoderPadding(
+            bundle.getInt(keyForField(FIELD_ENCODER_PADDING), DEFAULT.encoderPadding))
+        // Text specific.
+        .setAccessibilityChannel(
+            bundle.getInt(keyForField(FIELD_ACCESSIBILITY_CHANNEL), DEFAULT.accessibilityChannel))
+        // Source specific.
+        .setCryptoType(bundle.getInt(keyForField(FIELD_CRYPTO_TYPE), DEFAULT.cryptoType));
 
-  };
+    return builder.build();
+  }
+
+  private static String keyForField(@FieldNumber int field) {
+    return Integer.toString(field, Character.MAX_RADIX);
+  }
+
+  private static String keyForInitializationData(int initialisationDataIndex) {
+    return keyForField(FIELD_INITIALIZATION_DATA)
+        + "_"
+        + Integer.toString(initialisationDataIndex, Character.MAX_RADIX);
+  }
+
+  @Nullable
+  private static <T> T defaultIfNull(@Nullable T value, @Nullable T defaultValue) {
+    return value != null ? value : defaultValue;
+  }
 }

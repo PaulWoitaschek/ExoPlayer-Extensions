@@ -22,9 +22,11 @@ import android.os.Handler;
 import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.extractor.DefaultExtractorInput;
+import com.google.android.exoplayer2.extractor.Extractor;
 import com.google.android.exoplayer2.extractor.ExtractorInput;
 import com.google.android.exoplayer2.extractor.ExtractorOutput;
 import com.google.android.exoplayer2.extractor.PositionHolder;
+import com.google.android.exoplayer2.upstream.DataSourceUtil;
 import com.google.android.exoplayer2.upstream.Loader;
 import com.google.android.exoplayer2.util.Util;
 import java.io.IOException;
@@ -56,7 +58,6 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
      */
     void onTransportReady(String transport, RtpDataChannel rtpDataChannel);
   }
-
 
   /** The track ID associated with the Loadable. */
   public final int trackId;
@@ -153,10 +154,16 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
           extractor.seek(nextRtpTimestamp, pendingSeekPositionUs);
           pendingSeekPositionUs = C.TIME_UNSET;
         }
-        extractor.read(extractorInput, /* seekPosition= */ new PositionHolder());
+
+        @Extractor.ReadResult
+        int readResult = extractor.read(extractorInput, /* seekPosition= */ new PositionHolder());
+        if (readResult == Extractor.RESULT_END_OF_INPUT) {
+          // Loading is finished.
+          break;
+        }
       }
     } finally {
-      Util.closeQuietly(dataChannel);
+      DataSourceUtil.closeQuietly(dataChannel);
     }
   }
 

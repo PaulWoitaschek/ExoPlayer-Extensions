@@ -20,9 +20,8 @@ import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.util.Util;
 import com.google.common.base.Ascii;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.Iterables;
 import java.util.List;
 import java.util.Map;
 
@@ -51,6 +50,7 @@ import java.util.Map;
   public static final String CSEQ = "CSeq";
   public static final String DATE = "Date";
   public static final String EXPIRES = "Expires";
+  public static final String LOCATION = "Location";
   public static final String PROXY_AUTHENTICATE = "Proxy-Authenticate";
   public static final String PROXY_REQUIRE = "Proxy-Require";
   public static final String PUBLIC = "Public";
@@ -67,13 +67,43 @@ import java.util.Map;
   public static final String VIA = "Via";
   public static final String WWW_AUTHENTICATE = "WWW-Authenticate";
 
+  /** An empty header object. */
+  public static final RtspHeaders EMPTY = new RtspHeaders.Builder().build();
+
   /** Builds {@link RtspHeaders} instances. */
   public static final class Builder {
-    private final List<String> namesAndValues;
+    private final ImmutableListMultimap.Builder<String, String> namesAndValuesBuilder;
 
     /** Creates a new instance. */
     public Builder() {
-      namesAndValues = new ArrayList<>();
+      namesAndValuesBuilder = new ImmutableListMultimap.Builder<>();
+    }
+
+    /**
+     * Creates a new instance with common header values.
+     *
+     * @param userAgent The user agent string.
+     * @param sessionId The RTSP session ID; use {@code null} when the session is not yet set up.
+     * @param cSeq The RTSP cSeq sequence number.
+     */
+    public Builder(String userAgent, @Nullable String sessionId, int cSeq) {
+      this();
+
+      add(USER_AGENT, userAgent);
+      add(CSEQ, String.valueOf(cSeq));
+      if (sessionId != null) {
+        add(SESSION, sessionId);
+      }
+    }
+
+    /**
+     * Creates a new instance to build upon the provided {@link RtspHeaders}.
+     *
+     * @param namesAndValuesBuilder A {@link ImmutableListMultimap.Builder} that this builder builds
+     *     upon.
+     */
+    private Builder(ImmutableListMultimap.Builder<String, String> namesAndValuesBuilder) {
+      this.namesAndValuesBuilder = namesAndValuesBuilder;
     }
 
     /**
@@ -84,8 +114,7 @@ import java.util.Map;
      * @return This builder.
      */
     public Builder add(String headerName, String headerValue) {
-      namesAndValues.add(headerName.trim());
-      namesAndValues.add(headerValue.trim());
+      namesAndValuesBuilder.put(convertToStandardHeaderName(headerName.trim()), headerValue.trim());
       return this;
     }
 
@@ -130,37 +159,132 @@ import java.util.Map;
     }
   }
 
-  private final ImmutableList<String> namesAndValues;
+  private final ImmutableListMultimap<String, String> namesAndValues;
 
-  /**
-   * Gets the headers as a map, where the keys are the header names and values are the header
-   * values.
-   *
-   * @return The headers as a map. The keys of the map have follows those that are used to build
-   *     this {@link RtspHeaders} instance.
-   */
-  public ImmutableMap<String, String> asMap() {
-    Map<String, String> headers = new LinkedHashMap<>();
-    for (int i = 0; i < namesAndValues.size(); i += 2) {
-      headers.put(namesAndValues.get(i), namesAndValues.get(i + 1));
+  @Override
+  public boolean equals(@Nullable Object obj) {
+    if (this == obj) {
+      return true;
     }
-    return ImmutableMap.copyOf(headers);
+    if (!(obj instanceof RtspHeaders)) {
+      return false;
+    }
+    RtspHeaders headers = (RtspHeaders) obj;
+    return namesAndValues.equals(headers.namesAndValues);
+  }
+
+  @Override
+  public int hashCode() {
+    return namesAndValues.hashCode();
+  }
+
+  /** Returns a {@link Builder} initialized with the values of this instance. */
+  public Builder buildUpon() {
+    ImmutableListMultimap.Builder<String, String> namesAndValuesBuilder =
+        new ImmutableListMultimap.Builder<>();
+    namesAndValuesBuilder.putAll(namesAndValues);
+    return new Builder(namesAndValuesBuilder);
   }
 
   /**
-   * Returns a header value mapped to the argument, {@code null} if the header name is not recorded.
+   * Returns a map that associates header names to the list of values associated with the
+   * corresponding header name.
+   */
+  public ImmutableListMultimap<String, String> asMultiMap() {
+    return namesAndValues;
+  }
+
+  /**
+   * Returns the most recent header value mapped to the argument, {@code null} if the header name is
+   * not recorded.
    */
   @Nullable
   public String get(String headerName) {
-    for (int i = namesAndValues.size() - 2; i >= 0; i -= 2) {
-      if (Ascii.equalsIgnoreCase(headerName, namesAndValues.get(i))) {
-        return namesAndValues.get(i + 1);
-      }
+    ImmutableList<String> headerValues = values(headerName);
+    if (headerValues.isEmpty()) {
+      return null;
     }
-    return null;
+    return Iterables.getLast(headerValues);
+  }
+
+  /**
+   * Returns a list of header values mapped to the argument, in the addition order. The returned
+   * list is empty if the header name is not recorded.
+   */
+  public ImmutableList<String> values(String headerName) {
+    return namesAndValues.get(convertToStandardHeaderName(headerName));
   }
 
   private RtspHeaders(Builder builder) {
-    this.namesAndValues = ImmutableList.copyOf(builder.namesAndValues);
+    this.namesAndValues = builder.namesAndValuesBuilder.build();
+  }
+
+  private static String convertToStandardHeaderName(String messageHeaderName) {
+    if (Ascii.equalsIgnoreCase(messageHeaderName, ACCEPT)) {
+      return ACCEPT;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, ALLOW)) {
+      return ALLOW;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, AUTHORIZATION)) {
+      return AUTHORIZATION;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, BANDWIDTH)) {
+      return BANDWIDTH;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, BLOCKSIZE)) {
+      return BLOCKSIZE;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, CACHE_CONTROL)) {
+      return CACHE_CONTROL;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, CONNECTION)) {
+      return CONNECTION;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, CONTENT_BASE)) {
+      return CONTENT_BASE;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, CONTENT_ENCODING)) {
+      return CONTENT_ENCODING;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, CONTENT_LANGUAGE)) {
+      return CONTENT_LANGUAGE;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, CONTENT_LENGTH)) {
+      return CONTENT_LENGTH;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, CONTENT_LOCATION)) {
+      return CONTENT_LOCATION;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, CONTENT_TYPE)) {
+      return CONTENT_TYPE;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, CSEQ)) {
+      return CSEQ;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, DATE)) {
+      return DATE;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, EXPIRES)) {
+      return EXPIRES;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, LOCATION)) {
+      return LOCATION;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, PROXY_AUTHENTICATE)) {
+      return PROXY_AUTHENTICATE;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, PROXY_REQUIRE)) {
+      return PROXY_REQUIRE;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, PUBLIC)) {
+      return PUBLIC;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, RANGE)) {
+      return RANGE;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, RTP_INFO)) {
+      return RTP_INFO;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, RTCP_INTERVAL)) {
+      return RTCP_INTERVAL;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, SCALE)) {
+      return SCALE;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, SESSION)) {
+      return SESSION;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, SPEED)) {
+      return SPEED;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, SUPPORTED)) {
+      return SUPPORTED;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, TIMESTAMP)) {
+      return TIMESTAMP;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, TRANSPORT)) {
+      return TRANSPORT;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, USER_AGENT)) {
+      return USER_AGENT;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, VIA)) {
+      return VIA;
+    } else if (Ascii.equalsIgnoreCase(messageHeaderName, WWW_AUTHENTICATE)) {
+      return WWW_AUTHENTICATE;
+    }
+    return messageHeaderName;
   }
 }

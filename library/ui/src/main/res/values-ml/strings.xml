@@ -37,22 +37,24 @@
     <item quantity="one">വേഗത്തിൽ %d സെക്കൻഡ് മുന്നോട്ട് നീക്കുക</item>
     <item quantity="other">വേഗത്തിൽ %d സെക്കൻഡ് മുന്നോട്ട് നീക്കുക</item>
   </plurals>
-  <string name="exo_controls_repeat_off_description">ഒന്നും ആവർത്തിക്കരുത്</string>
-  <string name="exo_controls_repeat_one_description">ഒരെണ്ണം ആവർത്തിക്കുക</string>
-  <string name="exo_controls_repeat_all_description">എല്ലാം ആവർത്തിക്കുക</string>
-  <string name="exo_controls_shuffle_on_description">ഇടകലർത്തൽ ഓണാക്കുക</string>
-  <string name="exo_controls_shuffle_off_description">ഇടകലർത്തൽ ഓഫാക്കുക</string>
+  <string name="exo_controls_repeat_off_description">നിലവിലെ മോഡ്: ഒന്നും ആവർത്തിക്കരുത്. ആവർത്തന മോഡ് മാറ്റൂ.</string>
+  <string name="exo_controls_repeat_one_description">നിലവിലെ മോഡ്: ഒന്ന് ആവർത്തിക്കുക. ആവർത്തന മോഡ് മാറ്റൂ.</string>
+  <string name="exo_controls_repeat_all_description">നിലവിലെ മോഡ്: എല്ലാം ആവർത്തിക്കുക. ആവർത്തന മോഡ് മാറ്റൂ.</string>
+  <string name="exo_controls_shuffle_on_description">ഷഫിൾ മോഡ് പ്രവർത്തനരഹിതമാക്കുക</string>
+  <string name="exo_controls_shuffle_off_description">ഷഫിൾ മോഡ് പ്രവർത്തനക്ഷമമാക്കുക</string>
   <string name="exo_controls_vr_description">VR മോഡ്</string>
   <string name="exo_controls_cc_enabled_description">സബ്‌ടൈറ്റിലുകൾ പ്രവർത്തനരഹിതമാക്കുക</string>
   <string name="exo_controls_cc_disabled_description">സബ്‌ടൈറ്റിലുകൾ പ്രവർത്തനക്ഷമമാക്കുക</string>
   <string name="exo_controls_playback_speed">വേഗത</string>
-  <string name="exo_controls_playback_speed_normal">സാധാരണം</string>
-  <string name="exo_download_description">ഡൗൺലോഡ്</string>
-  <string name="exo_download_notification_channel_name">ഡൗൺലോഡുകൾ</string>
-  <string name="exo_download_downloading">ഡൗൺലോഡ് ചെയ്യുന്നു</string>
-  <string name="exo_download_completed">ഡൗൺലോഡ് പൂർത്തിയായി</string>
-  <string name="exo_download_failed">ഡൗൺലോഡ് പരാജയപ്പെട്ടു</string>
-  <string name="exo_download_removing">ഡൗൺലോഡുകൾ നീക്കം ചെയ്യുന്നു</string>
+  <string-array name="exo_controls_playback_speeds">
+    <item>0.25x</item>
+    <item>0.5x</item>
+    <item>0.75x</item>
+    <item>സാധാരണ വേഗത്തിൽ</item>
+    <item>1.25x</item>
+    <item>1.5x</item>
+    <item>2x</item>
+  </string-array>
   <string name="exo_track_selection_title_video">വീഡിയോ</string>
   <string name="exo_track_selection_title_audio">ഓഡിയോ</string>
   <string name="exo_track_selection_title_text">ടെക്‌സ്റ്റ്</string>

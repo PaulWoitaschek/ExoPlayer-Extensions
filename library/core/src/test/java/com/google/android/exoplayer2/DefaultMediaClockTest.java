@@ -25,6 +25,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import com.google.android.exoplayer2.DefaultMediaClock.PlaybackParametersListener;
 import com.google.android.exoplayer2.testutil.FakeClock;
 import com.google.android.exoplayer2.testutil.FakeMediaClockRenderer;
+import com.google.android.exoplayer2.util.Util;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -263,7 +264,7 @@ public class DefaultMediaClockTest {
     mediaClock.onRendererDisabled(mediaClockRenderer);
     fakeClock.advanceTime(SLEEP_TIME_MS);
     assertThat(mediaClock.syncAndGetPositionUs(/* isReadingAhead= */ false))
-        .isEqualTo(TEST_POSITION_US + C.msToUs(SLEEP_TIME_MS));
+        .isEqualTo(TEST_POSITION_US + Util.msToUs(SLEEP_TIME_MS));
     assertClockIsRunning(/* isReadingAhead= */ false);
   }
 
@@ -282,8 +283,9 @@ public class DefaultMediaClockTest {
 
   @Test
   public void rendererNotReady_shouldStillUseRendererClock() throws ExoPlaybackException {
-    MediaClockRenderer mediaClockRenderer = new MediaClockRenderer(/* isReady= */ false,
-        /* isEnded= */ false, /* hasReadStreamToEnd= */ false);
+    MediaClockRenderer mediaClockRenderer =
+        new MediaClockRenderer(
+            /* isReady= */ false, /* isEnded= */ false, /* hasReadStreamToEnd= */ false);
     mediaClock.start();
     mediaClock.onRendererEnabled(mediaClockRenderer);
     // We're not advancing the renderer media clock. Thus, the clock should appear to be stopped.
@@ -293,8 +295,9 @@ public class DefaultMediaClockTest {
   @Test
   public void rendererNotReadyAndReadStreamToEnd_shouldFallbackToStandaloneClock()
       throws ExoPlaybackException {
-    MediaClockRenderer mediaClockRenderer = new MediaClockRenderer(/* isReady= */ false,
-        /* isEnded= */ false, /* hasReadStreamToEnd= */ true);
+    MediaClockRenderer mediaClockRenderer =
+        new MediaClockRenderer(
+            /* isReady= */ false, /* isEnded= */ false, /* hasReadStreamToEnd= */ true);
     mediaClock.start();
     mediaClock.onRendererEnabled(mediaClockRenderer);
     assertClockIsRunning(/* isReadingAhead= */ false);
@@ -312,28 +315,26 @@ public class DefaultMediaClockTest {
   }
 
   @Test
-  public void rendererEnded_shouldFallbackToStandaloneClock()
-      throws ExoPlaybackException {
-    MediaClockRenderer mediaClockRenderer = new MediaClockRenderer(/* isReady= */ true,
-        /* isEnded= */ true, /* hasReadStreamToEnd= */ true);
+  public void rendererEnded_shouldFallbackToStandaloneClock() throws ExoPlaybackException {
+    MediaClockRenderer mediaClockRenderer =
+        new MediaClockRenderer(
+            /* isReady= */ true, /* isEnded= */ true, /* hasReadStreamToEnd= */ true);
     mediaClock.start();
     mediaClock.onRendererEnabled(mediaClockRenderer);
     assertClockIsRunning(/* isReadingAhead= */ false);
   }
 
   @Test
-  public void staleDisableRendererClock_shouldNotThrow()
-      throws ExoPlaybackException {
+  public void staleDisableRendererClock_shouldNotThrow() throws ExoPlaybackException {
     MediaClockRenderer mediaClockRenderer = new MediaClockRenderer();
     mediaClockRenderer.positionUs = TEST_POSITION_US;
     mediaClock.onRendererDisabled(mediaClockRenderer);
     assertThat(mediaClock.syncAndGetPositionUs(/* isReadingAhead= */ false))
-        .isEqualTo(C.msToUs(fakeClock.elapsedRealtime()));
+        .isEqualTo(Util.msToUs(fakeClock.elapsedRealtime()));
   }
 
   @Test
-  public void enableSameRendererClockTwice_shouldNotThrow()
-      throws ExoPlaybackException {
+  public void enableSameRendererClockTwice_shouldNotThrow() throws ExoPlaybackException {
     MediaClockRenderer mediaClockRenderer = new MediaClockRenderer();
     mediaClock.onRendererEnabled(mediaClockRenderer);
     mediaClock.onRendererEnabled(mediaClockRenderer);
@@ -343,8 +344,7 @@ public class DefaultMediaClockTest {
   }
 
   @Test
-  public void enableOtherRendererClock_shouldThrow()
-      throws ExoPlaybackException {
+  public void enableOtherRendererClock_shouldThrow() throws ExoPlaybackException {
     MediaClockRenderer mediaClockRenderer1 = new MediaClockRenderer();
     MediaClockRenderer mediaClockRenderer2 = new MediaClockRenderer();
     mediaClockRenderer1.positionUs = TEST_POSITION_US;
@@ -459,5 +459,4 @@ public class DefaultMediaClockTest {
       return isEnded;
     }
   }
-
 }

@@ -45,19 +45,31 @@ public final class SinglePeriodTimelineTest {
   public void getPeriodPositionDynamicWindowUnknownDuration() {
     SinglePeriodTimeline timeline =
         new SinglePeriodTimeline(
-            C.TIME_UNSET,
+            /* durationUs= */ C.TIME_UNSET,
             /* isSeekable= */ false,
             /* isDynamic= */ true,
             /* isLive= */ true,
             /* manifest= */ null,
             MediaItem.fromUri(Uri.EMPTY));
     // Should return null with any positive position projection.
-    Pair<Object, Long> position = timeline.getPeriodPosition(window, period, 0, C.TIME_UNSET, 1);
-    assertThat(position).isNull();
+    Pair<Object, Long> positionUs =
+        timeline.getPeriodPositionUs(
+            window,
+            period,
+            /* windowIndex= */ 0,
+            /* windowPositionUs= */ C.TIME_UNSET,
+            /* defaultPositionProjectionUs= */ 1);
+    assertThat(positionUs).isNull();
     // Should return (0, 0) without a position projection.
-    position = timeline.getPeriodPosition(window, period, 0, C.TIME_UNSET, 0);
-    assertThat(position.first).isEqualTo(timeline.getUidOfPeriod(0));
-    assertThat(position.second).isEqualTo(0);
+    positionUs =
+        timeline.getPeriodPositionUs(
+            window,
+            period,
+            /* windowIndex= */ 0,
+            /* windowPositionUs= */ C.TIME_UNSET,
+            /* defaultPositionProjectionUs= */ 0);
+    assertThat(positionUs.first).isEqualTo(timeline.getUidOfPeriod(0));
+    assertThat(positionUs.second).isEqualTo(0);
   }
 
   @Test
@@ -75,17 +87,34 @@ public final class SinglePeriodTimelineTest {
             /* manifest= */ null,
             MediaItem.fromUri(Uri.EMPTY));
     // Should return null with a positive position projection beyond window duration.
-    Pair<Object, Long> position =
-        timeline.getPeriodPosition(window, period, 0, C.TIME_UNSET, windowDurationUs + 1);
-    assertThat(position).isNull();
+    Pair<Object, Long> positionUs =
+        timeline.getPeriodPositionUs(
+            window,
+            period,
+            /* windowIndex= */ 0,
+            /* windowPositionUs= */ C.TIME_UNSET,
+            /* defaultPositionProjectionUs= */ windowDurationUs + 1);
+    assertThat(positionUs).isNull();
     // Should return (0, duration) with a projection equal to window duration.
-    position = timeline.getPeriodPosition(window, period, 0, C.TIME_UNSET, windowDurationUs);
-    assertThat(position.first).isEqualTo(timeline.getUidOfPeriod(0));
-    assertThat(position.second).isEqualTo(windowDurationUs);
+    positionUs =
+        timeline.getPeriodPositionUs(
+            window,
+            period,
+            /* windowIndex= */ 0,
+            /* windowPositionUs= */ C.TIME_UNSET,
+            /* defaultPositionProjectionUs= */ windowDurationUs - 1);
+    assertThat(positionUs.first).isEqualTo(timeline.getUidOfPeriod(0));
+    assertThat(positionUs.second).isEqualTo(windowDurationUs - 1);
     // Should return (0, 0) without a position projection.
-    position = timeline.getPeriodPosition(window, period, 0, C.TIME_UNSET, 0);
-    assertThat(position.first).isEqualTo(timeline.getUidOfPeriod(0));
-    assertThat(position.second).isEqualTo(0);
+    positionUs =
+        timeline.getPeriodPositionUs(
+            window,
+            period,
+            /* windowIndex= */ 0,
+            /* windowPositionUs= */ C.TIME_UNSET,
+            /* defaultPositionProjectionUs= */ 0);
+    assertThat(positionUs.first).isEqualTo(timeline.getUidOfPeriod(0));
+    assertThat(positionUs.second).isEqualTo(0);
   }
 
   @Test
@@ -101,7 +130,7 @@ public final class SinglePeriodTimelineTest {
             new MediaItem.Builder().setUri(Uri.EMPTY).setTag(null).build());
 
     assertThat(timeline.getWindow(/* windowIndex= */ 0, window).tag).isNull();
-    assertThat(timeline.getWindow(/* windowIndex= */ 0, window).mediaItem.playbackProperties.tag)
+    assertThat(timeline.getWindow(/* windowIndex= */ 0, window).mediaItem.localConfiguration.tag)
         .isNull();
     assertThat(timeline.getPeriod(/* periodIndex= */ 0, period, /* setIds= */ false).id).isNull();
     assertThat(timeline.getPeriod(/* periodIndex= */ 0, period, /* setIds= */ true).id).isNull();
@@ -143,7 +172,7 @@ public final class SinglePeriodTimelineTest {
     Window window = timeline.getWindow(/* windowIndex= */ 0, this.window);
 
     assertThat(window.mediaItem).isEqualTo(mediaItem);
-    assertThat(window.tag).isEqualTo(mediaItem.playbackProperties.tag);
+    assertThat(window.tag).isEqualTo(mediaItem.localConfiguration.tag);
   }
 
   @Test

@@ -24,16 +24,16 @@ import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.ParserException;
 import com.google.android.exoplayer2.extractor.VorbisUtil;
 import com.google.android.exoplayer2.extractor.VorbisUtil.Mode;
+import com.google.android.exoplayer2.metadata.Metadata;
 import com.google.android.exoplayer2.util.MimeTypes;
 import com.google.android.exoplayer2.util.ParsableByteArray;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
 
-/**
- * {@link StreamReader} to extract Vorbis data out of Ogg byte stream.
- */
+/** {@link StreamReader} to extract Vorbis data out of Ogg byte stream. */
 /* package */ final class VorbisReader extends StreamReader {
 
   @Nullable private VorbisSetup vorbisSetup;
@@ -81,8 +81,8 @@ import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
     int packetBlockSize = decodeBlockSize(packet.getData()[0], checkStateNotNull(vorbisSetup));
     // a packet contains samples produced from overlapping the previous and current frame data
     // (https://www.xiph.org/vorbis/doc/Vorbis_I_spec.html#x1-350001.3.2)
-    int samplesInPacket = seenFirstAudioPacket ? (packetBlockSize + previousPacketBlockSize) / 4
-        : 0;
+    int samplesInPacket =
+        seenFirstAudioPacket ? (packetBlockSize + previousPacketBlockSize) / 4 : 0;
     // codec expects the number of samples appended to audio data
     appendNumberOfSamples(packet, samplesInPacket);
 
@@ -113,6 +113,10 @@ import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
     codecInitializationData.add(idHeader.data);
     codecInitializationData.add(vorbisSetup.setupHeaderData);
 
+    @Nullable
+    Metadata metadata =
+        VorbisUtil.parseVorbisComments(ImmutableList.copyOf(vorbisSetup.commentHeader.comments));
+
     setupData.format =
         new Format.Builder()
             .setSampleMimeType(MimeTypes.AUDIO_VORBIS)
@@ -121,6 +125,7 @@ import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
             .setChannelCount(idHeader.channels)
             .setSampleRate(idHeader.sampleRate)
             .setInitializationData(codecInitializationData)
+            .setMetadata(metadata)
             .build();
     return true;
   }
@@ -196,9 +201,7 @@ import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
     return currentBlockSize;
   }
 
-  /**
-   * Class to hold all data read from Vorbis setup headers.
-   */
+  /** Class to hold all data read from Vorbis setup headers. */
   /* package */ static final class VorbisSetup {
 
     public final VorbisUtil.VorbisIdHeader idHeader;
@@ -207,15 +210,17 @@ import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
     public final Mode[] modes;
     public final int iLogModes;
 
-    public VorbisSetup(VorbisUtil.VorbisIdHeader idHeader, VorbisUtil.CommentHeader
-        commentHeader, byte[] setupHeaderData, Mode[] modes, int iLogModes) {
+    public VorbisSetup(
+        VorbisUtil.VorbisIdHeader idHeader,
+        VorbisUtil.CommentHeader commentHeader,
+        byte[] setupHeaderData,
+        Mode[] modes,
+        int iLogModes) {
       this.idHeader = idHeader;
       this.commentHeader = commentHeader;
       this.setupHeaderData = setupHeaderData;
       this.modes = modes;
       this.iLogModes = iLogModes;
     }
-
   }
-
 }

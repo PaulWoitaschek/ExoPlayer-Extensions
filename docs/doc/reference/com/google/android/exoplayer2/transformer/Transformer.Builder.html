@@ -1,4 +1,4 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!DOCTYPE HTML>
 <!-- NewPage -->
 <html lang="en">
 <head><!-- start favicons snippet, use https://realfavicongenerator.net/ --><link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png"><link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png"><link rel="manifest" href="/assets/site.webmanifest"><link rel="mask-icon" href="/assets/safari-pinned-tab.svg" color="#fc4d50"><link rel="shortcut icon" href="/assets/favicon.ico"><meta name="msapplication-TileColor" content="#ffc40d"><meta name="msapplication-config" content="/assets/browserconfig.xml"><meta name="theme-color" content="#ffffff"><!-- end favicons snippet -->
@@ -12,7 +12,7 @@
 <!--[if IE]>
 <script type="text/javascript" src="../../../../../jquery/jszip-utils/dist/jszip-utils-ie.min.js"></script>
 <![endif]-->
-<script type="text/javascript" src="../../../../../jquery/jquery-1.10.2.js"></script>
+<script type="text/javascript" src="../../../../../jquery/jquery-3.5.1.js"></script>
 <script type="text/javascript" src="../../../../../jquery/jquery-ui.js"></script>
 </head>
 <body>
@@ -25,27 +25,31 @@
     catch(err) {
     }
 //-->
-var methods = {"i0":10,"i1":10,"i2":10,"i3":10,"i4":10,"i5":10,"i6":10,"i7":10,"i8":10};
-var tabs = {65535:["t0","All Methods"],2:["t2","Instance Methods"],8:["t4","Concrete Methods"]};
+var data = {"i0":10,"i1":10,"i2":10,"i3":10,"i4":42,"i5":10,"i6":10,"i7":10,"i8":42,"i9":42,"i10":10,"i11":10,"i12":42,"i13":10,"i14":10,"i15":10,"i16":10};
+var tabs = {65535:["t0","All Methods"],2:["t2","Instance Methods"],8:["t4","Concrete Methods"],32:["t6","Deprecated Methods"]};
 var altColor = "altColor";
 var rowColor = "rowColor";
 var tableTab = "tableTab";
 var activeTableTab = "activeTableTab";
-var pathtoroot = "../../../../../";loadScripts(document, 'script');</script>
+var pathtoroot = "../../../../../";
+var useModuleDirectories = false;
+loadScripts(document, 'script');</script>
 <noscript>
 <div>JavaScript is disabled on your browser.</div>
 </noscript>
+<header role="banner">
+<nav role="navigation">
 <div class="fixedNav">
 <!-- ========= START OF TOP NAVBAR ======= -->
-<div class="topNav"><a name="navbar.top">
+<div class="topNav"><a id="navbar.top">
 <!--   -->
 </a>
 <div class="skipNav"><a href="#skip.navbar.top" title="Skip navigation links">Skip navigation links</a></div>
-<a name="navbar.top.firstrow">
+<a id="navbar.top.firstrow">
 <!--   -->
 </a>
 <ul class="navList" title="Navigation">
-<li><a href="../../../../../overview-summary.html">Overview</a></li>
+<li><a href="../../../../../index.html">Overview</a></li>
 <li><a href="package-summary.html">Package</a></li>
 <li class="navBarCell1Rev">Class</li>
 <li><a href="package-tree.html">Tree</a></li>
@@ -55,16 +59,8 @@ var pathtoroot = "../../../../../";loadScripts(document, 'script');</script>
 </ul>
 </div>
 <div class="subNav">
-<ul class="navList">
-<li><a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.html" title="class in com.google.android.exoplayer2.transformer"><span class="typeNameLink">Prev&nbsp;Class</span></a></li>
-<li><a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Listener.html" title="interface in com.google.android.exoplayer2.transformer"><span class="typeNameLink">Next&nbsp;Class</span></a></li>
-</ul>
-<ul class="navList">
-<li><a href="../../../../../index.html?com/google/android/exoplayer2/transformer/Transformer.Builder.html" target="_top">Frames</a></li>
-<li><a href="Transformer.Builder.html" target="_top">No&nbsp;Frames</a></li>
-</ul>
 <ul class="navList" id="allclasses_navbar_top">
-<li><a href="../../../../../allclasses-noframe.html">All&nbsp;Classes</a></li>
+<li><a href="../../../../../allclasses.html">All&nbsp;Classes</a></li>
 </ul>
 <ul class="navListSearch">
 <li><label for="search">SEARCH:</label>
@@ -102,7 +98,7 @@ var pathtoroot = "../../../../../";loadScripts(document, 'script');</script>
 <li><a href="#method.detail">Method</a></li>
 </ul>
 </div>
-<a name="skip.navbar.top">
+<a id="skip.navbar.top">
 <!--   -->
 </a></div>
 <!-- ========= END OF TOP NAVBAR ========= -->
@@ -112,9 +108,12 @@ var pathtoroot = "../../../../../";loadScripts(document, 'script');</script>
 $('.navPadding').css('padding-top', $('.fixedNav').css("height"));
 //-->
 </script>
+</nav>
+</header>
 <!-- ======== START OF CLASS DATA ======== -->
+<main role="main">
 <div class="header">
-<div class="subTitle"><span class="packageLabelInType">Package</span>&nbsp;<a href="../../../../../com/google/android/exoplayer2/transformer/package-summary.html">com.google.android.exoplayer2.transformer</a></div>
+<div class="subTitle"><span class="packageLabelInType">Package</span>&nbsp;<a href="package-summary.html">com.google.android.exoplayer2.transformer</a></div>
 <h2 title="Class Transformer.Builder" class="title">Class Transformer.Builder</h2>
 </div>
 <div class="contentContainer">
@@ -131,12 +130,12 @@ $('.navPadding').css('padding-top', $('.fixedNav').css("height"));
 <li class="blockList">
 <dl>
 <dt>Enclosing class:</dt>
-<dd><a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.html" title="class in com.google.android.exoplayer2.transformer">Transformer</a></dd>
+<dd><a href="Transformer.html" title="class in com.google.android.exoplayer2.transformer">Transformer</a></dd>
 </dl>
 <hr>
 <pre>public static final class <span class="typeNameLabel">Transformer.Builder</span>
 extends <a href="https://developer.android.com/reference/java/lang/Object.html" title="class or interface in java.lang" class="externalLink" target="_top">Object</a></pre>
-<div class="block">A builder for <a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.html" title="class in com.google.android.exoplayer2.transformer"><code>Transformer</code></a> instances.</div>
+<div class="block">A builder for <a href="Transformer.html" title="class in com.google.android.exoplayer2.transformer"><code>Transformer</code></a> instances.</div>
 </li>
 </ul>
 </div>
@@ -144,19 +143,28 @@ extends <a href="https://developer.android.com/reference/java/lang/Object.html" 
 <ul class="blockList">
 <li class="blockList">
 <!-- ======== CONSTRUCTOR SUMMARY ======== -->
+<section role="region">
 <ul class="blockList">
-<li class="blockList"><a name="constructor.summary">
+<li class="blockList"><a id="constructor.summary">
 <!--   -->
 </a>
 <h3>Constructor Summary</h3>
-<table class="memberSummary" summary="Constructor Summary table, listing constructors, and an explanation">
+<table class="memberSummary">
 <caption><span>Constructors</span><span class="tabEnd">&nbsp;</span></caption>
 <tr>
 <th class="colFirst" scope="col">Constructor</th>
 <th class="colLast" scope="col">Description</th>
 </tr>
 <tr class="altColor">
-<th class="colConstructorName" scope="row"><code><span class="memberNameLink"><a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html#Builder--">Builder</a></span>()</code></th>
+<th class="colConstructorName" scope="row"><code><span class="memberNameLink"><a href="#%3Cinit%3E()">Builder</a></span>()</code></th>
+<td class="colLast">
+<div class="block"><span class="deprecatedLabel">Deprecated.</span>
+<div class="deprecationComment">Use <a href="#%3Cinit%3E(android.content.Context)"><code>Builder(Context)</code></a> instead.</div>
+</div>
+</td>
+</tr>
+<tr class="rowColor">
+<th class="colConstructorName" scope="row"><code><span class="memberNameLink"><a href="#%3Cinit%3E(android.content.Context)">Builder</a></span>&#8203;(<a href="https://developer.android.com/reference/android/content/Context.html" title="class or interface in android.content" class="externalLink" target="_top">Context</a>&nbsp;context)</code></th>
 <td class="colLast">
 <div class="block">Creates a builder with default values.</div>
 </td>
@@ -164,93 +172,163 @@ extends <a href="https://developer.android.com/reference/java/lang/Object.html" 
 </table>
 </li>
 </ul>
+</section>
 <!-- ========== METHOD SUMMARY =========== -->
+<section role="region">
 <ul class="blockList">
-<li class="blockList"><a name="method.summary">
+<li class="blockList"><a id="method.summary">
 <!--   -->
 </a>
 <h3>Method Summary</h3>
-<table class="memberSummary" summary="Method Summary table, listing methods, and an explanation">
-<caption><span id="t0" class="activeTableTab"><span>All Methods</span><span class="tabEnd">&nbsp;</span></span><span id="t2" class="tableTab"><span><a href="javascript:show(2);">Instance Methods</a></span><span class="tabEnd">&nbsp;</span></span><span id="t4" class="tableTab"><span><a href="javascript:show(8);">Concrete Methods</a></span><span class="tabEnd">&nbsp;</span></span></caption>
+<table class="memberSummary">
+<caption><span id="t0" class="activeTableTab"><span>All Methods</span><span class="tabEnd">&nbsp;</span></span><span id="t2" class="tableTab"><span><a href="javascript:show(2);">Instance Methods</a></span><span class="tabEnd">&nbsp;</span></span><span id="t4" class="tableTab"><span><a href="javascript:show(8);">Concrete Methods</a></span><span class="tabEnd">&nbsp;</span></span><span id="t6" class="tableTab"><span><a href="javascript:show(32);">Deprecated Methods</a></span><span class="tabEnd">&nbsp;</span></span></caption>
 <tr>
 <th class="colFirst" scope="col">Modifier and Type</th>
 <th class="colSecond" scope="col">Method</th>
 <th class="colLast" scope="col">Description</th>
 </tr>
 <tr id="i0" class="altColor">
-<td class="colFirst"><code><a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.html" title="class in com.google.android.exoplayer2.transformer">Transformer</a></code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html#build--">build</a></span>()</code></th>
+<td class="colFirst"><code><a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#addListener(com.google.android.exoplayer2.transformer.Transformer.Listener)">addListener</a></span>&#8203;(<a href="Transformer.Listener.html" title="interface in com.google.android.exoplayer2.transformer">Transformer.Listener</a>&nbsp;listener)</code></th>
 <td class="colLast">
-<div class="block">Builds a <a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.html" title="class in com.google.android.exoplayer2.transformer"><code>Transformer</code></a> instance.</div>
+<div class="block">Adds a <a href="Transformer.Listener.html" title="interface in com.google.android.exoplayer2.transformer"><code>Transformer.Listener</code></a> to listen to the transformation events.</div>
 </td>
 </tr>
 <tr id="i1" class="rowColor">
-<td class="colFirst"><code><a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a></code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html#setContext-android.content.Context-">setContext</a></span>&#8203;(<a href="https://developer.android.com/reference/android/content/Context.html" title="class or interface in android.content" class="externalLink" target="_top">Context</a>&nbsp;context)</code></th>
+<td class="colFirst"><code><a href="Transformer.html" title="class in com.google.android.exoplayer2.transformer">Transformer</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#build()">build</a></span>()</code></th>
 <td class="colLast">
-<div class="block">Sets the <a href="https://developer.android.com/reference/android/content/Context.html" title="class or interface in android.content" class="externalLink" target="_top"><code>Context</code></a>.</div>
+<div class="block">Builds a <a href="Transformer.html" title="class in com.google.android.exoplayer2.transformer"><code>Transformer</code></a> instance.</div>
 </td>
 </tr>
 <tr id="i2" class="altColor">
-<td class="colFirst"><code><a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a></code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html#setFlattenForSlowMotion-boolean-">setFlattenForSlowMotion</a></span>&#8203;(boolean&nbsp;flattenForSlowMotion)</code></th>
+<td class="colFirst"><code><a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#removeAllListeners()">removeAllListeners</a></span>()</code></th>
 <td class="colLast">
-<div class="block">Sets whether the input should be flattened for media containing slow motion markers.</div>
+<div class="block">Removes all <a href="Transformer.Listener.html" title="interface in com.google.android.exoplayer2.transformer">listeners</a>.</div>
 </td>
 </tr>
 <tr id="i3" class="rowColor">
-<td class="colFirst"><code><a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a></code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html#setListener-com.google.android.exoplayer2.transformer.Transformer.Listener-">setListener</a></span>&#8203;(<a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Listener.html" title="interface in com.google.android.exoplayer2.transformer">Transformer.Listener</a>&nbsp;listener)</code></th>
+<td class="colFirst"><code><a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#removeListener(com.google.android.exoplayer2.transformer.Transformer.Listener)">removeListener</a></span>&#8203;(<a href="Transformer.Listener.html" title="interface in com.google.android.exoplayer2.transformer">Transformer.Listener</a>&nbsp;listener)</code></th>
 <td class="colLast">
-<div class="block">Sets the <a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Listener.html" title="interface in com.google.android.exoplayer2.transformer"><code>Transformer.Listener</code></a> to listen to the transformation events.</div>
+<div class="block">Removes a <a href="Transformer.Listener.html" title="interface in com.google.android.exoplayer2.transformer"><code>Transformer.Listener</code></a>.</div>
 </td>
 </tr>
 <tr id="i4" class="altColor">
-<td class="colFirst"><code><a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a></code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html#setLooper-android.os.Looper-">setLooper</a></span>&#8203;(<a href="https://developer.android.com/reference/android/os/Looper.html" title="class or interface in android.os" class="externalLink" target="_top">Looper</a>&nbsp;looper)</code></th>
+<td class="colFirst"><code><a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#setContext(android.content.Context)">setContext</a></span>&#8203;(<a href="https://developer.android.com/reference/android/content/Context.html" title="class or interface in android.content" class="externalLink" target="_top">Context</a>&nbsp;context)</code></th>
+<td class="colLast">
+<div class="block"><span class="deprecatedLabel">Deprecated.</span>
+<div class="deprecationComment">Use <a href="#%3Cinit%3E(android.content.Context)"><code>Builder(Context)</code></a> instead.</div>
+</div>
+</td>
+</tr>
+<tr id="i5" class="rowColor">
+<td class="colFirst"><code><a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#setDebugViewProvider(com.google.android.exoplayer2.transformer.Transformer.DebugViewProvider)">setDebugViewProvider</a></span>&#8203;(<a href="Transformer.DebugViewProvider.html" title="interface in com.google.android.exoplayer2.transformer">Transformer.DebugViewProvider</a>&nbsp;debugViewProvider)</code></th>
+<td class="colLast">
+<div class="block">Sets a provider for views to show diagnostic information (if available) during
+ transformation.</div>
+</td>
+</tr>
+<tr id="i6" class="altColor">
+<td class="colFirst"><code><a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#setDecoderFactory(com.google.android.exoplayer2.transformer.Codec.DecoderFactory)">setDecoderFactory</a></span>&#8203;(<a href="Codec.DecoderFactory.html" title="interface in com.google.android.exoplayer2.transformer">Codec.DecoderFactory</a>&nbsp;decoderFactory)</code></th>
+<td class="colLast">
+<div class="block">Sets the <a href="Codec.DecoderFactory.html" title="interface in com.google.android.exoplayer2.transformer"><code>Codec.DecoderFactory</code></a> that will be used by the transformer.</div>
+</td>
+</tr>
+<tr id="i7" class="rowColor">
+<td class="colFirst"><code><a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#setEncoderFactory(com.google.android.exoplayer2.transformer.Codec.EncoderFactory)">setEncoderFactory</a></span>&#8203;(<a href="Codec.EncoderFactory.html" title="interface in com.google.android.exoplayer2.transformer">Codec.EncoderFactory</a>&nbsp;encoderFactory)</code></th>
+<td class="colLast">
+<div class="block">Sets the <a href="Codec.EncoderFactory.html" title="interface in com.google.android.exoplayer2.transformer"><code>Codec.EncoderFactory</code></a> that will be used by the transformer.</div>
+</td>
+</tr>
+<tr id="i8" class="altColor">
+<td class="colFirst"><code><a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#setFlattenForSlowMotion(boolean)">setFlattenForSlowMotion</a></span>&#8203;(boolean&nbsp;flattenForSlowMotion)</code></th>
+<td class="colLast">
+<div class="block"><span class="deprecatedLabel">Deprecated.</span>
+<div class="deprecationComment">Use <a href="TransformationRequest.Builder.html#setFlattenForSlowMotion(boolean)"><code>TransformationRequest.Builder.setFlattenForSlowMotion(boolean)</code></a>
+     instead.</div>
+</div>
+</td>
+</tr>
+<tr id="i9" class="rowColor">
+<td class="colFirst"><code><a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#setListener(com.google.android.exoplayer2.transformer.Transformer.Listener)">setListener</a></span>&#8203;(<a href="Transformer.Listener.html" title="interface in com.google.android.exoplayer2.transformer">Transformer.Listener</a>&nbsp;listener)</code></th>
+<td class="colLast">
+<div class="block"><span class="deprecatedLabel">Deprecated.</span>
+<div class="deprecationComment">Use <a href="#addListener(com.google.android.exoplayer2.transformer.Transformer.Listener)"><code>addListener(Listener)</code></a>, <a href="#removeListener(com.google.android.exoplayer2.transformer.Transformer.Listener)"><code>removeListener(Listener)</code></a> or <a href="#removeAllListeners()"><code>removeAllListeners()</code></a> instead.</div>
+</div>
+</td>
+</tr>
+<tr id="i10" class="altColor">
+<td class="colFirst"><code><a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#setLooper(android.os.Looper)">setLooper</a></span>&#8203;(<a href="https://developer.android.com/reference/android/os/Looper.html" title="class or interface in android.os" class="externalLink" target="_top">Looper</a>&nbsp;looper)</code></th>
 <td class="colLast">
 <div class="block">Sets the <a href="https://developer.android.com/reference/android/os/Looper.html" title="class or interface in android.os" class="externalLink" target="_top"><code>Looper</code></a> that must be used for all calls to the transformer and that is used
  to call listeners on.</div>
 </td>
 </tr>
-<tr id="i5" class="rowColor">
-<td class="colFirst"><code><a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a></code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html#setMediaSourceFactory-com.google.android.exoplayer2.source.MediaSourceFactory-">setMediaSourceFactory</a></span>&#8203;(<a href="../../../../../com/google/android/exoplayer2/source/MediaSourceFactory.html" title="interface in com.google.android.exoplayer2.source">MediaSourceFactory</a>&nbsp;mediaSourceFactory)</code></th>
+<tr id="i11" class="rowColor">
+<td class="colFirst"><code><a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#setMediaSourceFactory(com.google.android.exoplayer2.source.MediaSource.Factory)">setMediaSourceFactory</a></span>&#8203;(<a href="../source/MediaSource.Factory.html" title="interface in com.google.android.exoplayer2.source">MediaSource.Factory</a>&nbsp;mediaSourceFactory)</code></th>
 <td class="colLast">
-<div class="block">Sets the <a href="../../../../../com/google/android/exoplayer2/source/MediaSourceFactory.html" title="interface in com.google.android.exoplayer2.source"><code>MediaSourceFactory</code></a> to be used to retrieve the inputs to transform.</div>
+<div class="block">Sets the <a href="../source/MediaSource.Factory.html" title="interface in com.google.android.exoplayer2.source"><code>MediaSource.Factory</code></a> to be used to retrieve the inputs to transform.</div>
 </td>
 </tr>
-<tr id="i6" class="altColor">
-<td class="colFirst"><code><a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a></code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html#setOutputMimeType-java.lang.String-">setOutputMimeType</a></span>&#8203;(<a href="https://developer.android.com/reference/java/lang/String.html" title="class or interface in java.lang" class="externalLink" target="_top">String</a>&nbsp;outputMimeType)</code></th>
+<tr id="i12" class="altColor">
+<td class="colFirst"><code><a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#setOutputMimeType(java.lang.String)">setOutputMimeType</a></span>&#8203;(<a href="https://developer.android.com/reference/java/lang/String.html" title="class or interface in java.lang" class="externalLink" target="_top">String</a>&nbsp;outputMimeType)</code></th>
 <td class="colLast">
-<div class="block">Sets the MIME type of the output.</div>
+<div class="block"><span class="deprecatedLabel">Deprecated.</span>
+<div class="deprecationComment">This feature will be removed in a following release and the MIME type of the
+     output will always be MP4.</div>
+</div>
 </td>
 </tr>
-<tr id="i7" class="rowColor">
-<td class="colFirst"><code><a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a></code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html#setRemoveAudio-boolean-">setRemoveAudio</a></span>&#8203;(boolean&nbsp;removeAudio)</code></th>
+<tr id="i13" class="rowColor">
+<td class="colFirst"><code><a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#setRemoveAudio(boolean)">setRemoveAudio</a></span>&#8203;(boolean&nbsp;removeAudio)</code></th>
 <td class="colLast">
 <div class="block">Sets whether to remove the audio from the output.</div>
 </td>
 </tr>
-<tr id="i8" class="altColor">
-<td class="colFirst"><code><a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a></code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html#setRemoveVideo-boolean-">setRemoveVideo</a></span>&#8203;(boolean&nbsp;removeVideo)</code></th>
+<tr id="i14" class="altColor">
+<td class="colFirst"><code><a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#setRemoveVideo(boolean)">setRemoveVideo</a></span>&#8203;(boolean&nbsp;removeVideo)</code></th>
 <td class="colLast">
 <div class="block">Sets whether to remove the video from the output.</div>
 </td>
 </tr>
+<tr id="i15" class="rowColor">
+<td class="colFirst"><code><a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#setTransformationRequest(com.google.android.exoplayer2.transformer.TransformationRequest)">setTransformationRequest</a></span>&#8203;(<a href="TransformationRequest.html" title="class in com.google.android.exoplayer2.transformer">TransformationRequest</a>&nbsp;transformationRequest)</code></th>
+<td class="colLast">
+<div class="block">Sets the <a href="TransformationRequest.html" title="class in com.google.android.exoplayer2.transformer"><code>TransformationRequest</code></a> which configures the editing and transcoding options.</div>
+</td>
+</tr>
+<tr id="i16" class="altColor">
+<td class="colFirst"><code><a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#setVideoFrameEffects(java.util.List)">setVideoFrameEffects</a></span>&#8203;(<a href="https://developer.android.com/reference/java/util/List.html" title="class or interface in java.util" class="externalLink">List</a>&lt;<a href="GlEffect.html" title="interface in com.google.android.exoplayer2.transformer" target="_top">GlEffect</a>&gt;&nbsp;effects)</code></th>
+<td class="colLast">
+<div class="block">Sets the <a href="GlEffect.html" title="interface in com.google.android.exoplayer2.transformer">effects</a> to apply to each video frame.</div>
+</td>
+</tr>
 </table>
 <ul class="blockList">
-<li class="blockList"><a name="methods.inherited.from.class.java.lang.Object">
+<li class="blockList"><a id="methods.inherited.from.class.java.lang.Object">
 <!--   -->
 </a>
 <h3>Methods inherited from class&nbsp;java.lang.<a href="https://developer.android.com/reference/java/lang/Object.html" title="class or interface in java.lang" class="externalLink" target="_top">Object</a></h3>
-<code><a href="https://developer.android.com/reference/java/lang/Object.html#clone--" title="class or interface in java.lang" class="externalLink">clone</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#equals-java.lang.Object-" title="class or interface in java.lang" class="externalLink">equals</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#finalize--" title="class or interface in java.lang" class="externalLink">finalize</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#getClass--" title="class or interface in java.lang" class="externalLink">getClass</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#hashCode--" title="class or interface in java.lang" class="externalLink">hashCode</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#notify--" title="class or interface in java.lang" class="externalLink">notify</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#notifyAll--" title="class or interface in java.lang" class="externalLink">notifyAll</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#toString--" title="class or interface in java.lang" class="externalLink">toString</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#wait--" title="class or interface in java.lang" class="externalLink">wait</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#wait-long-" title="class or interface in java.lang" class="externalLink">wait</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#wait-long-int-" title="class or interface in java.lang" class="externalLink" target="_top">wait</a></code></li>
+<code><a href="https://developer.android.com/reference/java/lang/Object.html#clone()" title="class or interface in java.lang" class="externalLink">clone</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#equals(java.lang.Object)" title="class or interface in java.lang" class="externalLink">equals</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#finalize()" title="class or interface in java.lang" class="externalLink">finalize</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#getClass()" title="class or interface in java.lang" class="externalLink">getClass</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#hashCode()" title="class or interface in java.lang" class="externalLink">hashCode</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#notify()" title="class or interface in java.lang" class="externalLink">notify</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#notifyAll()" title="class or interface in java.lang" class="externalLink">notifyAll</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#toString()" title="class or interface in java.lang" class="externalLink">toString</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#wait()" title="class or interface in java.lang" class="externalLink">wait</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#wait(long)" title="class or interface in java.lang" class="externalLink">wait</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#wait(long,int)" title="class or interface in java.lang" class="externalLink" target="_top">wait</a></code></li>
 </ul>
 </li>
 </ul>
+</section>
 </li>
 </ul>
 </div>
@@ -258,73 +336,128 @@ extends <a href="https://developer.android.com/reference/java/lang/Object.html" 
 <ul class="blockList">
 <li class="blockList">
 <!-- ========= CONSTRUCTOR DETAIL ======== -->
+<section role="region">
 <ul class="blockList">
-<li class="blockList"><a name="constructor.detail">
+<li class="blockList"><a id="constructor.detail">
 <!--   -->
 </a>
 <h3>Constructor Detail</h3>
-<a name="Builder--">
+<a id="&lt;init&gt;()">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>Builder</h4>
+<pre><a href="https://developer.android.com/reference/java/lang/Deprecated.html" title="class or interface in java.lang" class="externalLink" target="_top">@Deprecated</a>
+public&nbsp;Builder()</pre>
+<div class="deprecationBlock"><span class="deprecatedLabel">Deprecated.</span>
+<div class="deprecationComment">Use <a href="#%3Cinit%3E(android.content.Context)"><code>Builder(Context)</code></a> instead.</div>
+</div>
+</li>
+</ul>
+<a id="&lt;init&gt;(android.content.Context)">
 <!--   -->
 </a>
 <ul class="blockListLast">
 <li class="blockList">
 <h4>Builder</h4>
-<pre>public&nbsp;Builder()</pre>
+<pre>public&nbsp;Builder&#8203;(<a href="https://developer.android.com/reference/android/content/Context.html" title="class or interface in android.content" class="externalLink" target="_top">Context</a>&nbsp;context)</pre>
 <div class="block">Creates a builder with default values.</div>
+<dl>
+<dt><span class="paramLabel">Parameters:</span></dt>
+<dd><code>context</code> - The <a href="https://developer.android.com/reference/android/content/Context.html" title="class or interface in android.content" class="externalLink" target="_top"><code>Context</code></a>.</dd>
+</dl>
 </li>
 </ul>
 </li>
 </ul>
+</section>
 <!-- ============ METHOD DETAIL ========== -->
+<section role="region">
 <ul class="blockList">
-<li class="blockList"><a name="method.detail">
+<li class="blockList"><a id="method.detail">
 <!--   -->
 </a>
 <h3>Method Detail</h3>
-<a name="setContext-android.content.Context-">
+<a id="setContext(android.content.Context)">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
 <h4>setContext</h4>
-<pre>public&nbsp;<a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a>&nbsp;setContext&#8203;(<a href="https://developer.android.com/reference/android/content/Context.html" title="class or interface in android.content" class="externalLink" target="_top">Context</a>&nbsp;context)</pre>
-<div class="block">Sets the <a href="https://developer.android.com/reference/android/content/Context.html" title="class or interface in android.content" class="externalLink" target="_top"><code>Context</code></a>.
+<pre class="methodSignature"><a href="https://developer.android.com/reference/java/lang/Deprecated.html" title="class or interface in java.lang" class="externalLink" target="_top">@Deprecated</a>
+public&nbsp;<a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a>&nbsp;setContext&#8203;(<a href="https://developer.android.com/reference/android/content/Context.html" title="class or interface in android.content" class="externalLink" target="_top">Context</a>&nbsp;context)</pre>
+<div class="deprecationBlock"><span class="deprecatedLabel">Deprecated.</span>
+<div class="deprecationComment">Use <a href="#%3Cinit%3E(android.content.Context)"><code>Builder(Context)</code></a> instead.</div>
+</div>
+</li>
+</ul>
+<a id="setTransformationRequest(com.google.android.exoplayer2.transformer.TransformationRequest)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>setTransformationRequest</h4>
+<pre class="methodSignature">public&nbsp;<a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a>&nbsp;setTransformationRequest&#8203;(<a href="TransformationRequest.html" title="class in com.google.android.exoplayer2.transformer">TransformationRequest</a>&nbsp;transformationRequest)</pre>
+<div class="block">Sets the <a href="TransformationRequest.html" title="class in com.google.android.exoplayer2.transformer"><code>TransformationRequest</code></a> which configures the editing and transcoding options.
 
- <p>This parameter is mandatory.</div>
+ <p>Actual applied values may differ, per device capabilities. <a href="Transformer.Listener.html#onFallbackApplied(com.google.android.exoplayer2.MediaItem,com.google.android.exoplayer2.transformer.TransformationRequest,com.google.android.exoplayer2.transformer.TransformationRequest)"><code>Transformer.Listener.onFallbackApplied(MediaItem, TransformationRequest, TransformationRequest)</code></a> will be
+ invoked with the actual applied values.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
-<dd><code>context</code> - The <a href="https://developer.android.com/reference/android/content/Context.html" title="class or interface in android.content" class="externalLink" target="_top"><code>Context</code></a>.</dd>
+<dd><code>transformationRequest</code> - The <a href="TransformationRequest.html" title="class in com.google.android.exoplayer2.transformer"><code>TransformationRequest</code></a>.</dd>
 <dt><span class="returnLabel">Returns:</span></dt>
 <dd>This builder.</dd>
 </dl>
 </li>
 </ul>
-<a name="setMediaSourceFactory-com.google.android.exoplayer2.source.MediaSourceFactory-">
+<a id="setVideoFrameEffects(java.util.List)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>setVideoFrameEffects</h4>
+<pre class="methodSignature">public&nbsp;<a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a>&nbsp;setVideoFrameEffects&#8203;(<a href="https://developer.android.com/reference/java/util/List.html" title="class or interface in java.util" class="externalLink">List</a>&lt;<a href="GlEffect.html" title="interface in com.google.android.exoplayer2.transformer" target="_top">GlEffect</a>&gt;&nbsp;effects)</pre>
+<div class="block">Sets the <a href="GlEffect.html" title="interface in com.google.android.exoplayer2.transformer">effects</a> to apply to each video frame.
+
+ <p>The <a href="GlEffect.html" title="interface in com.google.android.exoplayer2.transformer">effects</a> are applied before any <a href="TransformationRequest.Builder.html#setScale(float,float)">scale</a>, <a href="TransformationRequest.Builder.html#setRotationDegrees(float)">rotation</a>, or <a href="TransformationRequest.Builder.html#setResolution(int)">resolution</a> changes specified in the <a href="#setTransformationRequest(com.google.android.exoplayer2.transformer.TransformationRequest)"><code>TransformationRequest</code></a> but after <a href="TransformationRequest.Builder.html#setFlattenForSlowMotion(boolean)">slow-motion flattening</a>.</div>
+<dl>
+<dt><span class="paramLabel">Parameters:</span></dt>
+<dd><code>effects</code> - The <a href="GlEffect.html" title="interface in com.google.android.exoplayer2.transformer">effects</a> to apply to each video frame.</dd>
+<dt><span class="returnLabel">Returns:</span></dt>
+<dd>This builder.</dd>
+</dl>
+</li>
+</ul>
+<a id="setMediaSourceFactory(com.google.android.exoplayer2.source.MediaSource.Factory)">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
 <h4>setMediaSourceFactory</h4>
-<pre>public&nbsp;<a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a>&nbsp;setMediaSourceFactory&#8203;(<a href="../../../../../com/google/android/exoplayer2/source/MediaSourceFactory.html" title="interface in com.google.android.exoplayer2.source">MediaSourceFactory</a>&nbsp;mediaSourceFactory)</pre>
-<div class="block">Sets the <a href="../../../../../com/google/android/exoplayer2/source/MediaSourceFactory.html" title="interface in com.google.android.exoplayer2.source"><code>MediaSourceFactory</code></a> to be used to retrieve the inputs to transform. The
- default value is a <a href="../../../../../com/google/android/exoplayer2/source/DefaultMediaSourceFactory.html" title="class in com.google.android.exoplayer2.source"><code>DefaultMediaSourceFactory</code></a> built with the context provided in
- <a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html#setContext-android.content.Context-"><code>setContext(Context)</code></a>.</div>
+<pre class="methodSignature">public&nbsp;<a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a>&nbsp;setMediaSourceFactory&#8203;(<a href="../source/MediaSource.Factory.html" title="interface in com.google.android.exoplayer2.source">MediaSource.Factory</a>&nbsp;mediaSourceFactory)</pre>
+<div class="block">Sets the <a href="../source/MediaSource.Factory.html" title="interface in com.google.android.exoplayer2.source"><code>MediaSource.Factory</code></a> to be used to retrieve the inputs to transform.
+
+ <p>The default value is a <a href="../source/DefaultMediaSourceFactory.html" title="class in com.google.android.exoplayer2.source"><code>DefaultMediaSourceFactory</code></a> built with the context provided
+ in <a href="#%3Cinit%3E(android.content.Context)">the constructor</a>.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
-<dd><code>mediaSourceFactory</code> - A <a href="../../../../../com/google/android/exoplayer2/source/MediaSourceFactory.html" title="interface in com.google.android.exoplayer2.source"><code>MediaSourceFactory</code></a>.</dd>
+<dd><code>mediaSourceFactory</code> - A <a href="../source/MediaSource.Factory.html" title="interface in com.google.android.exoplayer2.source"><code>MediaSource.Factory</code></a>.</dd>
 <dt><span class="returnLabel">Returns:</span></dt>
 <dd>This builder.</dd>
 </dl>
 </li>
 </ul>
-<a name="setRemoveAudio-boolean-">
+<a id="setRemoveAudio(boolean)">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
 <h4>setRemoveAudio</h4>
-<pre>public&nbsp;<a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a>&nbsp;setRemoveAudio&#8203;(boolean&nbsp;removeAudio)</pre>
-<div class="block">Sets whether to remove the audio from the output. The default value is <code>false</code>.
+<pre class="methodSignature">public&nbsp;<a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a>&nbsp;setRemoveAudio&#8203;(boolean&nbsp;removeAudio)</pre>
+<div class="block">Sets whether to remove the audio from the output.
+
+ <p>The default value is <code>false</code>.
 
  <p>The audio and video cannot both be removed because the output would not contain any
  samples.</div>
@@ -336,14 +469,16 @@ extends <a href="https://developer.android.com/reference/java/lang/Object.html" 
 </dl>
 </li>
 </ul>
-<a name="setRemoveVideo-boolean-">
+<a id="setRemoveVideo(boolean)">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
 <h4>setRemoveVideo</h4>
-<pre>public&nbsp;<a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a>&nbsp;setRemoveVideo&#8203;(boolean&nbsp;removeVideo)</pre>
-<div class="block">Sets whether to remove the video from the output. The default value is <code>false</code>.
+<pre class="methodSignature">public&nbsp;<a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a>&nbsp;setRemoveVideo&#8203;(boolean&nbsp;removeVideo)</pre>
+<div class="block">Sets whether to remove the video from the output.
+
+ <p>The default value is <code>false</code>.
 
  <p>The audio and video cannot both be removed because the output would not contain any
  samples.</div>
@@ -355,90 +490,111 @@ extends <a href="https://developer.android.com/reference/java/lang/Object.html" 
 </dl>
 </li>
 </ul>
-<a name="setFlattenForSlowMotion-boolean-">
+<a id="setFlattenForSlowMotion(boolean)">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
 <h4>setFlattenForSlowMotion</h4>
-<pre>public&nbsp;<a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a>&nbsp;setFlattenForSlowMotion&#8203;(boolean&nbsp;flattenForSlowMotion)</pre>
-<div class="block">Sets whether the input should be flattened for media containing slow motion markers. The
- transformed output is obtained by removing the slow motion metadata and by actually slowing
- down the parts of the video and audio streams defined in this metadata. The default value for
- <code>flattenForSlowMotion</code> is <code>false</code>.
-
- <p>Only Samsung Extension Format (SEF) slow motion metadata type is supported. The
- transformation has no effect if the input does not contain this metadata type.
-
- <p>For SEF slow motion media, the following assumptions are made on the input:
-
- <ul>
-   <li>The input container format is (unfragmented) MP4.
-   <li>The input contains an AVC video elementary stream with temporal SVC.
-   <li>The recording frame rate of the video is 120 or 240 fps.
- </ul>
-
- <p>If specifying a <a href="../../../../../com/google/android/exoplayer2/source/MediaSourceFactory.html" title="interface in com.google.android.exoplayer2.source"><code>MediaSourceFactory</code></a> using <a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html#setMediaSourceFactory-com.google.android.exoplayer2.source.MediaSourceFactory-"><code>setMediaSourceFactory(MediaSourceFactory)</code></a>, make sure that <a href="../../../../../com/google/android/exoplayer2/extractor/mp4/Mp4Extractor.html#FLAG_READ_SEF_DATA"><code>Mp4Extractor.FLAG_READ_SEF_DATA</code></a> is set on the <a href="../../../../../com/google/android/exoplayer2/extractor/mp4/Mp4Extractor.html" title="class in com.google.android.exoplayer2.extractor.mp4"><code>Mp4Extractor</code></a> used. Otherwise, the slow
- motion metadata will be ignored and the input won't be flattened.</div>
-<dl>
-<dt><span class="paramLabel">Parameters:</span></dt>
-<dd><code>flattenForSlowMotion</code> - Whether to flatten for slow motion.</dd>
-<dt><span class="returnLabel">Returns:</span></dt>
-<dd>This builder.</dd>
-</dl>
+<pre class="methodSignature"><a href="https://developer.android.com/reference/java/lang/Deprecated.html" title="class or interface in java.lang" class="externalLink" target="_top">@Deprecated</a>
+public&nbsp;<a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a>&nbsp;setFlattenForSlowMotion&#8203;(boolean&nbsp;flattenForSlowMotion)</pre>
+<div class="deprecationBlock"><span class="deprecatedLabel">Deprecated.</span>
+<div class="deprecationComment">Use <a href="TransformationRequest.Builder.html#setFlattenForSlowMotion(boolean)"><code>TransformationRequest.Builder.setFlattenForSlowMotion(boolean)</code></a>
+     instead.</div>
+</div>
 </li>
 </ul>
-<a name="setOutputMimeType-java.lang.String-">
+<a id="setOutputMimeType(java.lang.String)">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
 <h4>setOutputMimeType</h4>
-<pre>public&nbsp;<a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a>&nbsp;setOutputMimeType&#8203;(<a href="https://developer.android.com/reference/java/lang/String.html" title="class or interface in java.lang" class="externalLink" target="_top">String</a>&nbsp;outputMimeType)</pre>
-<div class="block">Sets the MIME type of the output. The default value is <a href="../../../../../com/google/android/exoplayer2/util/MimeTypes.html#VIDEO_MP4"><code>MimeTypes.VIDEO_MP4</code></a>. Supported
- values are:
-
- <ul>
-   <li><a href="../../../../../com/google/android/exoplayer2/util/MimeTypes.html#VIDEO_MP4"><code>MimeTypes.VIDEO_MP4</code></a>
-   <li><a href="../../../../../com/google/android/exoplayer2/util/MimeTypes.html#VIDEO_WEBM"><code>MimeTypes.VIDEO_WEBM</code></a> from API level 21
- </ul></div>
-<dl>
-<dt><span class="paramLabel">Parameters:</span></dt>
-<dd><code>outputMimeType</code> - The MIME type of the output.</dd>
-<dt><span class="returnLabel">Returns:</span></dt>
-<dd>This builder.</dd>
-</dl>
+<pre class="methodSignature"><a href="https://developer.android.com/reference/java/lang/Deprecated.html" title="class or interface in java.lang" class="externalLink" target="_top">@Deprecated</a>
+public&nbsp;<a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a>&nbsp;setOutputMimeType&#8203;(<a href="https://developer.android.com/reference/java/lang/String.html" title="class or interface in java.lang" class="externalLink" target="_top">String</a>&nbsp;outputMimeType)</pre>
+<div class="deprecationBlock"><span class="deprecatedLabel">Deprecated.</span>
+<div class="deprecationComment">This feature will be removed in a following release and the MIME type of the
+     output will always be MP4.</div>
+</div>
 </li>
 </ul>
-<a name="setListener-com.google.android.exoplayer2.transformer.Transformer.Listener-">
+<a id="setListener(com.google.android.exoplayer2.transformer.Transformer.Listener)">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
 <h4>setListener</h4>
-<pre>public&nbsp;<a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a>&nbsp;setListener&#8203;(<a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Listener.html" title="interface in com.google.android.exoplayer2.transformer">Transformer.Listener</a>&nbsp;listener)</pre>
-<div class="block">Sets the <a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Listener.html" title="interface in com.google.android.exoplayer2.transformer"><code>Transformer.Listener</code></a> to listen to the transformation events.
+<pre class="methodSignature"><a href="https://developer.android.com/reference/java/lang/Deprecated.html" title="class or interface in java.lang" class="externalLink" target="_top">@Deprecated</a>
+public&nbsp;<a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a>&nbsp;setListener&#8203;(<a href="Transformer.Listener.html" title="interface in com.google.android.exoplayer2.transformer">Transformer.Listener</a>&nbsp;listener)</pre>
+<div class="deprecationBlock"><span class="deprecatedLabel">Deprecated.</span>
+<div class="deprecationComment">Use <a href="#addListener(com.google.android.exoplayer2.transformer.Transformer.Listener)"><code>addListener(Listener)</code></a>, <a href="#removeListener(com.google.android.exoplayer2.transformer.Transformer.Listener)"><code>removeListener(Listener)</code></a> or <a href="#removeAllListeners()"><code>removeAllListeners()</code></a> instead.</div>
+</div>
+</li>
+</ul>
+<a id="addListener(com.google.android.exoplayer2.transformer.Transformer.Listener)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>addListener</h4>
+<pre class="methodSignature">public&nbsp;<a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a>&nbsp;addListener&#8203;(<a href="Transformer.Listener.html" title="interface in com.google.android.exoplayer2.transformer">Transformer.Listener</a>&nbsp;listener)</pre>
+<div class="block">Adds a <a href="Transformer.Listener.html" title="interface in com.google.android.exoplayer2.transformer"><code>Transformer.Listener</code></a> to listen to the transformation events.
 
- <p>This is equivalent to <a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.html#setListener-com.google.android.exoplayer2.transformer.Transformer.Listener-"><code>Transformer.setListener(Listener)</code></a>.</div>
+ <p>This is equivalent to <a href="Transformer.html#addListener(com.google.android.exoplayer2.transformer.Transformer.Listener)"><code>Transformer.addListener(Listener)</code></a>.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
-<dd><code>listener</code> - A <a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Listener.html" title="interface in com.google.android.exoplayer2.transformer"><code>Transformer.Listener</code></a>.</dd>
+<dd><code>listener</code> - A <a href="Transformer.Listener.html" title="interface in com.google.android.exoplayer2.transformer"><code>Transformer.Listener</code></a>.</dd>
 <dt><span class="returnLabel">Returns:</span></dt>
 <dd>This builder.</dd>
 </dl>
 </li>
 </ul>
-<a name="setLooper-android.os.Looper-">
+<a id="removeListener(com.google.android.exoplayer2.transformer.Transformer.Listener)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>removeListener</h4>
+<pre class="methodSignature">public&nbsp;<a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a>&nbsp;removeListener&#8203;(<a href="Transformer.Listener.html" title="interface in com.google.android.exoplayer2.transformer">Transformer.Listener</a>&nbsp;listener)</pre>
+<div class="block">Removes a <a href="Transformer.Listener.html" title="interface in com.google.android.exoplayer2.transformer"><code>Transformer.Listener</code></a>.
+
+ <p>This is equivalent to <a href="Transformer.html#removeListener(com.google.android.exoplayer2.transformer.Transformer.Listener)"><code>Transformer.removeListener(Listener)</code></a>.</div>
+<dl>
+<dt><span class="paramLabel">Parameters:</span></dt>
+<dd><code>listener</code> - A <a href="Transformer.Listener.html" title="interface in com.google.android.exoplayer2.transformer"><code>Transformer.Listener</code></a>.</dd>
+<dt><span class="returnLabel">Returns:</span></dt>
+<dd>This builder.</dd>
+</dl>
+</li>
+</ul>
+<a id="removeAllListeners()">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>removeAllListeners</h4>
+<pre class="methodSignature">public&nbsp;<a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a>&nbsp;removeAllListeners()</pre>
+<div class="block">Removes all <a href="Transformer.Listener.html" title="interface in com.google.android.exoplayer2.transformer">listeners</a>.
+
+ <p>This is equivalent to <a href="Transformer.html#removeAllListeners()"><code>Transformer.removeAllListeners()</code></a>.</div>
+<dl>
+<dt><span class="returnLabel">Returns:</span></dt>
+<dd>This builder.</dd>
+</dl>
+</li>
+</ul>
+<a id="setLooper(android.os.Looper)">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
 <h4>setLooper</h4>
-<pre>public&nbsp;<a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a>&nbsp;setLooper&#8203;(<a href="https://developer.android.com/reference/android/os/Looper.html" title="class or interface in android.os" class="externalLink" target="_top">Looper</a>&nbsp;looper)</pre>
+<pre class="methodSignature">public&nbsp;<a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a>&nbsp;setLooper&#8203;(<a href="https://developer.android.com/reference/android/os/Looper.html" title="class or interface in android.os" class="externalLink" target="_top">Looper</a>&nbsp;looper)</pre>
 <div class="block">Sets the <a href="https://developer.android.com/reference/android/os/Looper.html" title="class or interface in android.os" class="externalLink" target="_top"><code>Looper</code></a> that must be used for all calls to the transformer and that is used
- to call listeners on. The default value is the Looper of the thread that this builder was
- created on, or if that thread does not have a Looper, the Looper of the application's main
- thread.</div>
+ to call listeners on.
+
+ <p>The default value is the Looper of the thread that this builder was created on, or if that
+ thread does not have a Looper, the Looper of the application's main thread.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
 <dd><code>looper</code> - A <a href="https://developer.android.com/reference/android/os/Looper.html" title="class or interface in android.os" class="externalLink" target="_top"><code>Looper</code></a>.</dd>
@@ -447,40 +603,103 @@ extends <a href="https://developer.android.com/reference/java/lang/Object.html" 
 </dl>
 </li>
 </ul>
-<a name="build--">
+<a id="setEncoderFactory(com.google.android.exoplayer2.transformer.Codec.EncoderFactory)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>setEncoderFactory</h4>
+<pre class="methodSignature">public&nbsp;<a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a>&nbsp;setEncoderFactory&#8203;(<a href="Codec.EncoderFactory.html" title="interface in com.google.android.exoplayer2.transformer">Codec.EncoderFactory</a>&nbsp;encoderFactory)</pre>
+<div class="block">Sets the <a href="Codec.EncoderFactory.html" title="interface in com.google.android.exoplayer2.transformer"><code>Codec.EncoderFactory</code></a> that will be used by the transformer.
+
+ <p>The default value is <a href="Codec.EncoderFactory.html#DEFAULT"><code>Codec.EncoderFactory.DEFAULT</code></a>.</div>
+<dl>
+<dt><span class="paramLabel">Parameters:</span></dt>
+<dd><code>encoderFactory</code> - The <a href="Codec.EncoderFactory.html" title="interface in com.google.android.exoplayer2.transformer"><code>Codec.EncoderFactory</code></a> instance.</dd>
+<dt><span class="returnLabel">Returns:</span></dt>
+<dd>This builder.</dd>
+</dl>
+</li>
+</ul>
+<a id="setDecoderFactory(com.google.android.exoplayer2.transformer.Codec.DecoderFactory)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>setDecoderFactory</h4>
+<pre class="methodSignature">public&nbsp;<a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a>&nbsp;setDecoderFactory&#8203;(<a href="Codec.DecoderFactory.html" title="interface in com.google.android.exoplayer2.transformer">Codec.DecoderFactory</a>&nbsp;decoderFactory)</pre>
+<div class="block">Sets the <a href="Codec.DecoderFactory.html" title="interface in com.google.android.exoplayer2.transformer"><code>Codec.DecoderFactory</code></a> that will be used by the transformer.
+
+ <p>The default value is <a href="Codec.DecoderFactory.html#DEFAULT"><code>Codec.DecoderFactory.DEFAULT</code></a>.</div>
+<dl>
+<dt><span class="paramLabel">Parameters:</span></dt>
+<dd><code>decoderFactory</code> - The <a href="Codec.DecoderFactory.html" title="interface in com.google.android.exoplayer2.transformer"><code>Codec.DecoderFactory</code></a> instance.</dd>
+<dt><span class="returnLabel">Returns:</span></dt>
+<dd>This builder.</dd>
+</dl>
+</li>
+</ul>
+<a id="setDebugViewProvider(com.google.android.exoplayer2.transformer.Transformer.DebugViewProvider)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>setDebugViewProvider</h4>
+<pre class="methodSignature">public&nbsp;<a href="Transformer.Builder.html" title="class in com.google.android.exoplayer2.transformer">Transformer.Builder</a>&nbsp;setDebugViewProvider&#8203;(<a href="Transformer.DebugViewProvider.html" title="interface in com.google.android.exoplayer2.transformer">Transformer.DebugViewProvider</a>&nbsp;debugViewProvider)</pre>
+<div class="block">Sets a provider for views to show diagnostic information (if available) during
+ transformation.
+
+ <p>This is intended for debugging. The default value is <a href="Transformer.DebugViewProvider.html#NONE"><code>Transformer.DebugViewProvider.NONE</code></a>, which
+ doesn't show any debug info.
+
+ <p>Not all transformations will result in debug views being populated.</div>
+<dl>
+<dt><span class="paramLabel">Parameters:</span></dt>
+<dd><code>debugViewProvider</code> - Provider for debug views.</dd>
+<dt><span class="returnLabel">Returns:</span></dt>
+<dd>This builder.</dd>
+</dl>
+</li>
+</ul>
+<a id="build()">
 <!--   -->
 </a>
 <ul class="blockListLast">
 <li class="blockList">
 <h4>build</h4>
-<pre>public&nbsp;<a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.html" title="class in com.google.android.exoplayer2.transformer">Transformer</a>&nbsp;build()</pre>
-<div class="block">Builds a <a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.html" title="class in com.google.android.exoplayer2.transformer"><code>Transformer</code></a> instance.</div>
+<pre class="methodSignature">public&nbsp;<a href="Transformer.html" title="class in com.google.android.exoplayer2.transformer">Transformer</a>&nbsp;build()</pre>
+<div class="block">Builds a <a href="Transformer.html" title="class in com.google.android.exoplayer2.transformer"><code>Transformer</code></a> instance.</div>
 <dl>
 <dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="https://developer.android.com/reference/java/lang/IllegalStateException.html" title="class or interface in java.lang" class="externalLink">IllegalStateException</a></code> - If the <a href="https://developer.android.com/reference/android/content/Context.html?is-external=true" title="class or interface in android.content" class="externalLink" target="_top"><code>Context</code></a> has not been provided.</dd>
+<dd><code><a href="https://developer.android.com/reference/java/lang/NullPointerException.html" title="class or interface in java.lang" class="externalLink">NullPointerException</a></code> - If the <a href="https://developer.android.com/reference/android/content/Context.html?is-external=true" title="class or interface in android.content" class="externalLink" target="_top"><code>Context</code></a> has not been provided.</dd>
 <dd><code><a href="https://developer.android.com/reference/java/lang/IllegalStateException.html" title="class or interface in java.lang" class="externalLink" target="_top">IllegalStateException</a></code> - If both audio and video have been removed (otherwise the output
      would not contain any samples).</dd>
-<dd><code><a href="https://developer.android.com/reference/java/lang/IllegalStateException.html" title="class or interface in java.lang" class="externalLink" target="_top">IllegalStateException</a></code> - If the muxer doesn't support the requested output MIME type.</dd>
+<dd><code><a href="https://developer.android.com/reference/java/lang/IllegalStateException.html" title="class or interface in java.lang" class="externalLink" target="_top">IllegalStateException</a></code> - If the muxer doesn't support the requested audio MIME type.</dd>
+<dd><code><a href="https://developer.android.com/reference/java/lang/IllegalStateException.html" title="class or interface in java.lang" class="externalLink" target="_top">IllegalStateException</a></code> - If the muxer doesn't support the requested video MIME type.</dd>
 </dl>
 </li>
 </ul>
 </li>
 </ul>
+</section>
 </li>
 </ul>
 </div>
 </div>
+</main>
 <!-- ========= END OF CLASS DATA ========= -->
+<footer role="contentinfo">
+<nav role="navigation">
 <!-- ======= START OF BOTTOM NAVBAR ====== -->
-<div class="bottomNav"><a name="navbar.bottom">
+<div class="bottomNav"><a id="navbar.bottom">
 <!--   -->
 </a>
 <div class="skipNav"><a href="#skip.navbar.bottom" title="Skip navigation links">Skip navigation links</a></div>
-<a name="navbar.bottom.firstrow">
+<a id="navbar.bottom.firstrow">
 <!--   -->
 </a>
 <ul class="navList" title="Navigation">
-<li><a href="../../../../../overview-summary.html">Overview</a></li>
+<li><a href="../../../../../index.html">Overview</a></li>
 <li><a href="package-summary.html">Package</a></li>
 <li class="navBarCell1Rev">Class</li>
 <li><a href="package-tree.html">Tree</a></li>
@@ -490,16 +709,8 @@ extends <a href="https://developer.android.com/reference/java/lang/Object.html" 
 </ul>
 </div>
 <div class="subNav">
-<ul class="navList">
-<li><a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.html" title="class in com.google.android.exoplayer2.transformer"><span class="typeNameLink">Prev&nbsp;Class</span></a></li>
-<li><a href="../../../../../com/google/android/exoplayer2/transformer/Transformer.Listener.html" title="interface in com.google.android.exoplayer2.transformer"><span class="typeNameLink">Next&nbsp;Class</span></a></li>
-</ul>
-<ul class="navList">
-<li><a href="../../../../../index.html?com/google/android/exoplayer2/transformer/Transformer.Builder.html" target="_top">Frames</a></li>
-<li><a href="Transformer.Builder.html" target="_top">No&nbsp;Frames</a></li>
-</ul>
 <ul class="navList" id="allclasses_navbar_bottom">
-<li><a href="../../../../../allclasses-noframe.html">All&nbsp;Classes</a></li>
+<li><a href="../../../../../allclasses.html">All&nbsp;Classes</a></li>
 </ul>
 <div>
 <script type="text/javascript"><!--
@@ -531,9 +742,11 @@ extends <a href="https://developer.android.com/reference/java/lang/Object.html" 
 <li><a href="#method.detail">Method</a></li>
 </ul>
 </div>
-<a name="skip.navbar.bottom">
+<a id="skip.navbar.bottom">
 <!--   -->
 </a></div>
 <!-- ======== END OF BOTTOM NAVBAR ======= -->
+</nav>
+</footer>
 </body>
 </html>

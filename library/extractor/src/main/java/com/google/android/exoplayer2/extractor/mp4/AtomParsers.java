@@ -17,6 +17,7 @@ package com.google.android.exoplayer2.extractor.mp4;
 
 import static com.google.android.exoplayer2.util.Assertions.checkNotNull;
 import static com.google.android.exoplayer2.util.MimeTypes.getMimeTypeFromMp4ObjectType;
+import static com.google.android.exoplayer2.util.Util.castNonNull;
 import static java.lang.Math.max;
 
 import android.util.Pair;
@@ -29,54 +30,64 @@ import com.google.android.exoplayer2.audio.Ac3Util;
 import com.google.android.exoplayer2.audio.Ac4Util;
 import com.google.android.exoplayer2.audio.OpusUtil;
 import com.google.android.exoplayer2.drm.DrmInitData;
+import com.google.android.exoplayer2.extractor.ExtractorUtil;
 import com.google.android.exoplayer2.extractor.GaplessInfoHolder;
 import com.google.android.exoplayer2.metadata.Metadata;
 import com.google.android.exoplayer2.metadata.mp4.SmtaMetadataEntry;
-import com.google.android.exoplayer2.util.Assertions;
 import com.google.android.exoplayer2.util.CodecSpecificDataUtil;
 import com.google.android.exoplayer2.util.Log;
 import com.google.android.exoplayer2.util.MimeTypes;
 import com.google.android.exoplayer2.util.ParsableByteArray;
 import com.google.android.exoplayer2.util.Util;
 import com.google.android.exoplayer2.video.AvcConfig;
+import com.google.android.exoplayer2.video.ColorInfo;
 import com.google.android.exoplayer2.video.DolbyVisionConfig;
 import com.google.android.exoplayer2.video.HevcConfig;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.primitives.Ints;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.checkerframework.checker.nullness.compatqual.NullableType;
 
 /** Utility methods for parsing MP4 format atom payloads according to ISO/IEC 14496-12. */
-@SuppressWarnings({"ConstantField"})
+@SuppressWarnings("ConstantField")
 /* package */ final class AtomParsers {
 
   private static final String TAG = "AtomParsers";
 
   @SuppressWarnings("ConstantCaseForConstants")
-  private static final int TYPE_vide = 0x76696465;
-
-  @SuppressWarnings("ConstantCaseForConstants")
-  private static final int TYPE_soun = 0x736f756e;
-
-  @SuppressWarnings("ConstantCaseForConstants")
-  private static final int TYPE_text = 0x74657874;
-
-  @SuppressWarnings("ConstantCaseForConstants")
-  private static final int TYPE_sbtl = 0x7362746c;
-
-  @SuppressWarnings("ConstantCaseForConstants")
-  private static final int TYPE_subt = 0x73756274;
-
-  @SuppressWarnings("ConstantCaseForConstants")
   private static final int TYPE_clcp = 0x636c6370;
+
+  @SuppressWarnings("ConstantCaseForConstants")
+  private static final int TYPE_mdta = 0x6d647461;
 
   @SuppressWarnings("ConstantCaseForConstants")
   private static final int TYPE_meta = 0x6d657461;
 
   @SuppressWarnings("ConstantCaseForConstants")
-  private static final int TYPE_mdta = 0x6d647461;
+  private static final int TYPE_nclc = 0x6e636c63;
+
+  @SuppressWarnings("ConstantCaseForConstants")
+  private static final int TYPE_nclx = 0x6e636c78;
+
+  @SuppressWarnings("ConstantCaseForConstants")
+  private static final int TYPE_sbtl = 0x7362746c;
+
+  @SuppressWarnings("ConstantCaseForConstants")
+  private static final int TYPE_soun = 0x736f756e;
+
+  @SuppressWarnings("ConstantCaseForConstants")
+  private static final int TYPE_subt = 0x73756274;
+
+  @SuppressWarnings("ConstantCaseForConstants")
+  private static final int TYPE_text = 0x74657874;
+
+  @SuppressWarnings("ConstantCaseForConstants")
+  private static final int TYPE_vide = 0x76696465;
 
   /**
    * The threshold number of samples to trim from the start/end of an audio track when applying an
@@ -272,6 +283,7 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
       boolean isQuickTime)
       throws ParserException {
     Atom.ContainerAtom mdia = checkNotNull(trak.getContainerAtomOfType(Atom.TYPE_mdia));
+    @C.TrackType
     int trackType =
         getTrackTypeForHdlr(parseHdlr(checkNotNull(mdia.getLeafAtomOfType(Atom.TYPE_hdlr)).data));
     if (trackType == C.TRACK_TYPE_UNKNOWN) {
@@ -316,10 +328,20 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
         }
       }
     }
-    return stsdData.format == null ? null
-        : new Track(tkhdData.id, trackType, mdhdData.first, movieTimescale, durationUs,
-            stsdData.format, stsdData.requiredSampleTransformation, stsdData.trackEncryptionBoxes,
-            stsdData.nalUnitLengthFieldLength, editListDurations, editListMediaTimes);
+    return stsdData.format == null
+        ? null
+        : new Track(
+            tkhdData.id,
+            trackType,
+            mdhdData.first,
+            movieTimescale,
+            durationUs,
+            stsdData.format,
+            stsdData.requiredSampleTransformation,
+            stsdData.trackEncryptionBoxes,
+            stsdData.nalUnitLengthFieldLength,
+            editListDurations,
+            editListMediaTimes);
   }
 
   /**
@@ -341,7 +363,8 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
     } else {
       @Nullable Atom.LeafAtom stz2Atom = stblAtom.getLeafAtomOfType(Atom.TYPE_stz2);
       if (stz2Atom == null) {
-        throw new ParserException("Track has no sample table size information");
+        throw ParserException.createForMalformedContainer(
+            "Track has no sample table size information", /* cause= */ null);
       }
       sampleSizeBox = new Stz2SampleSizeBox(stz2Atom);
     }
@@ -576,15 +599,19 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
         && track.type == C.TRACK_TYPE_AUDIO
         && timestamps.length >= 2) {
       long editStartTime = checkNotNull(track.editListMediaTimes)[0];
-      long editEndTime = editStartTime + Util.scaleLargeTimestamp(track.editListDurations[0],
-          track.timescale, track.movieTimescale);
+      long editEndTime =
+          editStartTime
+              + Util.scaleLargeTimestamp(
+                  track.editListDurations[0], track.timescale, track.movieTimescale);
       if (canApplyEditWithGaplessInfo(timestamps, duration, editStartTime, editEndTime)) {
         long paddingTimeUnits = duration - editEndTime;
-        long encoderDelay = Util.scaleLargeTimestamp(editStartTime - timestamps[0],
-            track.format.sampleRate, track.timescale);
-        long encoderPadding = Util.scaleLargeTimestamp(paddingTimeUnits,
-            track.format.sampleRate, track.timescale);
-        if ((encoderDelay != 0 || encoderPadding != 0) && encoderDelay <= Integer.MAX_VALUE
+        long encoderDelay =
+            Util.scaleLargeTimestamp(
+                editStartTime - timestamps[0], track.format.sampleRate, track.timescale);
+        long encoderPadding =
+            Util.scaleLargeTimestamp(paddingTimeUnits, track.format.sampleRate, track.timescale);
+        if ((encoderDelay != 0 || encoderPadding != 0)
+            && encoderDelay <= Integer.MAX_VALUE
             && encoderPadding <= Integer.MAX_VALUE) {
           gaplessInfoHolder.encoderDelay = (int) encoderDelay;
           gaplessInfoHolder.encoderPadding = (int) encoderPadding;
@@ -843,7 +870,7 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
   }
 
   /** Returns the track type for a given handler value. */
-  private static int getTrackTypeForHdlr(int hdlr) {
+  private static @C.TrackType int getTrackTypeForHdlr(int hdlr) {
     if (hdlr == TYPE_soun) {
       return C.TRACK_TYPE_AUDIO;
     } else if (hdlr == TYPE_vide) {
@@ -905,7 +932,7 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
     for (int i = 0; i < numberOfEntries; i++) {
       int childStartPosition = stsd.getPosition();
       int childAtomSize = stsd.readInt();
-      Assertions.checkState(childAtomSize > 0, "childAtomSize should be positive");
+      ExtractorUtil.checkContainerInput(childAtomSize > 0, "childAtomSize must be positive");
       int childAtomType = stsd.readInt();
       if (childAtomType == Atom.TYPE_avc1
           || childAtomType == Atom.TYPE_avc3
@@ -915,6 +942,7 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
           || childAtomType == Atom.TYPE_hvc1
           || childAtomType == Atom.TYPE_hev1
           || childAtomType == Atom.TYPE_s263
+          || childAtomType == Atom.TYPE_H263
           || childAtomType == Atom.TYPE_vp08
           || childAtomType == Atom.TYPE_vp09
           || childAtomType == Atom.TYPE_av01
@@ -922,17 +950,27 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
           || childAtomType == Atom.TYPE_dva1
           || childAtomType == Atom.TYPE_dvhe
           || childAtomType == Atom.TYPE_dvh1) {
-        parseVideoSampleEntry(stsd, childAtomType, childStartPosition, childAtomSize, trackId,
-            rotationDegrees, drmInitData, out, i);
+        parseVideoSampleEntry(
+            stsd,
+            childAtomType,
+            childStartPosition,
+            childAtomSize,
+            trackId,
+            rotationDegrees,
+            drmInitData,
+            out,
+            i);
       } else if (childAtomType == Atom.TYPE_mp4a
           || childAtomType == Atom.TYPE_enca
           || childAtomType == Atom.TYPE_ac_3
           || childAtomType == Atom.TYPE_ec_3
           || childAtomType == Atom.TYPE_ac_4
+          || childAtomType == Atom.TYPE_mlpa
           || childAtomType == Atom.TYPE_dtsc
           || childAtomType == Atom.TYPE_dtse
           || childAtomType == Atom.TYPE_dtsh
           || childAtomType == Atom.TYPE_dtsl
+          || childAtomType == Atom.TYPE_dtsx
           || childAtomType == Atom.TYPE_samr
           || childAtomType == Atom.TYPE_sawb
           || childAtomType == Atom.TYPE_lpcm
@@ -940,18 +978,31 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
           || childAtomType == Atom.TYPE_twos
           || childAtomType == Atom.TYPE__mp2
           || childAtomType == Atom.TYPE__mp3
+          || childAtomType == Atom.TYPE_mha1
+          || childAtomType == Atom.TYPE_mhm1
           || childAtomType == Atom.TYPE_alac
           || childAtomType == Atom.TYPE_alaw
           || childAtomType == Atom.TYPE_ulaw
           || childAtomType == Atom.TYPE_Opus
           || childAtomType == Atom.TYPE_fLaC) {
-        parseAudioSampleEntry(stsd, childAtomType, childStartPosition, childAtomSize, trackId,
-            language, isQuickTime, drmInitData, out, i);
-      } else if (childAtomType == Atom.TYPE_TTML || childAtomType == Atom.TYPE_tx3g
-          || childAtomType == Atom.TYPE_wvtt || childAtomType == Atom.TYPE_stpp
+        parseAudioSampleEntry(
+            stsd,
+            childAtomType,
+            childStartPosition,
+            childAtomSize,
+            trackId,
+            language,
+            isQuickTime,
+            drmInitData,
+            out,
+            i);
+      } else if (childAtomType == Atom.TYPE_TTML
+          || childAtomType == Atom.TYPE_tx3g
+          || childAtomType == Atom.TYPE_wvtt
+          || childAtomType == Atom.TYPE_stpp
           || childAtomType == Atom.TYPE_c608) {
-        parseTextSampleEntry(stsd, childAtomType, childStartPosition, childAtomSize, trackId,
-            language, out);
+        parseTextSampleEntry(
+            stsd, childAtomType, childStartPosition, childAtomSize, trackId, language, out);
       } else if (childAtomType == Atom.TYPE_mett) {
         parseMetaDataSampleEntry(stsd, childAtomType, childStartPosition, trackId, out);
       } else if (childAtomType == Atom.TYPE_camm) {
@@ -1013,6 +1064,8 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
             .build();
   }
 
+  // hdrStaticInfo is allocated using allocate() in allocateHdrStaticInfo().
+  @SuppressWarnings("ByteBufferBackingArray")
   private static void parseVideoSampleEntry(
       ParsableByteArray parent,
       int atomType,
@@ -1040,8 +1093,10 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
           parseSampleEntryEncryptionData(parent, position, size);
       if (sampleEntryEncryptionData != null) {
         atomType = sampleEntryEncryptionData.first;
-        drmInitData = drmInitData == null ? null
-            : drmInitData.copyWithSchemeType(sampleEntryEncryptionData.second.schemeType);
+        drmInitData =
+            drmInitData == null
+                ? null
+                : drmInitData.copyWithSchemeType(sampleEntryEncryptionData.second.schemeType);
         out.trackEncryptionBoxes[entryIndex] = sampleEntryEncryptionData.second;
       }
       parent.setPosition(childPosition);
@@ -1054,13 +1109,23 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
     @Nullable String mimeType = null;
     if (atomType == Atom.TYPE_m1v_) {
       mimeType = MimeTypes.VIDEO_MPEG;
+    } else if (atomType == Atom.TYPE_H263) {
+      mimeType = MimeTypes.VIDEO_H263;
     }
 
     @Nullable List<byte[]> initializationData = null;
     @Nullable String codecs = null;
     @Nullable byte[] projectionData = null;
-    @C.StereoMode
-    int stereoMode = Format.NO_VALUE;
+    @C.StereoMode int stereoMode = Format.NO_VALUE;
+    @Nullable EsdsData esdsData = null;
+
+    // HDR related metadata.
+    @C.ColorSpace int colorSpace = Format.NO_VALUE;
+    @C.ColorRange int colorRange = Format.NO_VALUE;
+    @C.ColorTransfer int colorTransfer = Format.NO_VALUE;
+    // The format of HDR static info is defined in CTA-861-G:2017, Table 45.
+    @Nullable ByteBuffer hdrStaticInfo = null;
+
     while (childPosition - position < size) {
       parent.setPosition(childPosition);
       int childStartPosition = parent.getPosition();
@@ -1069,26 +1134,29 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
         // Handle optional terminating four zero bytes in MOV files.
         break;
       }
-      Assertions.checkState(childAtomSize > 0, "childAtomSize should be positive");
+      ExtractorUtil.checkContainerInput(childAtomSize > 0, "childAtomSize must be positive");
       int childAtomType = parent.readInt();
       if (childAtomType == Atom.TYPE_avcC) {
-        Assertions.checkState(mimeType == null);
+        ExtractorUtil.checkContainerInput(mimeType == null, /* message= */ null);
         mimeType = MimeTypes.VIDEO_H264;
         parent.setPosition(childStartPosition + Atom.HEADER_SIZE);
         AvcConfig avcConfig = AvcConfig.parse(parent);
         initializationData = avcConfig.initializationData;
         out.nalUnitLengthFieldLength = avcConfig.nalUnitLengthFieldLength;
         if (!pixelWidthHeightRatioFromPasp) {
-          pixelWidthHeightRatio = avcConfig.pixelWidthAspectRatio;
+          pixelWidthHeightRatio = avcConfig.pixelWidthHeightRatio;
         }
         codecs = avcConfig.codecs;
       } else if (childAtomType == Atom.TYPE_hvcC) {
-        Assertions.checkState(mimeType == null);
+        ExtractorUtil.checkContainerInput(mimeType == null, /* message= */ null);
         mimeType = MimeTypes.VIDEO_H265;
         parent.setPosition(childStartPosition + Atom.HEADER_SIZE);
         HevcConfig hevcConfig = HevcConfig.parse(parent);
         initializationData = hevcConfig.initializationData;
         out.nalUnitLengthFieldLength = hevcConfig.nalUnitLengthFieldLength;
+        if (!pixelWidthHeightRatioFromPasp) {
+          pixelWidthHeightRatio = hevcConfig.pixelWidthHeightRatio;
+        }
         codecs = hevcConfig.codecs;
       } else if (childAtomType == Atom.TYPE_dvcC || childAtomType == Atom.TYPE_dvvC) {
         @Nullable DolbyVisionConfig dolbyVisionConfig = DolbyVisionConfig.parse(parent);
@@ -1097,20 +1165,56 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
           mimeType = MimeTypes.VIDEO_DOLBY_VISION;
         }
       } else if (childAtomType == Atom.TYPE_vpcC) {
-        Assertions.checkState(mimeType == null);
+        ExtractorUtil.checkContainerInput(mimeType == null, /* message= */ null);
         mimeType = (atomType == Atom.TYPE_vp08) ? MimeTypes.VIDEO_VP8 : MimeTypes.VIDEO_VP9;
       } else if (childAtomType == Atom.TYPE_av1C) {
-        Assertions.checkState(mimeType == null);
+        ExtractorUtil.checkContainerInput(mimeType == null, /* message= */ null);
         mimeType = MimeTypes.VIDEO_AV1;
+      } else if (childAtomType == Atom.TYPE_clli) {
+        if (hdrStaticInfo == null) {
+          hdrStaticInfo = allocateHdrStaticInfo();
+        }
+        // The contents of the clli box occupy the last 4 bytes of the HDR static info array. Note
+        // that each field is read in big endian and written in little endian.
+        hdrStaticInfo.position(21);
+        hdrStaticInfo.putShort(parent.readShort()); // max_content_light_level.
+        hdrStaticInfo.putShort(parent.readShort()); // max_pic_average_light_level.
+      } else if (childAtomType == Atom.TYPE_mdcv) {
+        if (hdrStaticInfo == null) {
+          hdrStaticInfo = allocateHdrStaticInfo();
+        }
+        // The contents of the mdcv box occupy 20 bytes after the first byte of the HDR static info
+        // array. Note that each field is read in big endian and written in little endian.
+        short displayPrimariesGX = parent.readShort();
+        short displayPrimariesGY = parent.readShort();
+        short displayPrimariesBX = parent.readShort();
+        short displayPrimariesBY = parent.readShort();
+        short displayPrimariesRX = parent.readShort();
+        short displayPrimariesRY = parent.readShort();
+        short whitePointX = parent.readShort();
+        short whitePointY = parent.readShort();
+        long maxDisplayMasteringLuminance = parent.readUnsignedInt();
+        long minDisplayMasteringLuminance = parent.readUnsignedInt();
+
+        hdrStaticInfo.position(1);
+        hdrStaticInfo.putShort(displayPrimariesRX);
+        hdrStaticInfo.putShort(displayPrimariesRY);
+        hdrStaticInfo.putShort(displayPrimariesGX);
+        hdrStaticInfo.putShort(displayPrimariesGY);
+        hdrStaticInfo.putShort(displayPrimariesBX);
+        hdrStaticInfo.putShort(displayPrimariesBY);
+        hdrStaticInfo.putShort(whitePointX);
+        hdrStaticInfo.putShort(whitePointY);
+        hdrStaticInfo.putShort((short) (maxDisplayMasteringLuminance / 10000));
+        hdrStaticInfo.putShort((short) (minDisplayMasteringLuminance / 10000));
       } else if (childAtomType == Atom.TYPE_d263) {
-        Assertions.checkState(mimeType == null);
+        ExtractorUtil.checkContainerInput(mimeType == null, /* message= */ null);
         mimeType = MimeTypes.VIDEO_H263;
       } else if (childAtomType == Atom.TYPE_esds) {
-        Assertions.checkState(mimeType == null);
-        Pair<@NullableType String, byte @NullableType []> mimeTypeAndInitializationDataBytes =
-            parseEsdsFromParent(parent, childStartPosition);
-        mimeType = mimeTypeAndInitializationDataBytes.first;
-        @Nullable byte[] initializationDataBytes = mimeTypeAndInitializationDataBytes.second;
+        ExtractorUtil.checkContainerInput(mimeType == null, /* message= */ null);
+        esdsData = parseEsdsFromParent(parent, childStartPosition);
+        mimeType = esdsData.mimeType;
+        @Nullable byte[] initializationDataBytes = esdsData.initializationData;
         if (initializationDataBytes != null) {
           initializationData = ImmutableList.of(initializationDataBytes);
         }
@@ -1141,6 +1245,28 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
               break;
           }
         }
+      } else if (childAtomType == Atom.TYPE_colr) {
+        int colorType = parent.readInt();
+        if (colorType == TYPE_nclx || colorType == TYPE_nclc) {
+          // For more info on syntax, see Section 8.5.2.2 in ISO/IEC 14496-12:2012(E) and
+          // https://developer.apple.com/library/archive/documentation/QuickTime/QTFF/QTFFChap3/qtff3.html.
+          int colorPrimaries = parent.readUnsignedShort();
+          int transferCharacteristics = parent.readUnsignedShort();
+          parent.skipBytes(2); // matrix_coefficients.
+
+          // Only try and read full_range_flag if the box is long enough. It should be present in
+          // all colr boxes with type=nclx (Section 8.5.2.2 in ISO/IEC 14496-12:2012(E)) but some
+          // device cameras record videos with type=nclx without this final flag (and therefore
+          // size=18): https://github.com/google/ExoPlayer/issues/9332
+          boolean fullRangeFlag =
+              childAtomSize == 19 && (parent.readUnsignedByte() & 0b10000000) != 0;
+          colorSpace = ColorInfo.isoColorPrimariesToColorSpace(colorPrimaries);
+          colorRange = fullRangeFlag ? C.COLOR_RANGE_FULL : C.COLOR_RANGE_LIMITED;
+          colorTransfer =
+              ColorInfo.isoTransferCharacteristicsToColorTransfer(transferCharacteristics);
+        } else {
+          Log.w(TAG, "Unsupported color type: " + Atom.getAtomTypeString(colorType));
+        }
       }
       childPosition += childAtomSize;
     }
@@ -1150,7 +1276,7 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
       return;
     }
 
-    out.format =
+    Format.Builder formatBuilder =
         new Format.Builder()
             .setId(trackId)
             .setSampleMimeType(mimeType)
@@ -1162,8 +1288,35 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
             .setProjectionData(projectionData)
             .setStereoMode(stereoMode)
             .setInitializationData(initializationData)
-            .setDrmInitData(drmInitData)
-            .build();
+            .setDrmInitData(drmInitData);
+    if (colorSpace != Format.NO_VALUE
+        || colorRange != Format.NO_VALUE
+        || colorTransfer != Format.NO_VALUE
+        || hdrStaticInfo != null) {
+      // Note that if either mdcv or clli are missing, we leave the corresponding HDR static
+      // metadata bytes with value zero. See [Internal ref: b/194535665].
+      formatBuilder.setColorInfo(
+          new ColorInfo(
+              colorSpace,
+              colorRange,
+              colorTransfer,
+              hdrStaticInfo != null ? hdrStaticInfo.array() : null));
+    }
+
+    if (esdsData != null) {
+      formatBuilder
+          .setAverageBitrate(Ints.saturatedCast(esdsData.bitrate))
+          .setPeakBitrate(Ints.saturatedCast(esdsData.peakBitrate));
+    }
+
+    out.format = formatBuilder.build();
+  }
+
+  private static ByteBuffer allocateHdrStaticInfo() {
+    // For HDR static info, Android decoders expect a 25-byte array. The first byte is zero to
+    // represent Static Metadata Type 1, as per CTA-861-G:2017, Table 44. The following 24 bytes
+    // follow CTA-861-G:2017, Table 45.
+    return ByteBuffer.allocate(25).order(ByteOrder.LITTLE_ENDIAN);
   }
 
   private static void parseMetaDataSampleEntry(
@@ -1243,19 +1396,25 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
 
     int channelCount;
     int sampleRate;
+    int sampleRateMlp = 0;
     @C.PcmEncoding int pcmEncoding = Format.NO_VALUE;
     @Nullable String codecs = null;
+    @Nullable EsdsData esdsData = null;
 
     if (quickTimeSoundDescriptionVersion == 0 || quickTimeSoundDescriptionVersion == 1) {
       channelCount = parent.readUnsignedShort();
-      parent.skipBytes(6);  // sampleSize, compressionId, packetSize.
+      parent.skipBytes(6); // sampleSize, compressionId, packetSize.
+
       sampleRate = parent.readUnsignedFixedPoint1616();
+      // The sample rate has been redefined as a 32-bit value for Dolby TrueHD (MLP) streams.
+      parent.setPosition(parent.getPosition() - 4);
+      sampleRateMlp = parent.readInt();
 
       if (quickTimeSoundDescriptionVersion == 1) {
         parent.skipBytes(16);
       }
     } else if (quickTimeSoundDescriptionVersion == 2) {
-      parent.skipBytes(16);  // always[3,16,Minus2,0,65536], sizeOfStructOnly
+      parent.skipBytes(16); // always[3,16,Minus2,0,65536], sizeOfStructOnly
 
       sampleRate = (int) Math.round(parent.readDouble());
       channelCount = parent.readUnsignedIntToInt();
@@ -1275,8 +1434,10 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
           parseSampleEntryEncryptionData(parent, position, size);
       if (sampleEntryEncryptionData != null) {
         atomType = sampleEntryEncryptionData.first;
-        drmInitData = drmInitData == null ? null
-            : drmInitData.copyWithSchemeType(sampleEntryEncryptionData.second.schemeType);
+        drmInitData =
+            drmInitData == null
+                ? null
+                : drmInitData.copyWithSchemeType(sampleEntryEncryptionData.second.schemeType);
         out.trackEncryptionBoxes[entryIndex] = sampleEntryEncryptionData.second;
       }
       parent.setPosition(childPosition);
@@ -1300,6 +1461,8 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
       mimeType = MimeTypes.AUDIO_DTS_HD;
     } else if (atomType == Atom.TYPE_dtse) {
       mimeType = MimeTypes.AUDIO_DTS_EXPRESS;
+    } else if (atomType == Atom.TYPE_dtsx) {
+      mimeType = MimeTypes.AUDIO_DTS_X;
     } else if (atomType == Atom.TYPE_samr) {
       mimeType = MimeTypes.AUDIO_AMR_NB;
     } else if (atomType == Atom.TYPE_sawb) {
@@ -1312,6 +1475,10 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
       pcmEncoding = C.ENCODING_PCM_16BIT_BIG_ENDIAN;
     } else if (atomType == Atom.TYPE__mp2 || atomType == Atom.TYPE__mp3) {
       mimeType = MimeTypes.AUDIO_MPEG;
+    } else if (atomType == Atom.TYPE_mha1) {
+      mimeType = MimeTypes.AUDIO_MPEGH_MHA1;
+    } else if (atomType == Atom.TYPE_mhm1) {
+      mimeType = MimeTypes.AUDIO_MPEGH_MHM1;
     } else if (atomType == Atom.TYPE_alac) {
       mimeType = MimeTypes.AUDIO_ALAC;
     } else if (atomType == Atom.TYPE_alaw) {
@@ -1322,22 +1489,36 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
       mimeType = MimeTypes.AUDIO_OPUS;
     } else if (atomType == Atom.TYPE_fLaC) {
       mimeType = MimeTypes.AUDIO_FLAC;
+    } else if (atomType == Atom.TYPE_mlpa) {
+      mimeType = MimeTypes.AUDIO_TRUEHD;
     }
 
     @Nullable List<byte[]> initializationData = null;
     while (childPosition - position < size) {
       parent.setPosition(childPosition);
       int childAtomSize = parent.readInt();
-      Assertions.checkState(childAtomSize > 0, "childAtomSize should be positive");
+      ExtractorUtil.checkContainerInput(childAtomSize > 0, "childAtomSize must be positive");
       int childAtomType = parent.readInt();
-      if (childAtomType == Atom.TYPE_esds || (isQuickTime && childAtomType == Atom.TYPE_wave)) {
-        int esdsAtomPosition = childAtomType == Atom.TYPE_esds ? childPosition
-            : findEsdsPosition(parent, childPosition, childAtomSize);
+      if (childAtomType == Atom.TYPE_mhaC) {
+        // See ISO_IEC_23008-3;2019 MHADecoderConfigurationRecord
+        // The header consists of: size (4), boxtype 'mhaC' (4), configurationVersion (1),
+        // mpegh3daProfileLevelIndication (1), referenceChannelLayout (1), mpegh3daConfigLength (2).
+        int mhacHeaderSize = 13;
+        int childAtomBodySize = childAtomSize - mhacHeaderSize;
+        byte[] initializationDataBytes = new byte[childAtomBodySize];
+        parent.setPosition(childPosition + mhacHeaderSize);
+        parent.readBytes(initializationDataBytes, 0, childAtomBodySize);
+        initializationData = ImmutableList.of(initializationDataBytes);
+      } else if (childAtomType == Atom.TYPE_esds
+          || (isQuickTime && childAtomType == Atom.TYPE_wave)) {
+        int esdsAtomPosition =
+            childAtomType == Atom.TYPE_esds
+                ? childPosition
+                : findBoxPosition(parent, Atom.TYPE_esds, childPosition, childAtomSize);
         if (esdsAtomPosition != C.POSITION_UNSET) {
-          Pair<@NullableType String, byte @NullableType []> mimeTypeAndInitializationData =
-              parseEsdsFromParent(parent, esdsAtomPosition);
-          mimeType = mimeTypeAndInitializationData.first;
-          @Nullable byte[] initializationDataBytes = mimeTypeAndInitializationData.second;
+          esdsData = parseEsdsFromParent(parent, esdsAtomPosition);
+          mimeType = esdsData.mimeType;
+          @Nullable byte[] initializationDataBytes = esdsData.initializationData;
           if (initializationDataBytes != null) {
             if (MimeTypes.AUDIO_AAC.equals(mimeType)) {
               // Update sampleRate and channelCount from the AudioSpecificConfig initialization
@@ -1352,16 +1533,27 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
         }
       } else if (childAtomType == Atom.TYPE_dac3) {
         parent.setPosition(Atom.HEADER_SIZE + childPosition);
-        out.format = Ac3Util.parseAc3AnnexFFormat(parent, Integer.toString(trackId), language,
-            drmInitData);
+        out.format =
+            Ac3Util.parseAc3AnnexFFormat(parent, Integer.toString(trackId), language, drmInitData);
       } else if (childAtomType == Atom.TYPE_dec3) {
         parent.setPosition(Atom.HEADER_SIZE + childPosition);
-        out.format = Ac3Util.parseEAc3AnnexFFormat(parent, Integer.toString(trackId), language,
-            drmInitData);
+        out.format =
+            Ac3Util.parseEAc3AnnexFFormat(parent, Integer.toString(trackId), language, drmInitData);
       } else if (childAtomType == Atom.TYPE_dac4) {
         parent.setPosition(Atom.HEADER_SIZE + childPosition);
         out.format =
             Ac4Util.parseAc4AnnexEFormat(parent, Integer.toString(trackId), language, drmInitData);
+      } else if (childAtomType == Atom.TYPE_dmlp) {
+        if (sampleRateMlp <= 0) {
+          throw ParserException.createForMalformedContainer(
+              "Invalid sample rate for Dolby TrueHD MLP stream: " + sampleRateMlp,
+              /* cause= */ null);
+        }
+        sampleRate = sampleRateMlp;
+        // The channel count from the sample entry must be ignored for Dolby TrueHD (MLP) streams
+        // because these streams can carry simultaneously multiple representations of the same
+        // audio. Use stereo by default.
+        channelCount = 2;
       } else if (childAtomType == Atom.TYPE_ddts) {
         out.format =
             new Format.Builder()
@@ -1407,7 +1599,7 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
     }
 
     if (out.format == null && mimeType != null) {
-      out.format =
+      Format.Builder formatBuilder =
           new Format.Builder()
               .setId(trackId)
               .setSampleMimeType(mimeType)
@@ -1417,23 +1609,41 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
               .setPcmEncoding(pcmEncoding)
               .setInitializationData(initializationData)
               .setDrmInitData(drmInitData)
-              .setLanguage(language)
-              .build();
+              .setLanguage(language);
+
+      if (esdsData != null) {
+        formatBuilder
+            .setAverageBitrate(Ints.saturatedCast(esdsData.bitrate))
+            .setPeakBitrate(Ints.saturatedCast(esdsData.peakBitrate));
+      }
+
+      out.format = formatBuilder.build();
     }
   }
 
   /**
-   * Returns the position of the esds box within a parent, or {@link C#POSITION_UNSET} if no esds
-   * box is found
+   * Returns the position of the first box with the given {@code boxType} within {@code parent}, or
+   * {@link C#POSITION_UNSET} if no such box is found.
+   *
+   * @param parent The {@link ParsableByteArray} to search. The search will start from the {@link
+   *     ParsableByteArray#getPosition() current position}.
+   * @param boxType The box type to search for.
+   * @param parentBoxPosition The position in {@code parent} of the box we are searching.
+   * @param parentBoxSize The size of the parent box we are searching in bytes.
+   * @return The position of the first box with the given {@code boxType} within {@code parent}, or
+   *     {@link C#POSITION_UNSET} if no such box is found.
    */
-  private static int findEsdsPosition(ParsableByteArray parent, int position, int size) {
+  private static int findBoxPosition(
+      ParsableByteArray parent, int boxType, int parentBoxPosition, int parentBoxSize)
+      throws ParserException {
     int childAtomPosition = parent.getPosition();
-    while (childAtomPosition - position < size) {
+    ExtractorUtil.checkContainerInput(childAtomPosition >= parentBoxPosition, /* message= */ null);
+    while (childAtomPosition - parentBoxPosition < parentBoxSize) {
       parent.setPosition(childAtomPosition);
       int childAtomSize = parent.readInt();
-      Assertions.checkState(childAtomSize > 0, "childAtomSize should be positive");
+      ExtractorUtil.checkContainerInput(childAtomSize > 0, "childAtomSize must be positive");
       int childType = parent.readInt();
-      if (childType == Atom.TYPE_esds) {
+      if (childType == boxType) {
         return childAtomPosition;
       }
       childAtomPosition += childAtomSize;
@@ -1442,8 +1652,7 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
   }
 
   /** Returns codec-specific initialization data contained in an esds box. */
-  private static Pair<@NullableType String, byte @NullableType []> parseEsdsFromParent(
-      ParsableByteArray parent, int position) {
+  private static EsdsData parseEsdsFromParent(ParsableByteArray parent, int position) {
     parent.setPosition(position + Atom.HEADER_SIZE + 4);
     // Start of the ES_Descriptor (defined in ISO/IEC 14496-1)
     parent.skipBytes(1); // ES_Descriptor tag
@@ -1455,7 +1664,7 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
       parent.skipBytes(2);
     }
     if ((flags & 0x40 /* URL_Flag */) != 0) {
-      parent.skipBytes(parent.readUnsignedShort());
+      parent.skipBytes(parent.readUnsignedByte());
     }
     if ((flags & 0x20 /* OCRstreamFlag */) != 0) {
       parent.skipBytes(2);
@@ -1471,17 +1680,29 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
     if (MimeTypes.AUDIO_MPEG.equals(mimeType)
         || MimeTypes.AUDIO_DTS.equals(mimeType)
         || MimeTypes.AUDIO_DTS_HD.equals(mimeType)) {
-      return Pair.create(mimeType, null);
+      return new EsdsData(
+          mimeType,
+          /* initializationData= */ null,
+          /* bitrate= */ Format.NO_VALUE,
+          /* peakBitrate= */ Format.NO_VALUE);
     }
 
-    parent.skipBytes(12);
+    parent.skipBytes(4);
+    long peakBitrate = parent.readUnsignedInt();
+    long bitrate = parent.readUnsignedInt();
 
     // Start of the DecoderSpecificInfo.
     parent.skipBytes(1); // DecoderSpecificInfo tag
     int initializationDataSize = parseExpandableClassSize(parent);
     byte[] initializationData = new byte[initializationDataSize];
     parent.readBytes(initializationData, 0, initializationDataSize);
-    return Pair.create(mimeType, initializationData);
+
+    // Skipping zero values as unknown.
+    return new EsdsData(
+        mimeType,
+        /* initializationData= */ initializationData,
+        /* bitrate= */ bitrate > 0 ? bitrate : Format.NO_VALUE,
+        /* peakBitrate= */ peakBitrate > 0 ? peakBitrate : Format.NO_VALUE);
   }
 
   /**
@@ -1491,12 +1712,12 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
    */
   @Nullable
   private static Pair<Integer, TrackEncryptionBox> parseSampleEntryEncryptionData(
-      ParsableByteArray parent, int position, int size) {
+      ParsableByteArray parent, int position, int size) throws ParserException {
     int childPosition = parent.getPosition();
     while (childPosition - position < size) {
       parent.setPosition(childPosition);
       int childAtomSize = parent.readInt();
-      Assertions.checkState(childAtomSize > 0, "childAtomSize should be positive");
+      ExtractorUtil.checkContainerInput(childAtomSize > 0, "childAtomSize must be positive");
       int childAtomType = parent.readInt();
       if (childAtomType == Atom.TYPE_sinf) {
         @Nullable
@@ -1513,7 +1734,7 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
 
   @Nullable
   /* package */ static Pair<Integer, TrackEncryptionBox> parseCommonEncryptionSinfFromParent(
-      ParsableByteArray parent, int position, int size) {
+      ParsableByteArray parent, int position, int size) throws ParserException {
     int childPosition = position + Atom.HEADER_SIZE;
     int schemeInformationBoxPosition = C.POSITION_UNSET;
     int schemeInformationBoxSize = 0;
@@ -1536,17 +1757,19 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
       childPosition += childAtomSize;
     }
 
-    if (C.CENC_TYPE_cenc.equals(schemeType) || C.CENC_TYPE_cbc1.equals(schemeType)
-        || C.CENC_TYPE_cens.equals(schemeType) || C.CENC_TYPE_cbcs.equals(schemeType)) {
-      Assertions.checkStateNotNull(dataFormat, "frma atom is mandatory");
-      Assertions.checkState(
+    if (C.CENC_TYPE_cenc.equals(schemeType)
+        || C.CENC_TYPE_cbc1.equals(schemeType)
+        || C.CENC_TYPE_cens.equals(schemeType)
+        || C.CENC_TYPE_cbcs.equals(schemeType)) {
+      ExtractorUtil.checkContainerInput(dataFormat != null, "frma atom is mandatory");
+      ExtractorUtil.checkContainerInput(
           schemeInformationBoxPosition != C.POSITION_UNSET, "schi atom is mandatory");
+      @Nullable
       TrackEncryptionBox encryptionBox =
-          Assertions.checkStateNotNull(
-              parseSchiFromParent(
-                  parent, schemeInformationBoxPosition, schemeInformationBoxSize, schemeType),
-              "tenc atom is mandatory");
-      return Pair.create(dataFormat, encryptionBox);
+          parseSchiFromParent(
+              parent, schemeInformationBoxPosition, schemeInformationBoxSize, schemeType);
+      ExtractorUtil.checkContainerInput(encryptionBox != null, "tenc atom is mandatory");
+      return Pair.create(dataFormat, castNonNull(encryptionBox));
     } else {
       return null;
     }
@@ -1583,8 +1806,14 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
           constantIv = new byte[constantIvSize];
           parent.readBytes(constantIv, 0, constantIvSize);
         }
-        return new TrackEncryptionBox(defaultIsProtected, schemeType, defaultPerSampleIvSize,
-            defaultKeyId, defaultCryptByteBlock, defaultSkipByteBlock, constantIv);
+        return new TrackEncryptionBox(
+            defaultIsProtected,
+            schemeType,
+            defaultPerSampleIvSize,
+            defaultKeyId,
+            defaultCryptByteBlock,
+            defaultSkipByteBlock,
+            constantIv);
       }
       childPosition += childAtomSize;
     }
@@ -1650,8 +1879,9 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
     private int nextSamplesPerChunkChangeIndex;
     private int remainingSamplesPerChunkChanges;
 
-    public ChunkIterator(ParsableByteArray stsc, ParsableByteArray chunkOffsets,
-        boolean chunkOffsetsAreLongs) {
+    public ChunkIterator(
+        ParsableByteArray stsc, ParsableByteArray chunkOffsets, boolean chunkOffsetsAreLongs)
+        throws ParserException {
       this.stsc = stsc;
       this.chunkOffsets = chunkOffsets;
       this.chunkOffsetsAreLongs = chunkOffsetsAreLongs;
@@ -1659,7 +1889,7 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
       length = chunkOffsets.readUnsignedIntToInt();
       stsc.setPosition(Atom.FULL_HEADER_SIZE);
       remainingSamplesPerChunkChanges = stsc.readUnsignedIntToInt();
-      Assertions.checkState(stsc.readInt() == 1, "first_chunk must be 1");
+      ExtractorUtil.checkContainerInput(stsc.readInt() == 1, "first_chunk must be 1");
       index = -1;
     }
 
@@ -1667,22 +1897,23 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
       if (++index == length) {
         return false;
       }
-      offset = chunkOffsetsAreLongs ? chunkOffsets.readUnsignedLongToLong()
-          : chunkOffsets.readUnsignedInt();
+      offset =
+          chunkOffsetsAreLongs
+              ? chunkOffsets.readUnsignedLongToLong()
+              : chunkOffsets.readUnsignedInt();
       if (index == nextSamplesPerChunkChangeIndex) {
         numSamples = stsc.readUnsignedIntToInt();
         stsc.skipBytes(4); // Skip sample_description_index
-        nextSamplesPerChunkChangeIndex = --remainingSamplesPerChunkChanges > 0
-            ? (stsc.readUnsignedIntToInt() - 1) : C.INDEX_UNSET;
+        nextSamplesPerChunkChangeIndex =
+            --remainingSamplesPerChunkChanges > 0
+                ? (stsc.readUnsignedIntToInt() - 1)
+                : C.INDEX_UNSET;
       }
       return true;
     }
-
   }
 
-  /**
-   * Holds data parsed from a tkhd atom.
-   */
+  /** Holds data parsed from a tkhd atom. */
   private static final class TkhdData {
 
     private final int id;
@@ -1694,12 +1925,9 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
       this.duration = duration;
       this.rotationDegrees = rotationDegrees;
     }
-
   }
 
-  /**
-   * Holds data parsed from an stsd atom and its children.
-   */
+  /** Holds data parsed from an stsd atom and its children. */
   private static final class StsdData {
 
     public static final int STSD_HEADER_SIZE = 8;
@@ -1708,23 +1936,37 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
 
     @Nullable public Format format;
     public int nalUnitLengthFieldLength;
-    @Track.Transformation public int requiredSampleTransformation;
+    public @Track.Transformation int requiredSampleTransformation;
 
     public StsdData(int numberOfEntries) {
       trackEncryptionBoxes = new TrackEncryptionBox[numberOfEntries];
       requiredSampleTransformation = Track.TRANSFORMATION_NONE;
     }
-
   }
 
-  /**
-   * A box containing sample sizes (e.g. stsz, stz2).
-   */
+  /** Data parsed from an esds box. */
+  private static final class EsdsData {
+    private final @NullableType String mimeType;
+    private final byte @NullableType [] initializationData;
+    private final long bitrate;
+    private final long peakBitrate;
+
+    public EsdsData(
+        @NullableType String mimeType,
+        byte @NullableType [] initializationData,
+        long bitrate,
+        long peakBitrate) {
+      this.mimeType = mimeType;
+      this.initializationData = initializationData;
+      this.bitrate = bitrate;
+      this.peakBitrate = peakBitrate;
+    }
+  }
+
+  /** A box containing sample sizes (e.g. stsz, stz2). */
   private interface SampleSizeBox {
 
-    /**
-     * Returns the number of samples.
-     */
+    /** Returns the number of samples. */
     int getSampleCount();
 
     /** Returns the size of each sample if fixed, or {@link C#LENGTH_UNSET} otherwise. */
@@ -1734,9 +1976,7 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
     int readNextSampleSize();
   }
 
-  /**
-   * An stsz sample size box.
-   */
+  /** An stsz sample size box. */
   /* package */ static final class StszSampleSizeBox implements SampleSizeBox {
 
     private final int fixedSampleSize;
@@ -1782,9 +2022,7 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
     }
   }
 
-  /**
-   * An stz2 sample size box.
-   */
+  /** An stz2 sample size box. */
   /* package */ static final class Stz2SampleSizeBox implements SampleSizeBox {
 
     private final ParsableByteArray data;
@@ -1832,5 +2070,4 @@ import org.checkerframework.checker.nullness.compatqual.NullableType;
       }
     }
   }
-
 }

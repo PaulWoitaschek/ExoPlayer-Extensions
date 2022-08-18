@@ -22,8 +22,9 @@ import android.net.Uri;
 import com.google.android.exoplayer2.testutil.FakeDataSet.FakeData;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DataSourceInputStream;
+import com.google.android.exoplayer2.upstream.DataSourceUtil;
 import com.google.android.exoplayer2.upstream.DataSpec;
-import com.google.android.exoplayer2.upstream.DummyDataSource;
+import com.google.android.exoplayer2.upstream.PlaceholderDataSource;
 import com.google.android.exoplayer2.upstream.cache.Cache;
 import com.google.android.exoplayer2.upstream.cache.CacheDataSource;
 import com.google.android.exoplayer2.util.Assertions;
@@ -126,11 +127,11 @@ public final class CacheAsserts {
    */
   public static void assertDataCached(Cache cache, DataSpec dataSpec, byte[] expected)
       throws IOException {
-    DataSource dataSource = new CacheDataSource(cache, DummyDataSource.INSTANCE, 0);
+    DataSource dataSource = new CacheDataSource(cache, PlaceholderDataSource.INSTANCE, 0);
     byte[] bytes;
     try {
       dataSource.open(dataSpec);
-      bytes = Util.readToEnd(dataSource);
+      bytes = DataSourceUtil.readToEnd(dataSource);
     } catch (IOException e) {
       throw new IOException("Opening/reading cache failed: " + dataSpec, e);
     } finally {

@@ -17,21 +17,37 @@ package com.google.android.exoplayer2.transformer;
 
 import android.os.ParcelFileDescriptor;
 import androidx.annotation.Nullable;
+import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.util.MimeTypes;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
 /**
  * Abstracts media muxing operations.
  *
- * <p>Query whether {@link #supportsSampleMimeType(String) sample MIME types are supported} and
- * {@link #addTrack(Format) add all tracks}, then {@link #writeSampleData(int, ByteBuffer, boolean,
- * long) write sample data} to mux samples. Once any sample data has been written, it is not
- * possible to add tracks. After writing all sample data, {@link #release() release} the instance to
- * finish writing to the output and return any resources to the system.
+ * <p>Query whether {@linkplain Factory#supportsOutputMimeType(String) container MIME type} and
+ * {@linkplain Factory#supportsSampleMimeType(String, String) sample MIME types} are supported and
+ * {@linkplain #addTrack(Format) add all tracks}, then {@linkplain #writeSampleData(int, ByteBuffer,
+ * boolean, long) write sample data} to mux samples. Once any sample data has been written, it is
+ * not possible to add tracks. After writing all sample data, {@linkplain #release(boolean) release}
+ * the instance to finish writing to the output and return any resources to the system.
  */
 /* package */ interface Muxer {
+
+  /** Thrown when a muxing failure occurs. */
+  /* package */ final class MuxerException extends Exception {
+    /**
+     * Creates an instance.
+     *
+     * @param message See {@link #getMessage()}.
+     * @param cause See {@link #getCause()}.
+     */
+    public MuxerException(String message, Throwable cause) {
+      super(message, cause);
+    }
+  }
 
   /** Factory for muxers. */
   interface Factory {
@@ -39,7 +55,7 @@ import java.nio.ByteBuffer;
      * Returns a new muxer writing to a file.
      *
      * @param path The path to the output file.
-     * @param outputMimeType The container {@link MimeTypes MIME type} of the output file.
+     * @param outputMimeType The container {@linkplain MimeTypes MIME type} of the output file.
      * @throws IllegalArgumentException If the path is invalid or the MIME type is not supported.
      * @throws IOException If an error occurs opening the output file for writing.
      */
@@ -52,7 +68,7 @@ import java.nio.ByteBuffer;
      *     output. The file referenced by this ParcelFileDescriptor should not be used before the
      *     muxer is released. It is the responsibility of the caller to close the
      *     ParcelFileDescriptor. This can be done after this method returns.
-     * @param outputMimeType The {@link MimeTypes MIME type} of the output.
+     * @param outputMimeType The {@linkplain MimeTypes MIME type} of the output.
      * @throws IllegalArgumentException If the file descriptor is invalid or the MIME type is not
      *     supported.
      * @throws IOException If an error occurs opening the output file descriptor for writing.
@@ -60,18 +76,33 @@ import java.nio.ByteBuffer;
     Muxer create(ParcelFileDescriptor parcelFileDescriptor, String outputMimeType)
         throws IOException;
 
-    /** Returns whether the {@link MimeTypes MIME type} provided is a supported output format. */
+    /**
+     * Returns whether the {@linkplain MimeTypes MIME type} provided is a supported output format.
+     */
     boolean supportsOutputMimeType(String mimeType);
-  }
 
-  /** Returns whether the sample {@link MimeTypes MIME type} is supported. */
-  boolean supportsSampleMimeType(@Nullable String mimeType);
+    /**
+     * Returns whether the sample {@linkplain MimeTypes MIME type} is supported with the given
+     * container {@linkplain MimeTypes MIME type}.
+     */
+    boolean supportsSampleMimeType(@Nullable String sampleMimeType, String containerMimeType);
+
+    /**
+     * Returns the supported sample {@linkplain MimeTypes MIME types} for the given {@link
+     * C.TrackType} and container {@linkplain MimeTypes MIME type}.
+     */
+    ImmutableList<String> getSupportedSampleMimeTypes(
+        @C.TrackType int trackType, String containerMimeType);
+  }
 
   /**
    * Adds a track with the specified format, and returns its index (to be passed in subsequent calls
    * to {@link #writeSampleData(int, ByteBuffer, boolean, long)}).
+   *
+   * @param format The {@link Format} of the track.
+   * @throws MuxerException If the muxer encounters a problem while adding the track.
    */
-  int addTrack(Format format);
+  int addTrack(Format format) throws MuxerException;
 
   /**
    * Writes the specified sample.
@@ -80,15 +111,18 @@ import java.nio.ByteBuffer;
    * @param data Buffer containing the sample data to write to the container.
    * @param isKeyFrame Whether the sample is a key frame.
    * @param presentationTimeUs The presentation time of the sample in microseconds.
+   * @throws MuxerException If the muxer fails to write the sample.
    */
-  void writeSampleData(
-      int trackIndex, ByteBuffer data, boolean isKeyFrame, long presentationTimeUs);
+  void writeSampleData(int trackIndex, ByteBuffer data, boolean isKeyFrame, long presentationTimeUs)
+      throws MuxerException;
 
   /**
    * Releases any resources associated with muxing.
    *
    * @param forCancellation Whether the reason for releasing the resources is the transformation
    *     cancellation.
+   * @throws MuxerException If the muxer fails to stop or release resources and {@code
+   *     forCancellation} is false.
    */
-  void release(boolean forCancellation);
+  void release(boolean forCancellation) throws MuxerException;
 }

@@ -37,22 +37,24 @@
     <item quantity="one">Γρήγορη προώθηση κατά %d δευτερόλεπτο</item>
     <item quantity="other">Γρήγορη προώθηση κατά %d δευτερόλεπτα</item>
   </plurals>
-  <string name="exo_controls_repeat_off_description">Καμία επανάληψη</string>
-  <string name="exo_controls_repeat_one_description">Επανάληψη ενός κομματιού</string>
-  <string name="exo_controls_repeat_all_description">Επανάληψη όλων</string>
-  <string name="exo_controls_shuffle_on_description">Τυχαία αναπαραγωγή: Ενεργή</string>
-  <string name="exo_controls_shuffle_off_description">Τυχαία αναπαραγωγή: Ανενεργή</string>
+  <string name="exo_controls_repeat_off_description">Τρέχ. λειτουργία: Καμία επανάλ. Εναλλαγή λειτουργ. επανάλ.</string>
+  <string name="exo_controls_repeat_one_description">Τρέχ. λειτουργία: Επανάλ. ενός. Εναλλαγή λειτουργ. επανάλ.</string>
+  <string name="exo_controls_repeat_all_description">Τρέχ. λειτουργία: Επανάλ. όλων Εναλλαγή λειτουργ. επανάλ.</string>
+  <string name="exo_controls_shuffle_on_description">Απενεργ. λειτουργ. τυχαίας αναπαραγωγής</string>
+  <string name="exo_controls_shuffle_off_description">Ενεργοπ. λειτουργ. τυχαίας αναπαραγωγής</string>
   <string name="exo_controls_vr_description">Λειτουργία VR mode</string>
   <string name="exo_controls_cc_enabled_description">Απενεργοποίηση υπότιτλων</string>
   <string name="exo_controls_cc_disabled_description">Ενεργοποίηση υπότιτλων</string>
   <string name="exo_controls_playback_speed">Ταχύτητα</string>
-  <string name="exo_controls_playback_speed_normal">Κανονική</string>
-  <string name="exo_download_description">Λήψη</string>
-  <string name="exo_download_notification_channel_name">Λήψεις</string>
-  <string name="exo_download_downloading">Λήψη</string>
-  <string name="exo_download_completed">Η λήψη ολοκληρώθηκε</string>
-  <string name="exo_download_failed">Η λήψη απέτυχε</string>
-  <string name="exo_download_removing">Κατάργηση λήψεων</string>
+  <string-array name="exo_controls_playback_speeds">
+    <item>0,25x</item>
+    <item>0,5x</item>
+    <item>0,75x</item>
+    <item>Κανονική</item>
+    <item>1,25x</item>
+    <item>1,5x</item>
+    <item>2x</item>
+  </string-array>
   <string name="exo_track_selection_title_video">Βίντεο</string>
   <string name="exo_track_selection_title_audio">Ήχος</string>
   <string name="exo_track_selection_title_text">Κείμενο</string>

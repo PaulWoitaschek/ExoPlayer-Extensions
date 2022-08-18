@@ -16,6 +16,7 @@
 package com.google.android.exoplayer2.util;
 
 import static com.google.android.exoplayer2.util.MimeTypes.normalizeMimeType;
+import static java.lang.annotation.ElementType.TYPE_USE;
 
 import android.net.Uri;
 import androidx.annotation.IntDef;
@@ -24,6 +25,7 @@ import androidx.annotation.VisibleForTesting;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.List;
 import java.util.Map;
 
@@ -33,12 +35,14 @@ public final class FileTypes {
   /**
    * File types. One of {@link #UNKNOWN}, {@link #AC3}, {@link #AC4}, {@link #ADTS}, {@link #AMR},
    * {@link #FLAC}, {@link #FLV}, {@link #MATROSKA}, {@link #MP3}, {@link #MP4}, {@link #OGG},
-   * {@link #PS}, {@link #TS}, {@link #WAV}, {@link #WEBVTT} and {@link #JPEG}.
+   * {@link #PS}, {@link #TS}, {@link #WAV}, {@link #WEBVTT}, {@link #JPEG} and {@link #MIDI}.
    */
   @Documented
   @Retention(RetentionPolicy.SOURCE)
+  @Target(TYPE_USE)
   @IntDef({
-    UNKNOWN, AC3, AC4, ADTS, AMR, FLAC, FLV, MATROSKA, MP3, MP4, OGG, PS, TS, WAV, WEBVTT, JPEG
+    UNKNOWN, AC3, AC4, ADTS, AMR, FLAC, FLV, MATROSKA, MP3, MP4, OGG, PS, TS, WAV, WEBVTT, JPEG,
+    MIDI, AVI
   })
   public @interface Type {}
   /** Unknown file type. */
@@ -73,6 +77,10 @@ public final class FileTypes {
   public static final int WEBVTT = 13;
   /** File type for the JPEG format. */
   public static final int JPEG = 14;
+  /** File type for the MIDI format. */
+  public static final int MIDI = 15;
+  /** File type for the AVI format. */
+  public static final int AVI = 16;
 
   @VisibleForTesting /* package */ static final String HEADER_CONTENT_TYPE = "Content-Type";
 
@@ -84,6 +92,9 @@ public final class FileTypes {
   private static final String EXTENSION_AMR = ".amr";
   private static final String EXTENSION_FLAC = ".flac";
   private static final String EXTENSION_FLV = ".flv";
+  private static final String EXTENSION_MID = ".mid";
+  private static final String EXTENSION_MIDI = ".midi";
+  private static final String EXTENSION_SMF = ".smf";
   private static final String EXTENSION_PREFIX_MK = ".mk";
   private static final String EXTENSION_WEBM = ".webm";
   private static final String EXTENSION_PREFIX_OG = ".og";
@@ -105,12 +116,13 @@ public final class FileTypes {
   private static final String EXTENSION_WEBVTT = ".webvtt";
   private static final String EXTENSION_JPG = ".jpg";
   private static final String EXTENSION_JPEG = ".jpeg";
+  private static final String EXTENSION_AVI = ".avi";
 
   private FileTypes() {}
 
   /** Returns the {@link Type} corresponding to the response headers provided. */
-  @FileTypes.Type
-  public static int inferFileTypeFromResponseHeaders(Map<String, List<String>> responseHeaders) {
+  public static @FileTypes.Type int inferFileTypeFromResponseHeaders(
+      Map<String, List<String>> responseHeaders) {
     @Nullable List<String> contentTypes = responseHeaders.get(HEADER_CONTENT_TYPE);
     @Nullable
     String mimeType = contentTypes == null || contentTypes.isEmpty() ? null : contentTypes.get(0);
@@ -122,8 +134,7 @@ public final class FileTypes {
    *
    * <p>Returns {@link #UNKNOWN} if the mime type is {@code null}.
    */
-  @FileTypes.Type
-  public static int inferFileTypeFromMimeType(@Nullable String mimeType) {
+  public static @FileTypes.Type int inferFileTypeFromMimeType(@Nullable String mimeType) {
     if (mimeType == null) {
       return FileTypes.UNKNOWN;
     }
@@ -143,6 +154,8 @@ public final class FileTypes {
         return FileTypes.FLAC;
       case MimeTypes.VIDEO_FLV:
         return FileTypes.FLV;
+      case MimeTypes.AUDIO_MIDI:
+        return FileTypes.MIDI;
       case MimeTypes.VIDEO_MATROSKA:
       case MimeTypes.AUDIO_MATROSKA:
       case MimeTypes.VIDEO_WEBM:
@@ -167,14 +180,15 @@ public final class FileTypes {
         return FileTypes.WEBVTT;
       case MimeTypes.IMAGE_JPEG:
         return FileTypes.JPEG;
+      case MimeTypes.VIDEO_AVI:
+        return FileTypes.AVI;
       default:
         return FileTypes.UNKNOWN;
     }
   }
 
   /** Returns the {@link Type} corresponding to the {@link Uri} provided. */
-  @FileTypes.Type
-  public static int inferFileTypeFromUri(Uri uri) {
+  public static @FileTypes.Type int inferFileTypeFromUri(Uri uri) {
     @Nullable String filename = uri.getLastPathSegment();
     if (filename == null) {
       return FileTypes.UNKNOWN;
@@ -190,6 +204,10 @@ public final class FileTypes {
       return FileTypes.FLAC;
     } else if (filename.endsWith(EXTENSION_FLV)) {
       return FileTypes.FLV;
+    } else if (filename.endsWith(EXTENSION_MID)
+        || filename.endsWith(EXTENSION_MIDI)
+        || filename.endsWith(EXTENSION_SMF)) {
+      return FileTypes.MIDI;
     } else if (filename.startsWith(
             EXTENSION_PREFIX_MK,
             /* toffset= */ filename.length() - (EXTENSION_PREFIX_MK.length() + 1))
@@ -229,6 +247,8 @@ public final class FileTypes {
       return FileTypes.WEBVTT;
     } else if (filename.endsWith(EXTENSION_JPG) || filename.endsWith(EXTENSION_JPEG)) {
       return FileTypes.JPEG;
+    } else if (filename.endsWith(EXTENSION_AVI)) {
+      return FileTypes.AVI;
     } else {
       return FileTypes.UNKNOWN;
     }

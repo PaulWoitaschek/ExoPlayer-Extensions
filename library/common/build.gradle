@@ -13,7 +13,16 @@
 // limitations under the License.
 apply from: "$gradle.ext.exoplayerSettingsDir/common_library_config.gradle"
 
-android.buildTypes.debug.testCoverageEnabled true
+android {
+    buildTypes {
+        debug {
+            testCoverageEnabled = true
+        }
+    }
+    lint {
+        baseline = file("lint-baseline.xml")
+    }
+}
 
 dependencies {
     api ('com.google.guava:guava:' + guavaVersion) {
@@ -21,22 +30,26 @@ dependencies {
         // (but declared as runtime deps) [internal b/168188131].
         exclude group: 'com.google.code.findbugs', module: 'jsr305'
         exclude group: 'org.checkerframework', module: 'checker-compat-qual'
+        exclude group: 'org.checkerframework', module: 'checker-qual'
         exclude group: 'com.google.errorprone', module: 'error_prone_annotations'
         exclude group: 'com.google.j2objc', module: 'j2objc-annotations'
         exclude group: 'org.codehaus.mojo', module: 'animal-sniffer-annotations'
     }
     implementation 'androidx.annotation:annotation:' + androidxAnnotationVersion
     compileOnly 'com.google.code.findbugs:jsr305:' + jsr305Version
+    compileOnly 'com.google.errorprone:error_prone_annotations:' + errorProneVersion
     compileOnly 'org.checkerframework:checker-compat-qual:' + checkerframeworkCompatVersion
     compileOnly 'org.checkerframework:checker-qual:' + checkerframeworkVersion
     compileOnly 'org.jetbrains.kotlin:kotlin-annotations-jvm:' + kotlinAnnotationsVersion
+    androidTestImplementation 'androidx.test:runner:' + androidxTestRunnerVersion
+    androidTestImplementation 'com.linkedin.dexmaker:dexmaker:' + dexmakerVersion
+    androidTestImplementation 'com.linkedin.dexmaker:dexmaker-mockito:' + dexmakerVersion
     testImplementation 'org.mockito:mockito-core:' + mockitoVersion
     testImplementation 'androidx.test:core:' + androidxTestCoreVersion
     testImplementation 'androidx.test.ext:junit:' + androidxTestJUnitVersion
     testImplementation 'junit:junit:' + junitVersion
     testImplementation 'com.google.truth:truth:' + truthVersion
-    testImplementation 'com.squareup.okhttp3:mockwebserver:' + mockWebServerVersion
-    testImplementation 'org.robolectric:robolectric:' + robolectricVersion
+    testImplementation project(modulePrefix + 'library-core')
 }
 
 ext {
@@ -45,7 +58,7 @@ ext {
 apply from: '../../javadoc_library.gradle'
 
 ext {
-    releaseArtifact = 'exoplayer-common'
+    releaseArtifactId = 'exoplayer-common'
     releaseDescription = 'The ExoPlayer library common module.'
 }
 apply from: '../../publish.gradle'

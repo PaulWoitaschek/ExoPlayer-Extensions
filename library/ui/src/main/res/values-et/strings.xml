@@ -37,22 +37,24 @@
     <item quantity="one">Keri %d sekund edasi</item>
     <item quantity="other">Keri %d sekundit edasi</item>
   </plurals>
-  <string name="exo_controls_repeat_off_description">Ära korda ühtegi</string>
-  <string name="exo_controls_repeat_one_description">Korda ühte</string>
-  <string name="exo_controls_repeat_all_description">Korda kõiki</string>
-  <string name="exo_controls_shuffle_on_description">Lülita juh. järj. esit. sisse</string>
-  <string name="exo_controls_shuffle_off_description">Lülita juh. järj. esit. välja</string>
+  <string name="exo_controls_repeat_off_description">Praegune režiim: Ära korda. Aktiveerige kordusrežiim.</string>
+  <string name="exo_controls_repeat_one_description">Praegune režiim: Korda ühte. Aktiveerige kordusrežiim.</string>
+  <string name="exo_controls_repeat_all_description">Praegune režiim: Korda kõiki. Aktiveerige kordusrežiim.</string>
+  <string name="exo_controls_shuffle_on_description">Juhuesituse režiimi keelamine</string>
+  <string name="exo_controls_shuffle_off_description">Juhuesituse režiimi lubamine</string>
   <string name="exo_controls_vr_description">VR-režiim</string>
   <string name="exo_controls_cc_enabled_description">Keela subtiitrid</string>
   <string name="exo_controls_cc_disabled_description">Luba subtiitrid</string>
   <string name="exo_controls_playback_speed">Kiirus</string>
-  <string name="exo_controls_playback_speed_normal">Tavaline</string>
-  <string name="exo_download_description">Allalaadimine</string>
-  <string name="exo_download_notification_channel_name">Allalaadimised</string>
-  <string name="exo_download_downloading">Allalaadimine</string>
-  <string name="exo_download_completed">Allalaadimine lõpetati</string>
-  <string name="exo_download_failed">Allalaadimine ebaõnnestus</string>
-  <string name="exo_download_removing">Allalaadimiste eemaldamine</string>
+  <string-array name="exo_controls_playback_speeds">
+    <item>0,25-kordne</item>
+    <item>0,5-kordne</item>
+    <item>0,75-kordne</item>
+    <item>Tavaline</item>
+    <item>1,25-kordne</item>
+    <item>1,5-kordne</item>
+    <item>2-kordne</item>
+  </string-array>
   <string name="exo_track_selection_title_video">Video</string>
   <string name="exo_track_selection_title_audio">Heli</string>
   <string name="exo_track_selection_title_text">Tekst</string>

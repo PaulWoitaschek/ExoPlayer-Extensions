@@ -17,8 +17,8 @@ package com.google.android.exoplayer2.ext.media2;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+import android.annotation.SuppressLint;
 import android.os.Bundle;
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.media2.common.MediaItem;
 import androidx.media2.common.MediaMetadata;
@@ -106,8 +106,7 @@ import java.util.concurrent.TimeoutException;
   }
 
   @Override
-  public void onPostConnect(
-      @NonNull MediaSession session, @NonNull MediaSession.ControllerInfo controller) {
+  public void onPostConnect(MediaSession session, MediaSession.ControllerInfo controller) {
     if (postConnectCallback != null) {
       postConnectCallback.onPostConnect(session, controller);
     }
@@ -137,6 +136,7 @@ import java.util.concurrent.TimeoutException;
     return mediaItemProvider.onCreateMediaItem(session, controller, mediaId);
   }
 
+  @SuppressLint("RestrictedApi")
   @Override
   public int onSetRating(
       MediaSession session, MediaSession.ControllerInfo controller, String mediaId, Rating rating) {
@@ -146,6 +146,7 @@ import java.util.concurrent.TimeoutException;
     return SessionResult.RESULT_ERROR_NOT_SUPPORTED;
   }
 
+  @SuppressLint("RestrictedApi")
   @Override
   public SessionResult onCustomCommand(
       MediaSession session,
@@ -158,6 +159,7 @@ import java.util.concurrent.TimeoutException;
     return new SessionResult(SessionResult.RESULT_ERROR_NOT_SUPPORTED, null);
   }
 
+  @SuppressLint("RestrictedApi")
   @Override
   public int onFastForward(MediaSession session, MediaSession.ControllerInfo controller) {
     if (fastForwardMs > 0) {
@@ -166,6 +168,7 @@ import java.util.concurrent.TimeoutException;
     return SessionResult.RESULT_ERROR_NOT_SUPPORTED;
   }
 
+  @SuppressLint("RestrictedApi")
   @Override
   public int onRewind(MediaSession session, MediaSession.ControllerInfo controller) {
     if (rewindMs > 0) {
@@ -174,24 +177,25 @@ import java.util.concurrent.TimeoutException;
     return SessionResult.RESULT_ERROR_NOT_SUPPORTED;
   }
 
+  @SuppressLint("RestrictedApi")
   @Override
-  public int onSkipBackward(
-      @NonNull MediaSession session, @NonNull MediaSession.ControllerInfo controller) {
+  public int onSkipBackward(MediaSession session, MediaSession.ControllerInfo controller) {
     if (skipCallback != null) {
       return skipCallback.onSkipBackward(session, controller);
     }
     return SessionResult.RESULT_ERROR_NOT_SUPPORTED;
   }
 
+  @SuppressLint("RestrictedApi")
   @Override
-  public int onSkipForward(
-      @NonNull MediaSession session, @NonNull MediaSession.ControllerInfo controller) {
+  public int onSkipForward(MediaSession session, MediaSession.ControllerInfo controller) {
     if (skipCallback != null) {
       return skipCallback.onSkipForward(session, controller);
     }
     return SessionResult.RESULT_ERROR_NOT_SUPPORTED;
   }
 
+  @SuppressLint("RestrictedApi")
   private int seekToOffset(long offsetMs) {
     long positionMs = sessionPlayer.getCurrentPosition() + offsetMs;
     long durationMs = sessionPlayer.getDuration();
@@ -352,7 +356,7 @@ import java.util.concurrent.TimeoutException;
     // TODO(internal b/160846312): Remove warning suppression and mark item @Nullable once we depend
     // on media2 1.2.0.
     @Override
-    @SuppressWarnings("nullness:override.param.invalid")
+    @SuppressWarnings("nullness:override.param")
     public void onCurrentMediaItemChanged(SessionPlayer player, MediaItem item) {
       currentMediaItemBuffered = isBufferedState(player.getBufferingState());
       updateAllowedCommands();

@@ -17,28 +17,31 @@ package com.google.android.exoplayer2.source;
 
 import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.C;
+import com.google.android.exoplayer2.C.DataType;
+import com.google.android.exoplayer2.C.SelectionReason;
+import com.google.android.exoplayer2.C.TrackType;
 import com.google.android.exoplayer2.Format;
 
 /** Descriptor for data being loaded or selected by a {@link MediaSource}. */
 public final class MediaLoadData {
 
-  /** One of the {@link C} {@code DATA_TYPE_*} constants defining the type of data. */
-  public final int dataType;
+  /** The {@link DataType data type}. */
+  public final @DataType int dataType;
   /**
-   * One of the {@link C} {@code TRACK_TYPE_*} constants if the data corresponds to media of a
-   * specific type. {@link C#TRACK_TYPE_UNKNOWN} otherwise.
+   * One of the {@link TrackType track types}, which is a media track type if the data corresponds
+   * to media of a specific type, or {@link C#TRACK_TYPE_UNKNOWN} otherwise.
    */
-  public final int trackType;
+  public final @TrackType int trackType;
   /**
    * The format of the track to which the data belongs. Null if the data does not belong to a
    * specific track.
    */
   @Nullable public final Format trackFormat;
   /**
-   * One of the {@link C} {@code SELECTION_REASON_*} constants if the data belongs to a track.
-   * {@link C#SELECTION_REASON_UNKNOWN} otherwise.
+   * One of the {@link SelectionReason selection reasons} if the data belongs to a track. {@link
+   * C#SELECTION_REASON_UNKNOWN} otherwise.
    */
-  public final int trackSelectionReason;
+  public final @C.SelectionReason int trackSelectionReason;
   /**
    * Optional data associated with the selection of the track to which the data belongs. Null if the
    * data does not belong to a track.
@@ -56,7 +59,7 @@ public final class MediaLoadData {
   public final long mediaEndTimeMs;
 
   /** Creates an instance with the given {@link #dataType}. */
-  public MediaLoadData(int dataType) {
+  public MediaLoadData(@DataType int dataType) {
     this(
         dataType,
         /* trackType= */ C.TRACK_TYPE_UNKNOWN,
@@ -79,10 +82,10 @@ public final class MediaLoadData {
    * @param mediaEndTimeMs See {@link #mediaEndTimeMs}.
    */
   public MediaLoadData(
-      int dataType,
-      int trackType,
+      @DataType int dataType,
+      @TrackType int trackType,
       @Nullable Format trackFormat,
-      int trackSelectionReason,
+      @SelectionReason int trackSelectionReason,
       @Nullable Object trackSelectionData,
       long mediaStartTimeMs,
       long mediaEndTimeMs) {

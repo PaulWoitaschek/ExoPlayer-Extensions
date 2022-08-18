@@ -19,7 +19,6 @@ import static com.google.android.exoplayer2.util.Assertions.checkNotNull;
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 
-import android.os.Looper;
 import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Format;
@@ -69,7 +68,7 @@ public class ChunkSampleStream<T extends ChunkSource>
 
   private static final String TAG = "ChunkSampleStream";
 
-  public final int primaryTrackType;
+  public final @C.TrackType int primaryTrackType;
 
   private final int[] embeddedTrackTypes;
   private final Format[] embeddedTrackFormats;
@@ -99,8 +98,7 @@ public class ChunkSampleStream<T extends ChunkSource>
   /**
    * Constructs an instance.
    *
-   * @param primaryTrackType The type of the primary track. One of the {@link C} {@code
-   *     TRACK_TYPE_*} constants.
+   * @param primaryTrackType The {@link C.TrackType type} of the primary track.
    * @param embeddedTrackTypes The types of any embedded tracks, or null.
    * @param embeddedTrackFormats The formats of the embedded tracks, or null.
    * @param chunkSource A {@link ChunkSource} from which chunks to load are obtained.
@@ -115,7 +113,7 @@ public class ChunkSampleStream<T extends ChunkSource>
    *     events.
    */
   public ChunkSampleStream(
-      int primaryTrackType,
+      @C.TrackType int primaryTrackType,
       @Nullable int[] embeddedTrackTypes,
       @Nullable Format[] embeddedTrackFormats,
       T chunkSource,
@@ -145,11 +143,7 @@ public class ChunkSampleStream<T extends ChunkSource>
     SampleQueue[] sampleQueues = new SampleQueue[1 + embeddedTrackCount];
 
     primarySampleQueue =
-        SampleQueue.createWithDrm(
-            allocator,
-            /* playbackLooper= */ checkNotNull(Looper.myLooper()),
-            drmSessionManager,
-            drmEventDispatcher);
+        SampleQueue.createWithDrm(allocator, drmSessionManager, drmEventDispatcher);
     trackTypes[0] = primaryTrackType;
     sampleQueues[0] = primarySampleQueue;
 
@@ -211,9 +205,7 @@ public class ChunkSampleStream<T extends ChunkSource>
     throw new IllegalStateException();
   }
 
-  /**
-   * Returns the {@link ChunkSource} used by this stream.
-   */
+  /** Returns the {@link ChunkSource} used by this stream. */
   public T getChunkSource() {
     return chunkSource;
   }
@@ -233,8 +225,10 @@ public class ChunkSampleStream<T extends ChunkSource>
     } else {
       long bufferedPositionUs = lastSeekPositionUs;
       BaseMediaChunk lastMediaChunk = getLastMediaChunk();
-      BaseMediaChunk lastCompletedMediaChunk = lastMediaChunk.isLoadCompleted() ? lastMediaChunk
-          : mediaChunks.size() > 1 ? mediaChunks.get(mediaChunks.size() - 2) : null;
+      BaseMediaChunk lastCompletedMediaChunk =
+          lastMediaChunk.isLoadCompleted()
+              ? lastMediaChunk
+              : mediaChunks.size() > 1 ? mediaChunks.get(mediaChunks.size() - 2) : null;
       if (lastCompletedMediaChunk != null) {
         bufferedPositionUs = max(bufferedPositionUs, lastCompletedMediaChunk.endTimeUs);
       }
@@ -511,17 +505,14 @@ public class ChunkSampleStream<T extends ChunkSource>
             loadable.trackFormat,
             loadable.trackSelectionReason,
             loadable.trackSelectionData,
-            C.usToMs(loadable.startTimeUs),
-            C.usToMs(loadable.endTimeUs));
+            Util.usToMs(loadable.startTimeUs),
+            Util.usToMs(loadable.endTimeUs));
     LoadErrorInfo loadErrorInfo =
         new LoadErrorInfo(loadEventInfo, mediaLoadData, error, errorCount);
 
-    long exclusionDurationMs =
-        cancelable
-            ? loadErrorHandlingPolicy.getBlacklistDurationMsFor(loadErrorInfo)
-            : C.TIME_UNSET;
     @Nullable LoadErrorAction loadErrorAction = null;
-    if (chunkSource.onChunkLoadError(loadable, cancelable, error, exclusionDurationMs)) {
+    if (chunkSource.onChunkLoadError(
+        loadable, cancelable, loadErrorInfo, loadErrorHandlingPolicy)) {
       if (cancelable) {
         loadErrorAction = Loader.DONT_RETRY;
         if (isMediaChunk) {
@@ -812,9 +803,7 @@ public class ChunkSampleStream<T extends ChunkSource>
     return firstRemovedChunk;
   }
 
-  /**
-   * A {@link SampleStream} embedded in a {@link ChunkSampleStream}.
-   */
+  /** A {@link SampleStream} embedded in a {@link ChunkSampleStream}. */
   public final class EmbeddedSampleStream implements SampleStream {
 
     public final ChunkSampleStream<T> parent;
@@ -895,5 +884,4 @@ public class ChunkSampleStream<T extends ChunkSource>
       }
     }
   }
-
 }

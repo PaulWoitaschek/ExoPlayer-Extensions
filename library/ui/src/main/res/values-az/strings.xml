@@ -37,22 +37,24 @@
     <item quantity="one">%d saniyə irəli çəkin</item>
     <item quantity="other">%d saniyə irəli çəkin</item>
   </plurals>
-  <string name="exo_controls_repeat_off_description">Heç biri təkrarlanmasın</string>
-  <string name="exo_controls_repeat_one_description">Biri təkrarlansın</string>
-  <string name="exo_controls_repeat_all_description">Hamısı təkrarlansın</string>
-  <string name="exo_controls_shuffle_on_description">Qarışdırma aktivdir</string>
-  <string name="exo_controls_shuffle_off_description">Qarışdırma deaktivdir</string>
+  <string name="exo_controls_repeat_off_description">Cari rejim: Heç birini təkrarlamayın. Təkrarlanma rejimini keçirin.</string>
+  <string name="exo_controls_repeat_one_description">Cari rejim: Birini təkrarlayın. Təkrarlanma rejimini keçirin.</string>
+  <string name="exo_controls_repeat_all_description">Cari rejim: Hamısını təkrarlayın. Təkrarlanma rejimini keçirin.</string>
+  <string name="exo_controls_shuffle_on_description">Qarışdırma rejimini deaktiv edin</string>
+  <string name="exo_controls_shuffle_off_description">Qarışdırma rejimini aktiv edin</string>
   <string name="exo_controls_vr_description">VR rejimi</string>
   <string name="exo_controls_cc_enabled_description">Subtitrləri deaktiv edin</string>
   <string name="exo_controls_cc_disabled_description">Subtitrləri aktiv edin</string>
   <string name="exo_controls_playback_speed">Sürət</string>
-  <string name="exo_controls_playback_speed_normal">Normal</string>
-  <string name="exo_download_description">Endirin</string>
-  <string name="exo_download_notification_channel_name">Endirmələr</string>
-  <string name="exo_download_downloading">Endirilir</string>
-  <string name="exo_download_completed">Endirmə tamamlandı</string>
-  <string name="exo_download_failed">Endirmə alınmadı</string>
-  <string name="exo_download_removing">Endirilənlər silinir</string>
+  <string-array name="exo_controls_playback_speeds">
+    <item>0.25x</item>
+    <item>0.5x</item>
+    <item>0.75x</item>
+    <item>Normal</item>
+    <item>1.25x</item>
+    <item>1.5x</item>
+    <item>2x</item>
+  </string-array>
   <string name="exo_track_selection_title_video">Video</string>
   <string name="exo_track_selection_title_audio">Audio</string>
   <string name="exo_track_selection_title_text">Mətn</string>

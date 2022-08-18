@@ -42,10 +42,9 @@ import androidx.test.filters.LargeTest;
 import androidx.test.filters.MediumTest;
 import androidx.test.filters.SmallTest;
 import androidx.test.platform.app.InstrumentationRegistry;
-import com.google.android.exoplayer2.ControlDispatcher;
-import com.google.android.exoplayer2.DefaultControlDispatcher;
+import com.google.android.exoplayer2.ExoPlayer;
+import com.google.android.exoplayer2.ForwardingPlayer;
 import com.google.android.exoplayer2.Player;
-import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.ext.media2.test.R;
 import com.google.android.exoplayer2.upstream.RawResourceDataSource;
 import com.google.android.exoplayer2.util.Util;
@@ -153,35 +152,38 @@ public class SessionPlayerConnectorTest {
 
   @Test
   @LargeTest
-  public void play_withCustomControlDispatcher_isSkipped() throws Exception {
+  public void play_withForwardingPlayer_isSkipped() throws Exception {
     if (Looper.myLooper() == null) {
       Looper.prepare();
     }
 
-    ControlDispatcher controlDispatcher =
-        new DefaultControlDispatcher() {
-          @Override
-          public boolean dispatchSetPlayWhenReady(Player player, boolean playWhenReady) {
-            return false;
-          }
-        };
-    SimpleExoPlayer simpleExoPlayer = null;
+    Player forwardingPlayer = null;
     SessionPlayerConnector playerConnector = null;
     try {
-      simpleExoPlayer =
-          new SimpleExoPlayer.Builder(context)
-              .setLooper(Looper.myLooper())
-              .build();
-      playerConnector =
-          new SessionPlayerConnector(simpleExoPlayer, new DefaultMediaItemConverter());
-      playerConnector.setControlDispatcher(controlDispatcher);
+      Player exoPlayer = new ExoPlayer.Builder(context).setLooper(Looper.myLooper()).build();
+      forwardingPlayer =
+          new ForwardingPlayer(exoPlayer) {
+            @Override
+            public boolean isCommandAvailable(int command) {
+              if (command == COMMAND_PLAY_PAUSE) {
+                return false;
+              }
+              return super.isCommandAvailable(command);
+            }
+
+            @Override
+            public Commands getAvailableCommands() {
+              return super.getAvailableCommands().buildUpon().remove(COMMAND_PLAY_PAUSE).build();
+            }
+          };
+      playerConnector = new SessionPlayerConnector(forwardingPlayer);
       assertPlayerResult(playerConnector.play(), RESULT_INFO_SKIPPED);
     } finally {
       if (playerConnector != null) {
         playerConnector.close();
       }
-      if (simpleExoPlayer != null) {
-        simpleExoPlayer.release();
+      if (forwardingPlayer != null) {
+        forwardingPlayer.release();
       }
     }
   }
@@ -420,13 +422,12 @@ public class SessionPlayerConnectorTest {
   public void seekTo_whenUnderlyingPlayerAlsoSeeks_throwsNoException() throws Exception {
     TestUtils.loadResource(R.raw.video_big_buck_bunny, sessionPlayerConnector);
     assertPlayerResultSuccess(sessionPlayerConnector.prepare());
-    SimpleExoPlayer simpleExoPlayer = playerTestRule.getSimpleExoPlayer();
+    ExoPlayer exoPlayer = playerTestRule.getExoPlayer();
 
     List<ListenableFuture<PlayerResult>> futures = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
       futures.add(sessionPlayerConnector.seekTo(4123));
-      InstrumentationRegistry.getInstrumentation()
-          .runOnMainSync(() -> simpleExoPlayer.seekTo(1243));
+      InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> exoPlayer.seekTo(1243));
     }
 
     for (ListenableFuture<PlayerResult> future : futures) {
@@ -440,7 +441,7 @@ public class SessionPlayerConnectorTest {
   public void seekTo_byUnderlyingPlayer_notifiesOnSeekCompleted() throws Exception {
     TestUtils.loadResource(R.raw.video_big_buck_bunny, sessionPlayerConnector);
     assertPlayerResultSuccess(sessionPlayerConnector.prepare());
-    SimpleExoPlayer simpleExoPlayer = playerTestRule.getSimpleExoPlayer();
+    ExoPlayer exoPlayer = playerTestRule.getExoPlayer();
     long testSeekPosition = 1023;
     AtomicLong seekPosition = new AtomicLong();
     CountDownLatch onSeekCompletedLatch = new CountDownLatch(1);
@@ -457,7 +458,7 @@ public class SessionPlayerConnectorTest {
         });
 
     InstrumentationRegistry.getInstrumentation()
-        .runOnMainSync(() -> simpleExoPlayer.seekTo(testSeekPosition));
+        .runOnMainSync(() -> exoPlayer.seekTo(testSeekPosition));
     assertThat(onSeekCompletedLatch.await(PLAYER_STATE_CHANGE_WAIT_TIME_MS, MILLISECONDS)).isTrue();
     assertThat(seekPosition.get()).isEqualTo(testSeekPosition);
   }
@@ -800,7 +801,7 @@ public class SessionPlayerConnectorTest {
           }
         });
     InstrumentationRegistry.getInstrumentation()
-        .runOnMainSync(() -> playerTestRule.getSimpleExoPlayer().setMediaItems(exoMediaItems));
+        .runOnMainSync(() -> playerTestRule.getExoPlayer().setMediaItems(exoMediaItems));
     assertThat(onPlaylistChangedLatch.await(PLAYLIST_CHANGE_WAIT_TIME_MS, MILLISECONDS)).isTrue();
   }
 
@@ -833,7 +834,7 @@ public class SessionPlayerConnectorTest {
     sessionPlayerConnector.prepare();
     sessionPlayerConnector.setPlaylist(playlistToSessionPlayer, /* metadata= */ null);
     InstrumentationRegistry.getInstrumentation()
-        .runOnMainSync(() -> playerTestRule.getSimpleExoPlayer().setMediaItems(exoMediaItems));
+        .runOnMainSync(() -> playerTestRule.getExoPlayer().setMediaItems(exoMediaItems));
     assertThat(onPlaylistChangedLatch.await(PLAYLIST_CHANGE_WAIT_TIME_MS, MILLISECONDS)).isTrue();
   }
 
@@ -923,8 +924,7 @@ public class SessionPlayerConnectorTest {
     assertThat(onPlaylistChangedLatch.getCount()).isEqualTo(1);
   }
 
-  // TODO(b/168860979): De-flake and re-enable.
-  @Ignore
+  @Ignore("Internal ref: b/168860979")
   @Test
   @LargeTest
   public void replacePlaylistItem_calledOnlyOnce_notifiesPlaylistChangeOnlyOnce() throws Exception {
@@ -1018,7 +1018,7 @@ public class SessionPlayerConnectorTest {
   @LargeTest
   public void play_byUnderlyingPlayer_notifiesOnPlayerStateChanges() throws Exception {
     TestUtils.loadResource(R.raw.audio, sessionPlayerConnector);
-    SimpleExoPlayer simpleExoPlayer = playerTestRule.getSimpleExoPlayer();
+    ExoPlayer exoPlayer = playerTestRule.getExoPlayer();
 
     CountDownLatch onPlayingLatch = new CountDownLatch(1);
     sessionPlayerConnector.registerPlayerCallback(
@@ -1034,7 +1034,7 @@ public class SessionPlayerConnectorTest {
 
     assertPlayerResultSuccess(sessionPlayerConnector.prepare());
     InstrumentationRegistry.getInstrumentation()
-        .runOnMainSync(() -> simpleExoPlayer.setPlayWhenReady(true));
+        .runOnMainSync(() -> exoPlayer.setPlayWhenReady(true));
 
     assertThat(onPlayingLatch.await(PLAYER_STATE_CHANGE_WAIT_TIME_MS, MILLISECONDS)).isTrue();
   }
@@ -1053,7 +1053,7 @@ public class SessionPlayerConnectorTest {
   @LargeTest
   public void pause_byUnderlyingPlayer_notifiesOnPlayerStateChanges() throws Exception {
     TestUtils.loadResource(R.raw.audio, sessionPlayerConnector);
-    SimpleExoPlayer simpleExoPlayer = playerTestRule.getSimpleExoPlayer();
+    ExoPlayer exoPlayer = playerTestRule.getExoPlayer();
 
     assertPlayerResultSuccess(sessionPlayerConnector.prepare());
 
@@ -1070,7 +1070,7 @@ public class SessionPlayerConnectorTest {
         });
     assertPlayerResultSuccess(sessionPlayerConnector.play());
     InstrumentationRegistry.getInstrumentation()
-        .runOnMainSync(() -> simpleExoPlayer.setPlayWhenReady(false));
+        .runOnMainSync(() -> exoPlayer.setPlayWhenReady(false));
 
     assertThat(onPausedLatch.await(PLAYER_STATE_CHANGE_WAIT_TIME_MS, MILLISECONDS)).isTrue();
   }
@@ -1079,7 +1079,7 @@ public class SessionPlayerConnectorTest {
   @LargeTest
   public void pause_byUnderlyingPlayerInListener_changesToPlayerStatePaused() throws Exception {
     TestUtils.loadResource(R.raw.audio, sessionPlayerConnector);
-    SimpleExoPlayer simpleExoPlayer = playerTestRule.getSimpleExoPlayer();
+    ExoPlayer exoPlayer = playerTestRule.getExoPlayer();
 
     CountDownLatch playerStateChangesLatch = new CountDownLatch(3);
     CopyOnWriteArrayList<Integer> playerStateChanges = new CopyOnWriteArrayList<>();
@@ -1097,12 +1097,12 @@ public class SessionPlayerConnectorTest {
     InstrumentationRegistry.getInstrumentation()
         .runOnMainSync(
             () ->
-                simpleExoPlayer.addListener(
-                    new Player.EventListener() {
+                exoPlayer.addListener(
+                    new Player.Listener() {
                       @Override
                       public void onPlayWhenReadyChanged(boolean playWhenReady, int reason) {
                         if (playWhenReady) {
-                          simpleExoPlayer.setPlayWhenReady(false);
+                          exoPlayer.setPlayWhenReady(false);
                         }
                       }
                     }));
@@ -1255,11 +1255,10 @@ public class SessionPlayerConnectorTest {
     InstrumentationRegistry.getInstrumentation()
         .runOnMainSync(
             () -> {
-              SimpleExoPlayer simpleExoPlayer = playerTestRule.getSimpleExoPlayer();
-              simpleExoPlayer.setMediaItems(exoMediaItems);
+              ExoPlayer exoPlayer = playerTestRule.getExoPlayer();
+              exoPlayer.setMediaItems(exoMediaItems);
 
-              try (SessionPlayerConnector sessionPlayer =
-                  new SessionPlayerConnector(simpleExoPlayer)) {
+              try (SessionPlayerConnector sessionPlayer = new SessionPlayerConnector(exoPlayer)) {
                 List<MediaItem> playlist = sessionPlayer.getPlaylist();
                 playlistFromSessionPlayer.set(playlist);
               }

@@ -30,10 +30,11 @@ public class AudioAttributesTest {
   public void roundTripViaBundle_yieldsEqualInstance() {
     AudioAttributes audioAttributes =
         new AudioAttributes.Builder()
-            .setContentType(C.CONTENT_TYPE_SONIFICATION)
+            .setContentType(C.AUDIO_CONTENT_TYPE_SONIFICATION)
             .setFlags(C.FLAG_AUDIBILITY_ENFORCED)
             .setUsage(C.USAGE_ALARM)
             .setAllowedCapturePolicy(C.ALLOW_CAPTURE_BY_SYSTEM)
+            .setSpatializationBehavior(C.SPATIALIZATION_BEHAVIOR_NEVER)
             .build();
 
     assertThat(AudioAttributes.CREATOR.fromBundle(audioAttributes.toBundle()))

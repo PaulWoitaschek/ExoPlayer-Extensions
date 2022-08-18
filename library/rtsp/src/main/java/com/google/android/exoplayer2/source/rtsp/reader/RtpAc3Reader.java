@@ -73,7 +73,7 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 
   @Override
   public void consume(
-      ParsableByteArray data, long timestamp, int sequenceNumber, boolean isFrameBoundary) {
+      ParsableByteArray data, long timestamp, int sequenceNumber, boolean rtpMarker) {
     /*
     AC-3 payload as an RTP payload (RFC4184).
       +-+-+-+-+-+-+-+-+-+-+-+-+-+- .. +-+-+-+-+-+-+-+
@@ -115,7 +115,7 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
         // Falls through.
       case AC3_FRAME_TYPE_NON_INITIAL_FRAGMENT:
         // The content of an AC3 frame is split into multiple RTP packets.
-        processFragmentedPacket(data, isFrameBoundary, frameType, sampleTimeUs);
+        processFragmentedPacket(data, rtpMarker, frameType, sampleTimeUs);
         break;
 
       default:
@@ -138,7 +138,7 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
             /* flags= */ C.BUFFER_FLAG_KEY_FRAME,
             /* size= */ frameSize,
             /* offset= */ 0,
-            /* encryptionData= */ null);
+            /* cryptoData= */ null);
   }
 
   private void processMultiFramePacket(ParsableByteArray data, int numOfFrames, long sampleTimeUs) {
@@ -157,7 +157,7 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
               /* flags= */ C.BUFFER_FLAG_KEY_FRAME,
               /* size= */ frameInfo.frameSize,
               /* offset= */ 0,
-              /* encryptionData= */ null);
+              /* cryptoData= */ null);
 
       sampleTimeUs += (frameInfo.sampleCount / frameInfo.sampleRate) * C.MICROS_PER_SECOND;
       // Advance the position by the number of bytes read.
@@ -203,7 +203,7 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
             /* flags= */ C.BUFFER_FLAG_KEY_FRAME,
             /* size= */ numBytesPendingMetadataOutput,
             /* offset= */ 0,
-            /* encryptionData= */ null);
+            /* cryptoData= */ null);
     numBytesPendingMetadataOutput = 0;
   }
 

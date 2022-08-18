@@ -37,22 +37,24 @@
     <item quantity="one">%d soniya oldinga</item>
     <item quantity="other">%d soniya oldinga</item>
   </plurals>
-  <string name="exo_controls_repeat_off_description">Takrorlanmasin</string>
-  <string name="exo_controls_repeat_one_description">Bittasini takrorlash</string>
-  <string name="exo_controls_repeat_all_description">Hammasini takrorlash</string>
-  <string name="exo_controls_shuffle_on_description">Tasodifiy ijro yoqilgan</string>
-  <string name="exo_controls_shuffle_off_description">Tasodifiy ijro yoqilmagan</string>
+  <string name="exo_controls_repeat_off_description">Joriy rejim: Hech qaysi takrorlanmaydi. Takrorlash rejimiga oʻting.</string>
+  <string name="exo_controls_repeat_one_description">Joriy rejim: Bittasi takrorlanadi. Takrorlash rejimiga oʻting.</string>
+  <string name="exo_controls_repeat_all_description">Joriy rejim: Barchasi takrorlanadi. Takrorlash rejimiga oʻting.</string>
+  <string name="exo_controls_shuffle_on_description">Tasodifiy rejimni faolsizlantiring</string>
+  <string name="exo_controls_shuffle_off_description">Tasodifiy rejimni yoqing</string>
   <string name="exo_controls_vr_description">VR rejimi</string>
   <string name="exo_controls_cc_enabled_description">Taglavhalarni faolsizlantirish</string>
   <string name="exo_controls_cc_disabled_description">Taglavhalarni yoqish</string>
   <string name="exo_controls_playback_speed">Tezlik</string>
-  <string name="exo_controls_playback_speed_normal">Normal</string>
-  <string name="exo_download_description">Yuklab olish</string>
-  <string name="exo_download_notification_channel_name">Yuklanmalar</string>
-  <string name="exo_download_downloading">Yuklab olinmoqda</string>
-  <string name="exo_download_completed">Yuklab olindi</string>
-  <string name="exo_download_failed">Yuklab olinmadi</string>
-  <string name="exo_download_removing">Yuklanmalar olib tashlanmoqda</string>
+  <string-array name="exo_controls_playback_speeds">
+    <item>0,25x</item>
+    <item>0,5x</item>
+    <item>0,75x</item>
+    <item>Normal</item>
+    <item>1,25x</item>
+    <item>1,5x</item>
+    <item>2x</item>
+  </string-array>
   <string name="exo_track_selection_title_video">Video</string>
   <string name="exo_track_selection_title_audio">Audio</string>
   <string name="exo_track_selection_title_text">Matn</string>

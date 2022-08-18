@@ -18,6 +18,7 @@ package com.google.android.exoplayer2.source.chunk;
 import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Format;
+import com.google.android.exoplayer2.analytics.PlayerId;
 import com.google.android.exoplayer2.extractor.ChunkIndex;
 import com.google.android.exoplayer2.extractor.ExtractorInput;
 import com.google.android.exoplayer2.extractor.TrackOutput;
@@ -38,19 +39,22 @@ public interface ChunkExtractor {
     /**
      * Returns a new {@link ChunkExtractor} instance.
      *
-     * @param primaryTrackType The type of the primary track. One of {@link C C.TRACK_TYPE_*}.
+     * @param primaryTrackType The {@link C.TrackType type} of the primary track.
      * @param representationFormat The format of the representation to extract from.
      * @param enableEventMessageTrack Whether to enable the event message track.
      * @param closedCaptionFormats The {@link Format Formats} of the Closed-Caption tracks.
+     * @param playerEmsgTrackOutput The {@link TrackOutput} for extracted EMSG messages, or null.
+     * @param playerId The {@link PlayerId} of the player using this chunk extractor.
      * @return A new {@link ChunkExtractor} instance, or null if not applicable.
      */
     @Nullable
     ChunkExtractor createProgressiveMediaExtractor(
-        int primaryTrackType,
+        @C.TrackType int primaryTrackType,
         Format representationFormat,
         boolean enableEventMessageTrack,
         List<Format> closedCaptionFormats,
-        @Nullable TrackOutput playerEmsgTrackOutput);
+        @Nullable TrackOutput playerEmsgTrackOutput,
+        PlayerId playerId);
   }
 
   /** Provides {@link TrackOutput} instances to be written to during extraction. */
@@ -63,11 +67,10 @@ public interface ChunkExtractor {
      * id}.
      *
      * @param id A track identifier.
-     * @param type The type of the track. Typically one of the {@link C} {@code TRACK_TYPE_*}
-     *     constants.
+     * @param type The {@link C.TrackType type} of the track.
      * @return The {@link TrackOutput} for the given track identifier.
      */
-    TrackOutput track(int id, int type);
+    TrackOutput track(int id, @C.TrackType int type);
   }
 
   /**

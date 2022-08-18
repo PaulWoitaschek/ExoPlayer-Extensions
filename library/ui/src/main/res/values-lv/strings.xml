@@ -39,22 +39,24 @@
     <item quantity="one">Pārtīt uz priekšu par %d sekundi</item>
     <item quantity="other">Pārtīt uz priekšu par %d sekundēm</item>
   </plurals>
-  <string name="exo_controls_repeat_off_description">Neatkārtot nevienu</string>
-  <string name="exo_controls_repeat_one_description">Atkārtot vienu</string>
-  <string name="exo_controls_repeat_all_description">Atkārtot visu</string>
-  <string name="exo_controls_shuffle_on_description">Atsk. jauktā secībā ieslēgta</string>
-  <string name="exo_controls_shuffle_off_description">Atsk. jauktā secībā izslēgta</string>
+  <string name="exo_controls_repeat_off_description">Iesl.: neatkārtot nevienu. Pārslēdziet režīmu.</string>
+  <string name="exo_controls_repeat_one_description">Iesl.: atkārtot vienu. Pārslēdziet režīmu.</string>
+  <string name="exo_controls_repeat_all_description">Iesl.: atkārtot visu. Pārslēdziet režīmu.</string>
+  <string name="exo_controls_shuffle_on_description">Atspējot atskaņošanu jauktā secībā</string>
+  <string name="exo_controls_shuffle_off_description">Iespējot atskaņošanu jauktā secībā</string>
   <string name="exo_controls_vr_description">VR režīms</string>
   <string name="exo_controls_cc_enabled_description">Atspējot subtitrus</string>
   <string name="exo_controls_cc_disabled_description">Iespējot subtitrus</string>
   <string name="exo_controls_playback_speed">Ātrums</string>
-  <string name="exo_controls_playback_speed_normal">Parasts</string>
-  <string name="exo_download_description">Lejupielādēt</string>
-  <string name="exo_download_notification_channel_name">Lejupielādes</string>
-  <string name="exo_download_downloading">Notiek lejupielāde</string>
-  <string name="exo_download_completed">Lejupielāde ir pabeigta</string>
-  <string name="exo_download_failed">Lejupielāde neizdevās</string>
-  <string name="exo_download_removing">Notiek lejupielāžu noņemšana</string>
+  <string-array name="exo_controls_playback_speeds">
+    <item>0,25x</item>
+    <item>0,5x</item>
+    <item>0,75x</item>
+    <item>Normāls</item>
+    <item>1,25x</item>
+    <item>1,5x</item>
+    <item>2x</item>
+  </string-array>
   <string name="exo_track_selection_title_video">Video</string>
   <string name="exo_track_selection_title_audio">Audio</string>
   <string name="exo_track_selection_title_text">Teksts</string>

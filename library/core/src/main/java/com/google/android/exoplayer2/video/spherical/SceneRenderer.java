@@ -50,8 +50,8 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
   private @MonotonicNonNull SurfaceTexture surfaceTexture;
 
   // Used by other threads only
-  @C.StereoMode private volatile int defaultStereoMode;
-  @C.StereoMode private int lastStereoMode;
+  private volatile @C.StereoMode int defaultStereoMode;
+  private @C.StereoMode int lastStereoMode;
   @Nullable private byte[] lastProjectionData;
 
   // Methods called on any thread.
@@ -129,7 +129,7 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
     projectionRenderer.draw(textureId, tempMatrix, rightEye);
   }
 
-  /** Cleans up the GL resources. */
+  /** Cleans up GL resources. */
   public void shutdown() {
     projectionRenderer.shutdown();
   }

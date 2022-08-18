@@ -18,6 +18,7 @@ package com.google.android.exoplayer2.extractor;
 import static java.lang.Math.min;
 
 import com.google.android.exoplayer2.C;
+import com.google.android.exoplayer2.ExoPlayerLibraryInfo;
 import com.google.android.exoplayer2.upstream.DataReader;
 import com.google.android.exoplayer2.util.Assertions;
 import com.google.android.exoplayer2.util.Util;
@@ -28,6 +29,10 @@ import java.util.Arrays;
 
 /** An {@link ExtractorInput} that wraps a {@link DataReader}. */
 public final class DefaultExtractorInput implements ExtractorInput {
+
+  static {
+    ExoPlayerLibraryInfo.registerModule("goog.exo.extractor");
+  }
 
   private static final int PEEK_MIN_FREE_SPACE_AFTER_RESIZE = 64 * 1024;
   private static final int PEEK_MAX_FREE_SPACE = 512 * 1024;
@@ -56,12 +61,12 @@ public final class DefaultExtractorInput implements ExtractorInput {
   }
 
   @Override
-  public int read(byte[] target, int offset, int length) throws IOException {
-    int bytesRead = readFromPeekBuffer(target, offset, length);
+  public int read(byte[] buffer, int offset, int length) throws IOException {
+    int bytesRead = readFromPeekBuffer(buffer, offset, length);
     if (bytesRead == 0) {
       bytesRead =
           readFromUpstream(
-              target, offset, length, /* bytesAlreadyRead= */ 0, /* allowEndOfInput= */ true);
+              buffer, offset, length, /* bytesAlreadyRead= */ 0, /* allowEndOfInput= */ true);
     }
     commitBytesRead(bytesRead);
     return bytesRead;
@@ -205,8 +210,11 @@ public final class DefaultExtractorInput implements ExtractorInput {
   private void ensureSpaceForPeek(int length) {
     int requiredLength = peekBufferPosition + length;
     if (requiredLength > peekBuffer.length) {
-      int newPeekCapacity = Util.constrainValue(peekBuffer.length * 2,
-          requiredLength + PEEK_MIN_FREE_SPACE_AFTER_RESIZE, requiredLength + PEEK_MAX_FREE_SPACE);
+      int newPeekCapacity =
+          Util.constrainValue(
+              peekBuffer.length * 2,
+              requiredLength + PEEK_MIN_FREE_SPACE_AFTER_RESIZE,
+              requiredLength + PEEK_MAX_FREE_SPACE);
       peekBuffer = Arrays.copyOf(peekBuffer, newPeekCapacity);
     }
   }
@@ -300,5 +308,4 @@ public final class DefaultExtractorInput implements ExtractorInput {
       position += bytesRead;
     }
   }
-
 }

@@ -69,22 +69,16 @@ const int kMaxPlanes = 3;
 // https://developer.android.com/reference/android/graphics/ImageFormat.html#YV12.
 const int kImageFormatYV12 = 0x32315659;
 
-// LINT.IfChange
 // Output modes.
 const int kOutputModeYuv = 0;
 const int kOutputModeSurfaceYuv = 1;
-// LINT.ThenChange(../../../../../library/common/src/main/java/com/google/android/exoplayer2/C.java)
 
-// LINT.IfChange
 const int kColorSpaceUnknown = 0;
-// LINT.ThenChange(../../../../../library/core/src/main/java/com/google/android/exoplayer2/video/VideoDecoderOutputBuffer.java)
 
-// LINT.IfChange
 // Return codes for jni methods.
 const int kStatusError = 0;
 const int kStatusOk = 1;
 const int kStatusDecodeOnly = 2;
-// LINT.ThenChange(../java/com/google/android/exoplayer2/ext/av1/Gav1Decoder.java)
 
 // Status codes specific to the JNI wrapper code.
 enum JniStatusCode {
@@ -543,7 +537,7 @@ DECODER_FUNC(jlong, gav1Init, jint threads) {
 
   // Populate JNI References.
   const jclass outputBufferClass = env->FindClass(
-      "com/google/android/exoplayer2/video/VideoDecoderOutputBuffer");
+      "com/google/android/exoplayer2/decoder/VideoDecoderOutputBuffer");
   context->decoder_private_field =
       env->GetFieldID(outputBufferClass, "decoderPrivate", "I");
   context->output_mode_field = env->GetFieldID(outputBufferClass, "mode", "I");

@@ -37,22 +37,24 @@
     <item quantity="one">Avancer rapidement de %d seconde</item>
     <item quantity="other">Avancer rapidement de %d secondes</item>
   </plurals>
-  <string name="exo_controls_repeat_off_description">Ne rien lire en boucle</string>
-  <string name="exo_controls_repeat_one_description">Lire une chanson en boucle</string>
-  <string name="exo_controls_repeat_all_description">Tout lire en boucle</string>
-  <string name="exo_controls_shuffle_on_description">Lecture aléatoire activée</string>
-  <string name="exo_controls_shuffle_off_description">Lecture aléatoire désactivée</string>
+  <string name="exo_controls_repeat_off_description">Mode actuel : aucune répétition. Basculer le mode répétition.</string>
+  <string name="exo_controls_repeat_one_description">Mode actuel : répéter une fois. Basculer le mode répétition.</string>
+  <string name="exo_controls_repeat_all_description">Mode actuel : tout répéter. Basculer le mode répétition.</string>
+  <string name="exo_controls_shuffle_on_description">Désactiver le mode lecture aléatoire</string>
+  <string name="exo_controls_shuffle_off_description">Activer le mode lecture aléatoire</string>
   <string name="exo_controls_vr_description">Mode RV</string>
   <string name="exo_controls_cc_enabled_description">Désactiver les sous-titres</string>
   <string name="exo_controls_cc_disabled_description">Activer les sous-titres</string>
   <string name="exo_controls_playback_speed">Vitesse</string>
-  <string name="exo_controls_playback_speed_normal">Normale</string>
-  <string name="exo_download_description">Télécharger</string>
-  <string name="exo_download_notification_channel_name">Téléchargements</string>
-  <string name="exo_download_downloading">Téléchargement en cours…</string>
-  <string name="exo_download_completed">Téléchargement terminé</string>
-  <string name="exo_download_failed">Échec du téléchargement</string>
-  <string name="exo_download_removing">Suppression des téléchargements en cours…</string>
+  <string-array name="exo_controls_playback_speeds">
+    <item>0,25x</item>
+    <item>0,5x</item>
+    <item>0,75x</item>
+    <item>Normal</item>
+    <item>1,25x</item>
+    <item>1,5x</item>
+    <item>2x</item>
+  </string-array>
   <string name="exo_track_selection_title_video">Vidéo</string>
   <string name="exo_track_selection_title_audio">Audio</string>
   <string name="exo_track_selection_title_text">Texte</string>

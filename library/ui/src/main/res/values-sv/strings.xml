@@ -37,22 +37,24 @@
     <item quantity="one">Spola framåt %d sekund</item>
     <item quantity="other">Spola framåt %d sekunder</item>
   </plurals>
-  <string name="exo_controls_repeat_off_description">Upprepa inga</string>
-  <string name="exo_controls_repeat_one_description">Upprepa en</string>
-  <string name="exo_controls_repeat_all_description">Upprepa alla</string>
-  <string name="exo_controls_shuffle_on_description">Blanda spår</string>
-  <string name="exo_controls_shuffle_off_description">Blanda inte spår</string>
+  <string name="exo_controls_repeat_off_description">Aktuellt läge: Upprepa inga. Ändra läge för upprepning.</string>
+  <string name="exo_controls_repeat_one_description">Aktuellt läge: Upprepa en. Ändra läge för upprepning.</string>
+  <string name="exo_controls_repeat_all_description">Aktuellt läge: Upprepa alla. Ändra läge för upprepning.</string>
+  <string name="exo_controls_shuffle_on_description">Inaktivera blandningsläget</string>
+  <string name="exo_controls_shuffle_off_description">Aktivera blandningsläget</string>
   <string name="exo_controls_vr_description">VR-läge</string>
   <string name="exo_controls_cc_enabled_description">Inaktivera undertexter</string>
   <string name="exo_controls_cc_disabled_description">Aktivera undertexter</string>
   <string name="exo_controls_playback_speed">Hastighet</string>
-  <string name="exo_controls_playback_speed_normal">Normal</string>
-  <string name="exo_download_description">Ladda ned</string>
-  <string name="exo_download_notification_channel_name">Nedladdningar</string>
-  <string name="exo_download_downloading">Laddar ned</string>
-  <string name="exo_download_completed">Nedladdningen är klar</string>
-  <string name="exo_download_failed">Nedladdningen misslyckades</string>
-  <string name="exo_download_removing">Nedladdningar tas bort</string>
+  <string-array name="exo_controls_playback_speeds">
+    <item>0,25x</item>
+    <item>0,5x</item>
+    <item>0,75x</item>
+    <item>Normal</item>
+    <item>1,25x</item>
+    <item>1,5x</item>
+    <item>2x</item>
+  </string-array>
   <string name="exo_track_selection_title_video">Video</string>
   <string name="exo_track_selection_title_audio">Ljud</string>
   <string name="exo_track_selection_title_text">Text</string>

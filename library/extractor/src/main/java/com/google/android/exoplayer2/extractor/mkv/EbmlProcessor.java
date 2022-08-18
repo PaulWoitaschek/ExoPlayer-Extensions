@@ -15,6 +15,8 @@
  */
 package com.google.android.exoplayer2.extractor.mkv;
 
+import static java.lang.annotation.ElementType.TYPE_USE;
+
 import androidx.annotation.IntDef;
 import com.google.android.exoplayer2.ParserException;
 import com.google.android.exoplayer2.extractor.ExtractorInput;
@@ -22,6 +24,7 @@ import java.io.IOException;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /** Defines EBML element IDs/types and processes events. */
 public interface EbmlProcessor {
@@ -33,6 +36,7 @@ public interface EbmlProcessor {
    */
   @Documented
   @Retention(RetentionPolicy.SOURCE)
+  @Target(TYPE_USE)
   @IntDef({
     ELEMENT_TYPE_UNKNOWN,
     ELEMENT_TYPE_MASTER,
@@ -79,12 +83,12 @@ public interface EbmlProcessor {
 
   /**
    * Called when the start of a master element is encountered.
-   * <p>
-   * Following events should be considered as taking place within this element until a matching call
-   * to {@link #endMasterElement(int)} is made.
-   * <p>
-   * Note that it is possible for another master element of the same element ID to be nested within
-   * itself.
+   *
+   * <p>Following events should be considered as taking place within this element until a matching
+   * call to {@link #endMasterElement(int)} is made.
+   *
+   * <p>Note that it is possible for another master element of the same element ID to be nested
+   * within itself.
    *
    * @param id The element ID.
    * @param contentPosition The position of the start of the element's content in the stream.

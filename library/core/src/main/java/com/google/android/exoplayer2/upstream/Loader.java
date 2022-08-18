@@ -16,6 +16,7 @@
 package com.google.android.exoplayer2.upstream;
 
 import static java.lang.Math.min;
+import static java.lang.annotation.ElementType.TYPE_USE;
 
 import android.annotation.SuppressLint;
 import android.os.Handler;
@@ -33,26 +34,22 @@ import java.io.IOException;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /** Manages the background loading of {@link Loadable}s. */
 public final class Loader implements LoaderErrorThrower {
 
-  /**
-   * Thrown when an unexpected exception or error is encountered during loading.
-   */
+  /** Thrown when an unexpected exception or error is encountered during loading. */
   public static final class UnexpectedLoaderException extends IOException {
 
     public UnexpectedLoaderException(Throwable cause) {
       super("Unexpected " + cause.getClass().getSimpleName() + ": " + cause.getMessage(), cause);
     }
-
   }
 
-  /**
-   * An object that can be loaded using a {@link Loader}.
-   */
+  /** An object that can be loaded using a {@link Loader}. */
   public interface Loadable {
 
     /**
@@ -83,9 +80,7 @@ public final class Loader implements LoaderErrorThrower {
     void load() throws IOException;
   }
 
-  /**
-   * A callback to be notified of {@link Loader} events.
-   */
+  /** A callback to be notified of {@link Loader} events. */
   public interface Callback<T extends Loadable> {
 
     /**
@@ -138,16 +133,11 @@ public final class Loader implements LoaderErrorThrower {
         T loadable, long elapsedRealtimeMs, long loadDurationMs, IOException error, int errorCount);
   }
 
-  /**
-   * A callback to be notified when a {@link Loader} has finished being released.
-   */
+  /** A callback to be notified when a {@link Loader} has finished being released. */
   public interface ReleaseCallback {
 
-    /**
-     * Called when the {@link Loader} has finished being released.
-     */
+    /** Called when the {@link Loader} has finished being released. */
     void onLoaderReleased();
-
   }
 
   private static final String THREAD_NAME_PREFIX = "ExoPlayer:Loader:";
@@ -155,6 +145,7 @@ public final class Loader implements LoaderErrorThrower {
   /** Types of action that can be taken in response to a load error. */
   @Documented
   @Retention(RetentionPolicy.SOURCE)
+  @Target(TYPE_USE)
   @IntDef({
     ACTION_TYPE_RETRY,
     ACTION_TYPE_RETRY_AND_RESET_ERROR_COUNT,
@@ -314,8 +305,8 @@ public final class Loader implements LoaderErrorThrower {
     if (fatalError != null) {
       throw fatalError;
     } else if (currentTask != null) {
-      currentTask.maybeThrowError(minRetryCount == Integer.MIN_VALUE
-          ? currentTask.defaultMinRetryCount : minRetryCount);
+      currentTask.maybeThrowError(
+          minRetryCount == Integer.MIN_VALUE ? currentTask.defaultMinRetryCount : minRetryCount);
     }
   }
 
@@ -344,8 +335,12 @@ public final class Loader implements LoaderErrorThrower {
     private boolean canceled;
     private volatile boolean released;
 
-    public LoadTask(Looper looper, T loadable, Loader.Callback<T> callback,
-        int defaultMinRetryCount, long startTimeMs) {
+    public LoadTask(
+        Looper looper,
+        T loadable,
+        Loader.Callback<T> callback,
+        int defaultMinRetryCount,
+        long startTimeMs) {
       super(looper);
       this.loadable = loadable;
       this.callback = callback;
@@ -522,7 +517,6 @@ public final class Loader implements LoaderErrorThrower {
     private long getRetryDelayMillis() {
       return min((errorCount - 1) * 1000, 5000);
     }
-
   }
 
   private static final class ReleaseTask implements Runnable {
@@ -537,7 +531,5 @@ public final class Loader implements LoaderErrorThrower {
     public void run() {
       callback.onLoaderReleased();
     }
-
   }
-
 }

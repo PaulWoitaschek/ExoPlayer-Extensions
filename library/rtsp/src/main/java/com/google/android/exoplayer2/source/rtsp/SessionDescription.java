@@ -24,6 +24,7 @@ import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.HashMap;
 
 /**
  * Records all the information in a SDP message.
@@ -35,7 +36,7 @@ import com.google.common.collect.ImmutableMap;
 
   /** Builder class for {@link SessionDescription}. */
   public static final class Builder {
-    private final ImmutableMap.Builder<String, String> attributesBuilder;
+    private final HashMap<String, String> attributes;
     private final ImmutableList.Builder<MediaDescription> mediaDescriptionListBuilder;
     private int bitrate;
     @Nullable private String sessionName;
@@ -50,7 +51,7 @@ import com.google.common.collect.ImmutableMap;
 
     /** Creates a new instance. */
     public Builder() {
-      attributesBuilder = new ImmutableMap.Builder<>();
+      attributes = new HashMap<>();
       mediaDescriptionListBuilder = new ImmutableList.Builder<>();
       bitrate = Format.NO_VALUE;
     }
@@ -179,7 +180,7 @@ import com.google.common.collect.ImmutableMap;
      * @return This builder.
      */
     public Builder addAttribute(String attributeName, String attributeValue) {
-      attributesBuilder.put(attributeName, attributeValue);
+      attributes.put(attributeName, attributeValue);
       return this;
     }
 
@@ -198,13 +199,8 @@ import com.google.common.collect.ImmutableMap;
      * Builds a new {@link SessionDescription} instance.
      *
      * @return The newly built {@link SessionDescription} instance.
-     * @throws IllegalStateException When one or more of {@link #sessionName}, {@link #timing} and
-     *     {@link #origin} is not set.
      */
     public SessionDescription build() {
-      if (sessionName == null || origin == null || timing == null) {
-        throw new IllegalStateException("One of more mandatory SDP fields are not set.");
-      }
       return new SessionDescription(this);
     }
   }
@@ -236,12 +232,11 @@ import com.google.common.collect.ImmutableMap;
    */
   public final ImmutableList<MediaDescription> mediaDescriptionList;
   /** The name of a session. */
-  public final String sessionName;
-  // TODO(internal b/172331505) Parse the String representations into objects.
+  @Nullable public final String sessionName;
   /** The origin sender info. */
-  public final String origin;
+  @Nullable public final String origin;
   /** The timing info. */
-  public final String timing;
+  @Nullable public final String timing;
   /** The estimated bitrate in bits per seconds. */
   public final int bitrate;
   /** The uri of a linked content. */
@@ -259,7 +254,7 @@ import com.google.common.collect.ImmutableMap;
 
   /** Creates a new instance. */
   private SessionDescription(Builder builder) {
-    this.attributes = builder.attributesBuilder.build();
+    this.attributes = ImmutableMap.copyOf(builder.attributes);
     this.mediaDescriptionList = builder.mediaDescriptionListBuilder.build();
     this.sessionName = castNonNull(builder.sessionName);
     this.origin = castNonNull(builder.origin);
@@ -285,9 +280,9 @@ import com.google.common.collect.ImmutableMap;
     return bitrate == that.bitrate
         && attributes.equals(that.attributes)
         && mediaDescriptionList.equals(that.mediaDescriptionList)
-        && origin.equals(that.origin)
-        && sessionName.equals(that.sessionName)
-        && timing.equals(that.timing)
+        && Util.areEqual(origin, that.origin)
+        && Util.areEqual(sessionName, that.sessionName)
+        && Util.areEqual(timing, that.timing)
         && Util.areEqual(sessionInfo, that.sessionInfo)
         && Util.areEqual(uri, that.uri)
         && Util.areEqual(emailAddress, that.emailAddress)
@@ -301,9 +296,9 @@ import com.google.common.collect.ImmutableMap;
     int result = 7;
     result = 31 * result + attributes.hashCode();
     result = 31 * result + mediaDescriptionList.hashCode();
-    result = 31 * result + origin.hashCode();
-    result = 31 * result + sessionName.hashCode();
-    result = 31 * result + timing.hashCode();
+    result = 31 * result + (origin == null ? 0 : origin.hashCode());
+    result = 31 * result + (sessionName == null ? 0 : sessionName.hashCode());
+    result = 31 * result + (timing == null ? 0 : timing.hashCode());
     result = 31 * result + bitrate;
     result = 31 * result + (sessionInfo == null ? 0 : sessionInfo.hashCode());
     result = 31 * result + (uri == null ? 0 : uri.hashCode());

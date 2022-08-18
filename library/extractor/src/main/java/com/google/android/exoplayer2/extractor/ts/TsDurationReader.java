@@ -21,6 +21,7 @@ import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.extractor.Extractor;
 import com.google.android.exoplayer2.extractor.ExtractorInput;
 import com.google.android.exoplayer2.extractor.PositionHolder;
+import com.google.android.exoplayer2.util.Log;
 import com.google.android.exoplayer2.util.ParsableByteArray;
 import com.google.android.exoplayer2.util.TimestampAdjuster;
 import com.google.android.exoplayer2.util.Util;
@@ -37,6 +38,8 @@ import java.io.IOException;
  * class is not thread-safe, so all calls should be made from the same thread.
  */
 /* package */ final class TsDurationReader {
+
+  private static final String TAG = "TsDurationReader";
 
   private final int timestampSearchBytes;
   private final TimestampAdjuster pcrTimestampAdjuster;
@@ -98,6 +101,10 @@ import java.io.IOException;
     long minPcrPositionUs = pcrTimestampAdjuster.adjustTsTimestamp(firstPcrValue);
     long maxPcrPositionUs = pcrTimestampAdjuster.adjustTsTimestamp(lastPcrValue);
     durationUs = maxPcrPositionUs - minPcrPositionUs;
+    if (durationUs < 0) {
+      Log.w(TAG, "Invalid duration: " + durationUs + ". Using TIME_UNSET instead.");
+      durationUs = C.TIME_UNSET;
+    }
     return finishReadDuration(input);
   }
 
@@ -180,10 +187,13 @@ import java.io.IOException;
   private long readLastPcrValueFromBuffer(ParsableByteArray packetBuffer, int pcrPid) {
     int searchStartPosition = packetBuffer.getPosition();
     int searchEndPosition = packetBuffer.limit();
-    for (int searchPosition = searchEndPosition - 1;
+    // We start searching 'TsExtractor.TS_PACKET_SIZE' bytes from the end to prevent trying to read
+    // from an incomplete TS packet.
+    for (int searchPosition = searchEndPosition - TsExtractor.TS_PACKET_SIZE;
         searchPosition >= searchStartPosition;
         searchPosition--) {
-      if (packetBuffer.getData()[searchPosition] != TsExtractor.TS_SYNC_BYTE) {
+      if (!TsUtil.isStartOfTsPacket(
+          packetBuffer.getData(), searchStartPosition, searchEndPosition, searchPosition)) {
         continue;
       }
       long pcrValue = TsUtil.readPcrFromPacket(packetBuffer, searchPosition, pcrPid);
@@ -193,5 +203,4 @@ import java.io.IOException;
     }
     return C.TIME_UNSET;
   }
-
 }

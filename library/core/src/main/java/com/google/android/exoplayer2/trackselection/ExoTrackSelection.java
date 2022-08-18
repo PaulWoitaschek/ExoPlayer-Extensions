@@ -25,6 +25,7 @@ import com.google.android.exoplayer2.source.chunk.Chunk;
 import com.google.android.exoplayer2.source.chunk.MediaChunk;
 import com.google.android.exoplayer2.source.chunk.MediaChunkIterator;
 import com.google.android.exoplayer2.upstream.BandwidthMeter;
+import com.google.android.exoplayer2.util.Log;
 import java.util.List;
 import org.checkerframework.checker.nullness.compatqual.NullableType;
 
@@ -43,7 +44,9 @@ public interface ExoTrackSelection extends TrackSelection {
     /** The indices of the selected tracks in {@link #group}. */
     public final int[] tracks;
     /** The type that will be returned from {@link TrackSelection#getType()}. */
-    public final int type;
+    public final @Type int type;
+
+    private static final String TAG = "ETSDefinition";
 
     /**
      * @param group The {@link TrackGroup}. Must not be null.
@@ -60,7 +63,11 @@ public interface ExoTrackSelection extends TrackSelection {
      *     null or empty. May be in any order.
      * @param type The type that will be returned from {@link TrackSelection#getType()}.
      */
-    public Definition(TrackGroup group, int[] tracks, int type) {
+    public Definition(TrackGroup group, int[] tracks, @Type int type) {
+      if (tracks.length == 0) {
+        // TODO: Turn this into an assertion.
+        Log.e(TAG, "Empty tracks are not allowed", new IllegalArgumentException());
+      }
       this.group = group;
       this.tracks = tracks;
       this.type = type;
@@ -122,6 +129,7 @@ public interface ExoTrackSelection extends TrackSelection {
   int getSelectedIndex();
 
   /** Returns the reason for the current track selection. */
+  @C.SelectionReason
   int getSelectionReason();
 
   /** Returns optional data associated with the current track selection. */
@@ -134,9 +142,9 @@ public interface ExoTrackSelection extends TrackSelection {
    * Called to notify the selection of the current playback speed. The playback speed may affect
    * adaptive track selection.
    *
-   * @param speed The factor by which playback is sped up.
+   * @param playbackSpeed The factor by which playback is sped up.
    */
-  void onPlaybackSpeed(float speed);
+  void onPlaybackSpeed(float playbackSpeed);
 
   /**
    * Called to notify the selection of a position discontinuity.

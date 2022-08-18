@@ -37,22 +37,24 @@
     <item quantity="one">กรอไปข้างหน้า %d วินาที</item>
     <item quantity="other">กรอไปข้างหน้า %d วินาที</item>
   </plurals>
-  <string name="exo_controls_repeat_off_description">ไม่เล่นซ้ำ</string>
-  <string name="exo_controls_repeat_one_description">เล่นซ้ำเพลงเดียว</string>
-  <string name="exo_controls_repeat_all_description">เล่นซ้ำทั้งหมด</string>
-  <string name="exo_controls_shuffle_on_description">เปิดการสุ่มเพลงอยู่</string>
-  <string name="exo_controls_shuffle_off_description">ปิดการสุ่มเพลงอยู่</string>
+  <string name="exo_controls_repeat_off_description">โหมดปัจจุบัน: ไม่เล่นซ้ำ สลับโหมดเล่นซ้ำ</string>
+  <string name="exo_controls_repeat_one_description">โหมดปัจจุบัน: เล่นซ้ำรายการเดียว สลับโหมดเล่นซ้ำ</string>
+  <string name="exo_controls_repeat_all_description">โหมดปัจจุบัน: เล่นซ้ำทั้งหมด สลับโหมดเล่นซ้ำ</string>
+  <string name="exo_controls_shuffle_on_description">ปิดใช้โหมดสุ่มเพลง</string>
+  <string name="exo_controls_shuffle_off_description">เปิดใช้โหมดสุ่มเพลง</string>
   <string name="exo_controls_vr_description">โหมด VR</string>
   <string name="exo_controls_cc_enabled_description">ปิดใช้คำบรรยาย</string>
   <string name="exo_controls_cc_disabled_description">เปิดใช้คำบรรยาย</string>
   <string name="exo_controls_playback_speed">ความเร็ว</string>
-  <string name="exo_controls_playback_speed_normal">ปกติ</string>
-  <string name="exo_download_description">ดาวน์โหลด</string>
-  <string name="exo_download_notification_channel_name">ดาวน์โหลด</string>
-  <string name="exo_download_downloading">กำลังดาวน์โหลด</string>
-  <string name="exo_download_completed">การดาวน์โหลดเสร็จสมบูรณ์</string>
-  <string name="exo_download_failed">การดาวน์โหลดล้มเหลว</string>
-  <string name="exo_download_removing">กำลังนำรายการที่ดาวน์โหลดออก</string>
+  <string-array name="exo_controls_playback_speeds">
+    <item>0.25x</item>
+    <item>0.5x</item>
+    <item>0.75x</item>
+    <item>ปกติ</item>
+    <item>1.25x</item>
+    <item>1.5x</item>
+    <item>2x</item>
+  </string-array>
   <string name="exo_track_selection_title_video">วิดีโอ</string>
   <string name="exo_track_selection_title_audio">เสียง</string>
   <string name="exo_track_selection_title_text">ข้อความ</string>

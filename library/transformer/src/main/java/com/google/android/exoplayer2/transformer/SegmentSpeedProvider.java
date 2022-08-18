@@ -25,6 +25,7 @@ import com.google.android.exoplayer2.metadata.Metadata;
 import com.google.android.exoplayer2.metadata.mp4.SlowMotionData;
 import com.google.android.exoplayer2.metadata.mp4.SlowMotionData.Segment;
 import com.google.android.exoplayer2.metadata.mp4.SmtaMetadataEntry;
+import com.google.android.exoplayer2.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import java.util.ArrayList;
@@ -58,6 +59,13 @@ import java.util.TreeMap;
     return entry != null ? entry.getValue() : baseSpeedMultiplier;
   }
 
+  @Override
+  public long getNextSpeedChangeTimeUs(long timeUs) {
+    checkArgument(timeUs >= 0);
+    @Nullable Long nextTimeUs = speedsByStartTimeUs.higherKey(timeUs);
+    return nextTimeUs != null ? nextTimeUs : C.TIME_UNSET;
+  }
+
   private static ImmutableSortedMap<Long, Float> buildSpeedByStartTimeUsMap(
       Format format, float baseSpeed) {
     List<Segment> segments = extractSlowMotionSegments(format);
@@ -72,7 +80,7 @@ import java.util.TreeMap;
     for (int i = 0; i < segments.size(); i++) {
       Segment currentSegment = segments.get(i);
       speedsByStartTimeUs.put(
-          C.msToUs(currentSegment.startTimeMs), baseSpeed / currentSegment.speedDivisor);
+          Util.msToUs(currentSegment.startTimeMs), baseSpeed / currentSegment.speedDivisor);
     }
 
     // If the map has an entry at endTime, this is the next segments start time. If no such entry
@@ -80,8 +88,8 @@ import java.util.TreeMap;
     // segment.
     for (int i = 0; i < segments.size(); i++) {
       Segment currentSegment = segments.get(i);
-      if (!speedsByStartTimeUs.containsKey(C.msToUs(currentSegment.endTimeMs))) {
-        speedsByStartTimeUs.put(C.msToUs(currentSegment.endTimeMs), baseSpeed);
+      if (!speedsByStartTimeUs.containsKey(Util.msToUs(currentSegment.endTimeMs))) {
+        speedsByStartTimeUs.put(Util.msToUs(currentSegment.endTimeMs), baseSpeed);
       }
     }
 

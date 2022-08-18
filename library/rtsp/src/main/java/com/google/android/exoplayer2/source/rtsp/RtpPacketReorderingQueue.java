@@ -34,10 +34,10 @@ import java.util.TreeSet;
   /** The maximum sequence number discontinuity allowed without resetting the re-ordering buffer. */
   @VisibleForTesting /* package */ static final int MAX_SEQUENCE_LEAP_ALLOWED = 1000;
 
-  private static final int MAX_SEQUENCE_NUMBER = RtpPacket.MAX_SEQUENCE_NUMBER;
+  /** Queue size threshold for resetting the queue. 5000 packets equate about 7MB in buffer size. */
+  private static final int QUEUE_SIZE_THRESHOLD_FOR_RESET = 5000;
 
   // Use set to eliminate duplicating packets.
-  // TODO(b/172331505) Set a upper limit on packetQueue to mitigate out of memory error.
   @GuardedBy("this")
   private final TreeSet<RtpPacketContainer> packetQueue;
 
@@ -86,16 +86,21 @@ import java.util.TreeSet;
    *     returns {@code true}).
    */
   public synchronized boolean offer(RtpPacket packet, long receivedTimestampMs) {
+    if (packetQueue.size() >= QUEUE_SIZE_THRESHOLD_FOR_RESET) {
+      throw new IllegalStateException(
+          "Queue size limit of " + QUEUE_SIZE_THRESHOLD_FOR_RESET + " reached.");
+    }
+
     int packetSequenceNumber = packet.sequenceNumber;
     if (!started) {
       reset();
-      lastDequeuedSequenceNumber = prevSequenceNumber(packetSequenceNumber);
+      lastDequeuedSequenceNumber = RtpPacket.getPreviousSequenceNumber(packetSequenceNumber);
       started = true;
       addToQueue(new RtpPacketContainer(packet, receivedTimestampMs));
       return true;
     }
 
-    int expectedSequenceNumber = nextSequenceNumber(lastReceivedSequenceNumber);
+    int expectedSequenceNumber = RtpPacket.getNextSequenceNumber(lastReceivedSequenceNumber);
     // A positive shift means the packet succeeds the last received packet.
     int sequenceNumberShift =
         calculateSequenceNumberShift(packetSequenceNumber, expectedSequenceNumber);
@@ -107,7 +112,7 @@ import java.util.TreeSet;
       }
     } else {
       // Discard all previous received packets and start subsequent receiving from here.
-      lastDequeuedSequenceNumber = prevSequenceNumber(packetSequenceNumber);
+      lastDequeuedSequenceNumber = RtpPacket.getPreviousSequenceNumber(packetSequenceNumber);
       packetQueue.clear();
       addToQueue(new RtpPacketContainer(packet, receivedTimestampMs));
       return true;
@@ -133,7 +138,7 @@ import java.util.TreeSet;
     RtpPacketContainer packetContainer = packetQueue.first();
     int packetSequenceNumber = packetContainer.packet.sequenceNumber;
 
-    if (packetSequenceNumber == nextSequenceNumber(lastDequeuedSequenceNumber)
+    if (packetSequenceNumber == RtpPacket.getNextSequenceNumber(lastDequeuedSequenceNumber)
         || cutoffTimestampMs >= packetContainer.receivedTimestampMs) {
       packetQueue.pollFirst();
       lastDequeuedSequenceNumber = packetSequenceNumber;
@@ -161,16 +166,6 @@ import java.util.TreeSet;
     }
   }
 
-  private static int nextSequenceNumber(int sequenceNumber) {
-    return (sequenceNumber + 1) % MAX_SEQUENCE_NUMBER;
-  }
-
-  private static int prevSequenceNumber(int sequenceNumber) {
-    return sequenceNumber == 0
-        ? MAX_SEQUENCE_NUMBER - 1
-        : (sequenceNumber - 1) % MAX_SEQUENCE_NUMBER;
-  }
-
   /**
    * Calculates the sequence number shift, accounting for wrapping around.
    *
@@ -186,7 +181,7 @@ import java.util.TreeSet;
       int shift =
           min(sequenceNumber, previousSequenceNumber)
               - max(sequenceNumber, previousSequenceNumber)
-              + MAX_SEQUENCE_NUMBER;
+              + RtpPacket.MAX_SEQUENCE_NUMBER;
       // Check whether this is actually an wrap-over. For example, it is a wrap around if receiving
       // 65500 (prevSequenceNumber) after 1 (sequenceNumber); but it is not when prevSequenceNumber
       // is 30000.

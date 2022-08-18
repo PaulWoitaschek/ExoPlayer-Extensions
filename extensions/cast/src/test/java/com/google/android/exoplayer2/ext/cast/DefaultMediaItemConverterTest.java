@@ -24,7 +24,7 @@ import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.MediaMetadata;
 import com.google.android.exoplayer2.util.MimeTypes;
 import com.google.android.gms.cast.MediaQueueItem;
-import java.util.Collections;
+import com.google.common.collect.ImmutableMap;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -50,12 +50,15 @@ public class DefaultMediaItemConverterTest {
     MediaItem.Builder builder = new MediaItem.Builder();
     MediaItem item =
         builder
+            .setMediaId("fooBar")
             .setUri(Uri.parse("http://example.com"))
             .setMediaMetadata(MediaMetadata.EMPTY)
             .setMimeType(MimeTypes.APPLICATION_MPD)
-            .setDrmUuid(C.WIDEVINE_UUID)
-            .setDrmLicenseUri("http://license.com")
-            .setDrmLicenseRequestHeaders(Collections.singletonMap("key", "value"))
+            .setDrmConfiguration(
+                new MediaItem.DrmConfiguration.Builder(C.WIDEVINE_UUID)
+                    .setLicenseUri("http://license.com")
+                    .setLicenseRequestHeaders(ImmutableMap.of("key", "value"))
+                    .build())
             .build();
 
     DefaultMediaItemConverter converter = new DefaultMediaItemConverter();
@@ -63,5 +66,46 @@ public class DefaultMediaItemConverterTest {
     MediaItem reconstructedItem = converter.toMediaItem(queueItem);
 
     assertThat(reconstructedItem).isEqualTo(item);
+  }
+
+  @Test
+  public void toMediaQueueItem_nonDefaultMediaId_usedAsContentId() {
+    MediaItem.Builder builder = new MediaItem.Builder();
+    MediaItem item =
+        builder
+            .setMediaId("fooBar")
+            .setUri("http://example.com")
+            .setMimeType(MimeTypes.APPLICATION_MPD)
+            .build();
+
+    DefaultMediaItemConverter converter = new DefaultMediaItemConverter();
+    MediaQueueItem queueItem = converter.toMediaQueueItem(item);
+
+    assertThat(queueItem.getMedia().getContentId()).isEqualTo("fooBar");
+  }
+
+  @Test
+  public void toMediaQueueItem_defaultMediaId_uriAsContentId() {
+    DefaultMediaItemConverter converter = new DefaultMediaItemConverter();
+    MediaItem mediaItem =
+        new MediaItem.Builder()
+            .setUri("http://example.com")
+            .setMimeType(MimeTypes.APPLICATION_MPD)
+            .build();
+
+    MediaQueueItem queueItem = converter.toMediaQueueItem(mediaItem);
+
+    assertThat(queueItem.getMedia().getContentId()).isEqualTo("http://example.com");
+
+    MediaItem secondMediaItem =
+        new MediaItem.Builder()
+            .setMediaId(MediaItem.DEFAULT_MEDIA_ID)
+            .setUri("http://example.com")
+            .setMimeType(MimeTypes.APPLICATION_MPD)
+            .build();
+
+    MediaQueueItem secondQueueItem = converter.toMediaQueueItem(secondMediaItem);
+
+    assertThat(secondQueueItem.getMedia().getContentId()).isEqualTo("http://example.com");
   }
 }

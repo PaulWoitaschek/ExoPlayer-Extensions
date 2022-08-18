@@ -37,22 +37,24 @@
     <item quantity="one">%d секунд алдыга түрдүрүү</item>
     <item quantity="other">%d секунд алдыга түрдүрүү</item>
   </plurals>
-  <string name="exo_controls_repeat_off_description">Кайталанбасын</string>
-  <string name="exo_controls_repeat_one_description">Бирөөнү кайталоо</string>
-  <string name="exo_controls_repeat_all_description">Баарын кайталоо</string>
-  <string name="exo_controls_shuffle_on_description">Аралаштыруу күйүк</string>
-  <string name="exo_controls_shuffle_off_description">Аралаштыруу өчүк</string>
+  <string name="exo_controls_repeat_off_description">Учурдагы режим: Кайталанбасын. Кайталоо режимин өчүрүү/күйгүзүү.</string>
+  <string name="exo_controls_repeat_one_description">Учурдагы режим: Бир медианы кайталоо. Кайталоо режимин өчүрүү/күйгүзүү.</string>
+  <string name="exo_controls_repeat_all_description">Учурдагы режим: Баарын кайталоо. Кайталоо режимин өчүрүү/күйгүзүү.</string>
+  <string name="exo_controls_shuffle_on_description">Аралаштыруу режимин өчүрүү</string>
+  <string name="exo_controls_shuffle_off_description">Аралаштыруу режимин күйгүзүү</string>
   <string name="exo_controls_vr_description">VR режими</string>
   <string name="exo_controls_cc_enabled_description">Коштомо жазууларды өчүрүү</string>
   <string name="exo_controls_cc_disabled_description">Коштомо жазууларды иштетүү</string>
   <string name="exo_controls_playback_speed">Ылдамдык</string>
-  <string name="exo_controls_playback_speed_normal">Орточо</string>
-  <string name="exo_download_description">Жүктөп алуу</string>
-  <string name="exo_download_notification_channel_name">Жүктөлүп алынгандар</string>
-  <string name="exo_download_downloading">Жүктөлүп алынууда</string>
-  <string name="exo_download_completed">Жүктөп алуу аяктады</string>
-  <string name="exo_download_failed">Жүктөлүп алынбай калды</string>
-  <string name="exo_download_removing">Жүктөлүп алынгандар өчүрүлүүдө</string>
+  <string-array name="exo_controls_playback_speeds">
+    <item>0,25x</item>
+    <item>0,5x</item>
+    <item>0,75x</item>
+    <item>Орточо</item>
+    <item>1,25x</item>
+    <item>1,5x</item>
+    <item>2x</item>
+  </string-array>
   <string name="exo_track_selection_title_video">Видео</string>
   <string name="exo_track_selection_title_audio">Аудио</string>
   <string name="exo_track_selection_title_text">Текст</string>

@@ -15,11 +15,13 @@
  */
 package com.google.android.exoplayer2.testutil;
 
+import static com.google.android.exoplayer2.util.Assertions.checkNotNull;
 import static com.google.android.exoplayer2.util.Assertions.checkState;
 import static com.google.android.exoplayer2.util.Util.castNonNull;
 import static com.google.common.truth.Truth.assertThat;
 
 import android.os.Handler;
+import android.os.Looper;
 import android.os.SystemClock;
 import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.C;
@@ -73,12 +75,19 @@ public class FakeMediaSource extends BaseMediaSource {
     }
   }
 
+  /** Convenience method to create a {@link FakeMediaSource} with the given window id. */
+  public static FakeMediaSource createWithWindowId(Object windowId) {
+    return new FakeMediaSource(
+        new FakeTimeline(
+            new FakeTimeline.TimelineWindowDefinition(/* periodCount= */ 1, windowId)));
+  }
+
   /** The media item used by the fake media source. */
   public static final MediaItem FAKE_MEDIA_ITEM =
       new MediaItem.Builder().setMediaId("FakeMediaSource").setUri("http://manifest.uri").build();
 
   private static final DataSpec FAKE_DATA_SPEC =
-      new DataSpec(castNonNull(FAKE_MEDIA_ITEM.playbackProperties).uri);
+      new DataSpec(castNonNull(FAKE_MEDIA_ITEM.localConfiguration).uri);
   private static final int MANIFEST_LOAD_BYTES = 100;
 
   private final TrackGroupArray trackGroupArray;
@@ -179,20 +188,6 @@ public class FakeMediaSource extends BaseMediaSource {
     return timeline;
   }
 
-  /**
-   * @deprecated Use {@link #getMediaItem()} and {@link MediaItem.PlaybackProperties#tag} instead.
-   */
-  @SuppressWarnings("deprecation")
-  @Deprecated
-  @Override
-  @Nullable
-  public Object getTag() {
-    if (timeline == null || timeline.isEmpty()) {
-      return null;
-    }
-    return timeline.getWindow(0, new Timeline.Window()).tag;
-  }
-
   @Override
   public MediaItem getMediaItem() {
     if (timeline == null || timeline.isEmpty()) {
@@ -219,6 +214,8 @@ public class FakeMediaSource extends BaseMediaSource {
     assertThat(preparedSource).isFalse();
     transferListener = mediaTransferListener;
     drmSessionManager.prepare();
+    drmSessionManager.setPlayer(
+        /* playbackLooper= */ checkNotNull(Looper.myLooper()), getPlayerId());
     preparedSource = true;
     releasedSource = false;
     sourceInfoRefreshHandler = Util.createHandlerForCurrentLooper();
@@ -317,16 +314,12 @@ public class FakeMediaSource extends BaseMediaSource {
     return preparedSource;
   }
 
-  /**
-   * Assert that the source and all periods have been released.
-   */
+  /** Assert that the source and all periods have been released. */
   public void assertReleased() {
     assertThat(releasedSource || !preparedSource).isTrue();
   }
 
-  /**
-   * Assert that a media period for the given id has been created.
-   */
+  /** Assert that a media period for the given id has been created. */
   public void assertMediaPeriodCreated(MediaPeriodId mediaPeriodId) {
     assertThat(createdMediaPeriods).contains(mediaPeriodId);
   }

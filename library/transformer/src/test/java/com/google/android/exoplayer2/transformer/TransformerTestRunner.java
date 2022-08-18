@@ -22,6 +22,9 @@ import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.robolectric.RobolectricUtil;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import org.checkerframework.checker.nullness.compatqual.NullableType;
 
 /** Helper class to run a {@link Transformer} test. */
 public final class TransformerTestRunner {
@@ -56,8 +59,9 @@ public final class TransformerTestRunner {
    * @throws IllegalStateException If the method is not called from the main thread, or if the
    *     transformation completes without error.
    */
-  public static Exception runUntilError(Transformer transformer) throws TimeoutException {
-    @Nullable Exception exception = runUntilListenerCalled(transformer);
+  public static TransformationException runUntilError(Transformer transformer)
+      throws TimeoutException {
+    @Nullable TransformationException exception = runUntilListenerCalled(transformer);
     if (exception == null) {
       throw new IllegalStateException("The transformation completed without error.");
     }
@@ -65,29 +69,30 @@ public final class TransformerTestRunner {
   }
 
   @Nullable
-  private static Exception runUntilListenerCalled(Transformer transformer) throws TimeoutException {
-    TransformationResult transformationResult = new TransformationResult();
-    Transformer.Listener listener =
+  private static TransformationException runUntilListenerCalled(Transformer transformer)
+      throws TimeoutException {
+    AtomicBoolean transformationCompleted = new AtomicBoolean();
+    AtomicReference<@NullableType TransformationException> transformationException =
+        new AtomicReference<>();
+
+    transformer.addListener(
         new Transformer.Listener() {
           @Override
-          public void onTransformationCompleted(MediaItem inputMediaItem) {
-            transformationResult.isCompleted = true;
+          public void onTransformationCompleted(
+              MediaItem inputMediaItem, TransformationResult transformationResult) {
+            transformationCompleted.set(true);
           }
 
           @Override
-          public void onTransformationError(MediaItem inputMediaItem, Exception exception) {
-            transformationResult.exception = exception;
+          public void onTransformationError(
+              MediaItem inputMediaItem, TransformationException exception) {
+            transformationException.set(exception);
           }
-        };
-    transformer.setListener(listener);
+        });
     runLooperUntil(
         transformer.getApplicationLooper(),
-        () -> transformationResult.isCompleted || transformationResult.exception != null);
-    return transformationResult.exception;
-  }
+        () -> transformationCompleted.get() || transformationException.get() != null);
 
-  private static class TransformationResult {
-    public boolean isCompleted;
-    @Nullable public Exception exception;
+    return transformationException.get();
   }
 }

@@ -29,6 +29,7 @@ dependencies {
     compileOnly 'org.checkerframework:checker-compat-qual:' + checkerframeworkCompatVersion
     compileOnly 'org.jetbrains.kotlin:kotlin-annotations-jvm:' + kotlinAnnotationsVersion
     implementation 'androidx.annotation:annotation:' + androidxAnnotationVersion
+    testImplementation project(modulePrefix + 'robolectricutils')
     testImplementation project(modulePrefix + 'testutils')
     testImplementation 'org.robolectric:robolectric:' + robolectricVersion
 }
@@ -39,7 +40,7 @@ ext {
 apply from: '../../javadoc_library.gradle'
 
 ext {
-    releaseArtifact = 'exoplayer-smoothstreaming'
+    releaseArtifactId = 'exoplayer-smoothstreaming'
     releaseDescription = 'The ExoPlayer library SmoothStreaming module.'
 }
 apply from: '../../publish.gradle'

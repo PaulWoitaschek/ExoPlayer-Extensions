@@ -20,6 +20,7 @@ import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.offline.FilterableManifest;
 import com.google.android.exoplayer2.offline.StreamKey;
+import com.google.android.exoplayer2.util.Util;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -42,14 +43,10 @@ public class DashManifest implements FilterableManifest<DashManifest> {
    */
   public final long durationMs;
 
-  /**
-   * The {@code minBufferTime} value in milliseconds, or {@link C#TIME_UNSET} if not present.
-   */
+  /** The {@code minBufferTime} value in milliseconds, or {@link C#TIME_UNSET} if not present. */
   public final long minBufferTimeMs;
 
-  /**
-   * Whether the manifest has value "dynamic" for the {@code type} attribute.
-   */
+  /** Whether the manifest has value "dynamic" for the {@code type} attribute. */
   public final boolean dynamic;
 
   /**
@@ -59,8 +56,7 @@ public class DashManifest implements FilterableManifest<DashManifest> {
   public final long minUpdatePeriodMs;
 
   /**
-   * The {@code timeShiftBufferDepth} value in milliseconds, or {@link C#TIME_UNSET} if not
-   * present.
+   * The {@code timeShiftBufferDepth} value in milliseconds, or {@link C#TIME_UNSET} if not present.
    */
   public final long timeShiftBufferDepthMs;
 
@@ -71,8 +67,8 @@ public class DashManifest implements FilterableManifest<DashManifest> {
   public final long suggestedPresentationDelayMs;
 
   /**
-   * The {@code publishTime} value in milliseconds since epoch, or {@link C#TIME_UNSET} if
-   * not present.
+   * The {@code publishTime} value in milliseconds since epoch, or {@link C#TIME_UNSET} if not
+   * present.
    */
   public final long publishTimeMs;
 
@@ -137,7 +133,7 @@ public class DashManifest implements FilterableManifest<DashManifest> {
   }
 
   public final long getPeriodDurationUs(int index) {
-    return C.msToUs(getPeriodDurationMs(index));
+    return Util.msToUs(getPeriodDurationMs(index));
   }
 
   @Override
@@ -159,8 +155,9 @@ public class DashManifest implements FilterableManifest<DashManifest> {
         Period period = getPeriod(periodIndex);
         ArrayList<AdaptationSet> copyAdaptationSets =
             copyAdaptationSets(period.adaptationSets, keys);
-        Period copiedPeriod = new Period(period.id, period.startMs - shiftMs, copyAdaptationSets,
-            period.eventStreams);
+        Period copiedPeriod =
+            new Period(
+                period.id, period.startMs - shiftMs, copyAdaptationSets, period.eventStreams);
         copyPeriods.add(copiedPeriod);
       }
     }
@@ -193,7 +190,7 @@ public class DashManifest implements FilterableManifest<DashManifest> {
       List<Representation> representations = adaptationSet.representations;
       ArrayList<Representation> copyRepresentations = new ArrayList<>();
       do {
-        Representation representation = representations.get(key.trackIndex);
+        Representation representation = representations.get(key.streamIndex);
         copyRepresentations.add(representation);
         key = keys.poll();
       } while (key.periodIndex == periodIndex && key.groupIndex == adaptationSetIndex);
@@ -206,10 +203,9 @@ public class DashManifest implements FilterableManifest<DashManifest> {
               adaptationSet.accessibilityDescriptors,
               adaptationSet.essentialProperties,
               adaptationSet.supplementalProperties));
-    } while(key.periodIndex == periodIndex);
+    } while (key.periodIndex == periodIndex);
     // Add back the last key which doesn't belong to the period being processed
     keys.addFirst(key);
     return copyAdaptationSets;
   }
-
 }

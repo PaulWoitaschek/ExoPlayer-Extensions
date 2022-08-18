@@ -15,17 +15,22 @@
  */
 package com.google.android.exoplayer2.audio;
 
+import static java.lang.annotation.ElementType.TYPE_USE;
+
 import android.media.AudioTrack;
 import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.Format;
+import com.google.android.exoplayer2.PlaybackException;
 import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.Player;
+import com.google.android.exoplayer2.analytics.PlayerId;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.nio.ByteBuffer;
 
 /**
@@ -57,9 +62,7 @@ import java.nio.ByteBuffer;
  */
 public interface AudioSink {
 
-  /**
-   * Listener for audio sink events.
-   */
+  /** Listener for audio sink events. */
   interface Listener {
 
     /**
@@ -101,13 +104,8 @@ public interface AudioSink {
     /** Called when the offload buffer has been partially emptied. */
     default void onOffloadBufferEmptying() {}
 
-    /**
-     * Called when the offload buffer has been filled completely.
-     *
-     * @param bufferEmptyingDeadlineMs Maximum time in milliseconds until {@link
-     *     #onOffloadBufferEmptying()} will be called.
-     */
-    default void onOffloadBufferFull(long bufferEmptyingDeadlineMs) {}
+    /** Called when the offload buffer has been filled completely. */
+    default void onOffloadBufferFull() {}
 
     /**
      * Called when {@link AudioSink} has encountered an error.
@@ -124,7 +122,7 @@ public interface AudioSink {
      * wishes to do so.
      *
      * <p>Fatal errors that cannot be recovered will be reported wrapped in a {@link
-     * ExoPlaybackException} by {@link Player.Listener#onPlayerError(ExoPlaybackException)}.
+     * ExoPlaybackException} by {@link Player.Listener#onPlayerError(PlaybackException)}.
      *
      * @param audioSinkError The error that occurred. Typically an {@link InitializationException},
      *     a {@link WriteException}, or an {@link UnexpectedDiscontinuityException}.
@@ -132,9 +130,7 @@ public interface AudioSink {
     default void onAudioSinkError(Exception audioSinkError) {}
   }
 
-  /**
-   * Thrown when a failure occurs configuring the sink.
-   */
+  /** Thrown when a failure occurs configuring the sink. */
   final class ConfigurationException extends Exception {
 
     /** Input {@link Format} of the sink when the configuration failure occurs. */
@@ -200,8 +196,8 @@ public interface AudioSink {
 
     /**
      * The error value returned from the sink implementation. If the sink writes to a platform
-     * {@link AudioTrack}, this will be the error value returned from
-     * {@link AudioTrack#write(byte[], int, int)} or {@link AudioTrack#write(ByteBuffer, int, int)}.
+     * {@link AudioTrack}, this will be the error value returned from {@link
+     * AudioTrack#write(byte[], int, int)} or {@link AudioTrack#write(ByteBuffer, int, int)}.
      * Otherwise, the meaning of the error code depends on the sink implementation.
      */
     public final int errorCode;
@@ -223,7 +219,6 @@ public interface AudioSink {
       this.errorCode = errorCode;
       this.format = format;
     }
-
   }
 
   /** Thrown when the sink encounters an unexpected timestamp discontinuity. */
@@ -259,6 +254,7 @@ public interface AudioSink {
    */
   @Documented
   @Retention(RetentionPolicy.SOURCE)
+  @Target(TYPE_USE)
   @IntDef({
     SINK_FORMAT_SUPPORTED_DIRECTLY,
     SINK_FORMAT_SUPPORTED_WITH_TRANSCODING,
@@ -284,6 +280,13 @@ public interface AudioSink {
    * @param listener The listener for sink events, which should be the audio renderer.
    */
   void setListener(Listener listener);
+
+  /**
+   * Sets the {@link PlayerId} of the player using this audio sink.
+   *
+   * @param playerId The {@link PlayerId}, or null to clear a previously set id.
+   */
+  default void setPlayerId(@Nullable PlayerId playerId) {}
 
   /**
    * Returns whether the sink supports a given {@link Format}.
@@ -327,9 +330,7 @@ public interface AudioSink {
   void configure(Format inputFormat, int specifiedBufferSize, @Nullable int[] outputChannels)
       throws ConfigurationException;
 
-  /**
-   * Starts or resumes consuming audio if initialized.
-   */
+  /** Starts or resumes consuming audio if initialized. */
   void play();
 
   /** Signals to the sink that the next buffer may be discontinuous with the previous buffer. */
@@ -370,9 +371,7 @@ public interface AudioSink {
    */
   boolean isEnded();
 
-  /**
-   * Returns whether the sink has data pending that has not been consumed yet.
-   */
+  /** Returns whether the sink has data pending that has not been consumed yet. */
   boolean hasPendingData();
 
   /**
@@ -395,14 +394,21 @@ public interface AudioSink {
   /**
    * Sets attributes for audio playback. If the attributes have changed and if the sink is not
    * configured for use with tunneling, then it is reset and the audio session id is cleared.
-   * <p>
-   * If the sink is configured for use with tunneling then the audio attributes are ignored. The
+   *
+   * <p>If the sink is configured for use with tunneling then the audio attributes are ignored. The
    * sink is not reset and the audio session id is not cleared. The passed attributes will be used
    * if the sink is later re-configured into non-tunneled mode.
    *
    * @param audioAttributes The attributes for audio playback.
    */
   void setAudioAttributes(AudioAttributes audioAttributes);
+
+  /**
+   * Returns the audio attributes used for audio playback, or {@code null} if the sink does not use
+   * audio attributes.
+   */
+  @Nullable
+  AudioAttributes getAudioAttributes();
 
   /** Sets the audio session id. */
   void setAudioSessionId(int audioSessionId);
@@ -432,9 +438,7 @@ public interface AudioSink {
    */
   void setVolume(float volume);
 
-  /**
-   * Pauses playback.
-   */
+  /** Pauses playback. */
   void pause();
 
   /**
@@ -456,6 +460,6 @@ public interface AudioSink {
    */
   void experimentalFlushWithoutAudioTrackRelease();
 
-  /** Resets the renderer, releasing any resources that it currently holds. */
+  /** Resets the sink, releasing any resources that it currently holds. */
   void reset();
 }

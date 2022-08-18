@@ -18,9 +18,7 @@ package com.google.android.exoplayer2.source.dash.manifest;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.source.dash.DashSegmentIndex;
 
-/**
- * A {@link DashSegmentIndex} that defines a single segment.
- */
+/** A {@link DashSegmentIndex} that defines a single segment. */
 /* package */ final class SingleSegmentIndex implements DashSegmentIndex {
 
   private final RangedUri uri;
@@ -81,5 +79,4 @@ import com.google.android.exoplayer2.source.dash.DashSegmentIndex;
   public boolean isExplicit() {
     return true;
   }
-
 }

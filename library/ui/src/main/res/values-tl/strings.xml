@@ -37,22 +37,24 @@
     <item quantity="one">I-fast forward nang %d segundo</item>
     <item quantity="other">I-fast forward nang %d na segundo</item>
   </plurals>
-  <string name="exo_controls_repeat_off_description">Walang uulitin</string>
-  <string name="exo_controls_repeat_one_description">Mag-ulit ng isa</string>
-  <string name="exo_controls_repeat_all_description">Ulitin lahat</string>
-  <string name="exo_controls_shuffle_on_description">Naka-on ang pag-shuffle</string>
-  <string name="exo_controls_shuffle_off_description">Naka-off ang pag-shuffle</string>
+  <string name="exo_controls_repeat_off_description">Current mode: Walang uulitin. I-toggle ang repeat mode.</string>
+  <string name="exo_controls_repeat_one_description">Current mode: Walang uulitin. I-toggle ang repeat mode.</string>
+  <string name="exo_controls_repeat_all_description">Current mode: Ulitin lahat. I-toggle ang repeat mode.</string>
+  <string name="exo_controls_shuffle_on_description">I-disable ang shuffle mode</string>
+  <string name="exo_controls_shuffle_off_description">I-enable ang shuffle mode</string>
   <string name="exo_controls_vr_description">VR mode</string>
   <string name="exo_controls_cc_enabled_description">I-disable ang mga subtitle</string>
   <string name="exo_controls_cc_disabled_description">I-enable ang mga subtitle</string>
   <string name="exo_controls_playback_speed">Bilis</string>
-  <string name="exo_controls_playback_speed_normal">Normal</string>
-  <string name="exo_download_description">I-download</string>
-  <string name="exo_download_notification_channel_name">Mga Download</string>
-  <string name="exo_download_downloading">Nagda-download</string>
-  <string name="exo_download_completed">Tapos na ang pag-download</string>
-  <string name="exo_download_failed">Hindi na-download</string>
-  <string name="exo_download_removing">Inaalis ang mga na-download</string>
+  <string-array name="exo_controls_playback_speeds">
+    <item>0.25x</item>
+    <item>0.5x</item>
+    <item>0.75x</item>
+    <item>Normal</item>
+    <item>1.25x</item>
+    <item>1.5x</item>
+    <item>2x</item>
+  </string-array>
   <string name="exo_track_selection_title_video">Video</string>
   <string name="exo_track_selection_title_audio">Audio</string>
   <string name="exo_track_selection_title_text">Text</string>

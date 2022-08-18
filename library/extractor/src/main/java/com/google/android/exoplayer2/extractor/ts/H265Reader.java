@@ -87,12 +87,14 @@ public final class H265Reader implements ElementaryStreamReader {
     pps = new NalUnitTargetBuffer(PPS_NUT, 128);
     prefixSei = new NalUnitTargetBuffer(PREFIX_SEI_NUT, 128);
     suffixSei = new NalUnitTargetBuffer(SUFFIX_SEI_NUT, 128);
+    pesTimeUs = C.TIME_UNSET;
     seiWrapper = new ParsableByteArray();
   }
 
   @Override
   public void seek() {
     totalBytesWritten = 0;
+    pesTimeUs = C.TIME_UNSET;
     NalUnitUtil.clearPrefixFlags(prefixFlags);
     vps.reset();
     sps.reset();
@@ -116,7 +118,9 @@ public final class H265Reader implements ElementaryStreamReader {
   @Override
   public void packetStarted(long pesTimeUs, @TsPayloadReader.Flags int flags) {
     // TODO (Internal b/32267012): Consider using random access indicator.
-    this.pesTimeUs = pesTimeUs;
+    if (pesTimeUs != C.TIME_UNSET) {
+      this.pesTimeUs = pesTimeUs;
+    }
   }
 
   @Override
@@ -157,8 +161,11 @@ public final class H265Reader implements ElementaryStreamReader {
         // Indicate the end of the previous NAL unit. If the length to the start of the next unit
         // is negative then we wrote too many bytes to the NAL buffers. Discard the excess bytes
         // when notifying that the unit has ended.
-        endNalUnit(absolutePosition, bytesWrittenPastPosition,
-            lengthToNalUnit < 0 ? -lengthToNalUnit : 0, pesTimeUs);
+        endNalUnit(
+            absolutePosition,
+            bytesWrittenPastPosition,
+            lengthToNalUnit < 0 ? -lengthToNalUnit : 0,
+            pesTimeUs);
         // Indicate the start of the next NAL unit.
         startNalUnit(absolutePosition, bytesWrittenPastPosition, nalUnitType, pesTimeUs);
         // Continue scanning the data.
@@ -242,10 +249,20 @@ public final class H265Reader implements ElementaryStreamReader {
     bitArray.skipBits(40 + 4); // NAL header, sps_video_parameter_set_id
     int maxSubLayersMinus1 = bitArray.readBits(3);
     bitArray.skipBit(); // sps_temporal_id_nesting_flag
-
-    // profile_tier_level(1, sps_max_sub_layers_minus1)
-    bitArray.skipBits(88); // if (profilePresentFlag) {...}
-    bitArray.skipBits(8); // general_level_idc
+    int generalProfileSpace = bitArray.readBits(2);
+    boolean generalTierFlag = bitArray.readBit();
+    int generalProfileIdc = bitArray.readBits(5);
+    int generalProfileCompatibilityFlags = 0;
+    for (int i = 0; i < 32; i++) {
+      if (bitArray.readBit()) {
+        generalProfileCompatibilityFlags |= (1 << i);
+      }
+    }
+    int[] constraintBytes = new int[6];
+    for (int i = 0; i < constraintBytes.length; ++i) {
+      constraintBytes[i] = bitArray.readBits(8);
+    }
+    int generalLevelIdc = bitArray.readBits(8);
     int toSkip = 0;
     for (int i = 0; i < maxSubLayersMinus1; i++) {
       if (bitArray.readBit()) { // sub_layer_profile_present_flag[i]
@@ -355,10 +372,14 @@ public final class H265Reader implements ElementaryStreamReader {
       }
     }
 
-    // Parse the SPS to derive an RFC 6381 codecs string.
-    bitArray.reset(sps.nalData, 0, sps.nalLength);
-    bitArray.skipBits(24); // Skip start code.
-    String codecs = CodecSpecificDataUtil.buildHevcCodecStringFromSps(bitArray);
+    String codecs =
+        CodecSpecificDataUtil.buildHevcCodecString(
+            generalProfileSpace,
+            generalTierFlag,
+            generalProfileIdc,
+            generalProfileCompatibilityFlags,
+            constraintBytes,
+            generalLevelIdc);
 
     return new Format.Builder()
         .setId(formatId)
@@ -371,9 +392,7 @@ public final class H265Reader implements ElementaryStreamReader {
         .build();
   }
 
-  /**
-   * Skips scaling_list_data(). See H.265/HEVC (2014) 7.3.4.
-   */
+  /** Skips scaling_list_data(). See H.265/HEVC (2014) 7.3.4. */
   private static void skipScalingList(ParsableNalUnitBitArray bitArray) {
     for (int sizeId = 0; sizeId < 4; sizeId++) {
       for (int matrixId = 0; matrixId < 6; matrixId += sizeId == 3 ? 3 : 1) {
@@ -537,6 +556,9 @@ public final class H265Reader implements ElementaryStreamReader {
     }
 
     private void outputSample(int offset) {
+      if (sampleTimeUs == C.TIME_UNSET) {
+        return;
+      }
       @C.BufferFlags int flags = sampleIsKeyframe ? C.BUFFER_FLAG_KEY_FRAME : 0;
       int size = (int) (nalUnitPosition - samplePosition);
       output.sampleMetadata(sampleTimeUs, flags, size, offset, null);

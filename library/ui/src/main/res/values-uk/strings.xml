@@ -41,22 +41,24 @@
     <item quantity="many">Перемотати вперед на %d секунд</item>
     <item quantity="other">Перемотати вперед на %d секунди</item>
   </plurals>
-  <string name="exo_controls_repeat_off_description">Не повторювати</string>
-  <string name="exo_controls_repeat_one_description">Повторити 1</string>
-  <string name="exo_controls_repeat_all_description">Повторити всі</string>
-  <string name="exo_controls_shuffle_on_description">Перемішування ввімкнено</string>
-  <string name="exo_controls_shuffle_off_description">Перемішування вимкнено</string>
+  <string name="exo_controls_repeat_off_description">Поточний режим: не повторювати. Перемкнути режим повторення.</string>
+  <string name="exo_controls_repeat_one_description">Поточний режим: повторювати один медіафайл. Перемкнути режим повторення.</string>
+  <string name="exo_controls_repeat_all_description">Поточний режим: повторювати все. Перемкнути режим повторення.</string>
+  <string name="exo_controls_shuffle_on_description">Вимкнути режим перемішування</string>
+  <string name="exo_controls_shuffle_off_description">Увімкнути режим перемішування</string>
   <string name="exo_controls_vr_description">Режим віртуальної реальності</string>
   <string name="exo_controls_cc_enabled_description">Вимкнути субтитри</string>
   <string name="exo_controls_cc_disabled_description">Увімкнути субтитри</string>
   <string name="exo_controls_playback_speed">Швидкість</string>
-  <string name="exo_controls_playback_speed_normal">Звичайна</string>
-  <string name="exo_download_description">Завантажити</string>
-  <string name="exo_download_notification_channel_name">Завантаження</string>
-  <string name="exo_download_downloading">Завантажується</string>
-  <string name="exo_download_completed">Завантаження завершено</string>
-  <string name="exo_download_failed">Не вдалося завантажити</string>
-  <string name="exo_download_removing">Завантаження видаляються</string>
+  <string-array name="exo_controls_playback_speeds">
+    <item>0,25x</item>
+    <item>0,5x</item>
+    <item>0,75x</item>
+    <item>Звичайна</item>
+    <item>1,25x</item>
+    <item>1,5x</item>
+    <item>2x</item>
+  </string-array>
   <string name="exo_track_selection_title_video">Відео</string>
   <string name="exo_track_selection_title_audio">Аудіо</string>
   <string name="exo_track_selection_title_text">Текст</string>

@@ -37,22 +37,24 @@
     <item quantity="one">%d saniye ileri sar</item>
     <item quantity="other">%d saniye ileri sar</item>
   </plurals>
-  <string name="exo_controls_repeat_off_description">Hiçbirini tekrarlama</string>
-  <string name="exo_controls_repeat_one_description">Birini tekrarla</string>
-  <string name="exo_controls_repeat_all_description">Tümünü tekrarla</string>
-  <string name="exo_controls_shuffle_on_description">Karıştırma açık</string>
-  <string name="exo_controls_shuffle_off_description">Karıştırma kapalı</string>
+  <string name="exo_controls_repeat_off_description">Geçerli mod: Tekrarlama. Tekrarlamayı aç/kapat.</string>
+  <string name="exo_controls_repeat_one_description">Geçerli mod: Birini tekrarla. Tekrarlamayı aç/kapat.</string>
+  <string name="exo_controls_repeat_all_description">Geçerli mod: Tümünü tekrarla. Tekrarlamayı aç/kapat.</string>
+  <string name="exo_controls_shuffle_on_description">Karıştırma modunu devre dışı bırak</string>
+  <string name="exo_controls_shuffle_off_description">Karıştırma modunu etkinleştir</string>
   <string name="exo_controls_vr_description">VR modu</string>
   <string name="exo_controls_cc_enabled_description">Altyazıları devre dışı bırak</string>
   <string name="exo_controls_cc_disabled_description">Altyazıları etkinleştir</string>
   <string name="exo_controls_playback_speed">Hız</string>
-  <string name="exo_controls_playback_speed_normal">Normal</string>
-  <string name="exo_download_description">İndir</string>
-  <string name="exo_download_notification_channel_name">İndirilenler</string>
-  <string name="exo_download_downloading">İndiriliyor</string>
-  <string name="exo_download_completed">İndirme işlemi tamamlandı</string>
-  <string name="exo_download_failed">İndirilemedi</string>
-  <string name="exo_download_removing">İndirilenler kaldırılıyor</string>
+  <string-array name="exo_controls_playback_speeds">
+    <item>0,25x</item>
+    <item>0,5x</item>
+    <item>0,75x</item>
+    <item>Normal</item>
+    <item>1,25x</item>
+    <item>1,5x</item>
+    <item>2x</item>
+  </string-array>
   <string name="exo_track_selection_title_video">Video</string>
   <string name="exo_track_selection_title_audio">Ses</string>
   <string name="exo_track_selection_title_text">Metin</string>

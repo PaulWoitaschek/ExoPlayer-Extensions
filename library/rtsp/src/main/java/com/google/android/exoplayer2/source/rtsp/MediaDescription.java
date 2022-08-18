@@ -20,7 +20,6 @@ import static com.google.android.exoplayer2.source.rtsp.RtspMessageUtil.parseInt
 import static com.google.android.exoplayer2.source.rtsp.SessionDescription.ATTR_FMTP;
 import static com.google.android.exoplayer2.source.rtsp.SessionDescription.ATTR_RTPMAP;
 import static com.google.android.exoplayer2.util.Assertions.checkArgument;
-import static com.google.android.exoplayer2.util.Assertions.checkState;
 import static com.google.android.exoplayer2.util.Util.castNonNull;
 
 import androidx.annotation.Nullable;
@@ -33,6 +32,7 @@ import com.google.common.collect.ImmutableMap;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.HashMap;
 
 /** Represents one media description section in a SDP message. */
 /* package */ final class MediaDescription {
@@ -42,11 +42,11 @@ import java.lang.annotation.RetentionPolicy;
 
     /** Parses the RTPMAP attribute value (with the part "a=rtpmap:" removed). */
     public static RtpMapAttribute parse(String rtpmapString) throws ParserException {
-      String[] rtpmapInfo = Util.split(rtpmapString, " ");
+      String[] rtpmapInfo = Util.splitAtFirst(rtpmapString, " ");
       checkArgument(rtpmapInfo.length == 2);
       int payloadType = parseInt(rtpmapInfo[0]);
 
-      String[] mediaInfo = Util.split(rtpmapInfo[1], "/");
+      String[] mediaInfo = Util.split(rtpmapInfo[1].trim(), "/");
       checkArgument(mediaInfo.length >= 2);
       int clockRate = parseInt(mediaInfo[1]);
       int encodingParameters = C.INDEX_UNSET;
@@ -102,11 +102,22 @@ import java.lang.annotation.RetentionPolicy;
 
   /** Builder class for {@link MediaDescription}. */
   public static final class Builder {
+
+    /**
+     * RTPMAP attribute format: {@code <payloadType> <mediaEncoding>/<clockRate>/<channelCount>}.
+     */
+    private static final String RTP_MAP_ATTR_AUDIO_FMT = "%d %s/%d/%d";
+
+    private static final int RTP_STATIC_PAYLOAD_TYPE_PCMU = 0;
+    private static final int RTP_STATIC_PAYLOAD_TYPE_PCMA = 8;
+    private static final int RTP_STATIC_PAYLOAD_TYPE_L16_STEREO = 10;
+    private static final int RTP_STATIC_PAYLOAD_TYPE_L16_MONO = 11;
+
     private final String mediaType;
     private final int port;
     private final String transportProtocol;
     private final int payloadType;
-    private final ImmutableMap.Builder<String, String> attributesBuilder;
+    private final HashMap<String, String> attributes;
 
     private int bitrate;
     @Nullable private String mediaTitle;
@@ -126,7 +137,7 @@ import java.lang.annotation.RetentionPolicy;
       this.port = port;
       this.transportProtocol = transportProtocol;
       this.payloadType = payloadType;
-      attributesBuilder = new ImmutableMap.Builder<>();
+      attributes = new HashMap<>();
       bitrate = Format.NO_VALUE;
     }
 
@@ -184,7 +195,7 @@ import java.lang.annotation.RetentionPolicy;
      * @return This builder.
      */
     public Builder addAttribute(String attributeName, String attributeValue) {
-      attributesBuilder.put(attributeName, attributeValue);
+      attributes.put(attributeName, attributeValue);
       return this;
     }
 
@@ -195,16 +206,55 @@ import java.lang.annotation.RetentionPolicy;
      *     cannot be parsed.
      */
     public MediaDescription build() {
-      ImmutableMap<String, String> attributes = attributesBuilder.build();
       try {
-        // rtpmap attribute is mandatory in RTSP (RFC2326 Section C.1.3).
-        checkState(attributes.containsKey(ATTR_RTPMAP));
         RtpMapAttribute rtpMapAttribute =
-            RtpMapAttribute.parse(castNonNull(attributes.get(ATTR_RTPMAP)));
-        return new MediaDescription(this, attributes, rtpMapAttribute);
+            attributes.containsKey(ATTR_RTPMAP)
+                ? RtpMapAttribute.parse(castNonNull(attributes.get(ATTR_RTPMAP)))
+                : RtpMapAttribute.parse(getRtpMapStringByPayloadType(payloadType));
+        return new MediaDescription(this, ImmutableMap.copyOf(attributes), rtpMapAttribute);
       } catch (ParserException e) {
         throw new IllegalStateException(e);
       }
+    }
+
+    private static String getRtpMapStringByPayloadType(int rtpPayloadType) {
+      checkArgument(rtpPayloadType < 96);
+
+      switch (rtpPayloadType) {
+          // See RFC3551 Section 6.
+        case RTP_STATIC_PAYLOAD_TYPE_PCMU:
+          return constructAudioRtpMap(
+              RTP_STATIC_PAYLOAD_TYPE_PCMU,
+              /* mediaEncoding= */ "PCMU",
+              /* clockRate= */ 8_000,
+              /* channelCount= */ 1);
+        case RTP_STATIC_PAYLOAD_TYPE_PCMA:
+          return constructAudioRtpMap(
+              RTP_STATIC_PAYLOAD_TYPE_PCMA,
+              /* mediaEncoding= */ "PCMA",
+              /* clockRate= */ 8_000,
+              /* channelCount= */ 1);
+        case RTP_STATIC_PAYLOAD_TYPE_L16_STEREO:
+          return constructAudioRtpMap(
+              RTP_STATIC_PAYLOAD_TYPE_L16_STEREO,
+              /* mediaEncoding= */ "L16",
+              /* clockRate= */ 44_100,
+              /* channelCount= */ 2);
+        case RTP_STATIC_PAYLOAD_TYPE_L16_MONO:
+          return constructAudioRtpMap(
+              RTP_STATIC_PAYLOAD_TYPE_L16_MONO,
+              /* mediaEncoding= */ "L16",
+              /* clockRate= */ 44_100,
+              /* channelCount= */ 1);
+        default:
+          throw new IllegalStateException("Unsupported static paylod type " + rtpPayloadType);
+      }
+    }
+
+    private static String constructAudioRtpMap(
+        int payloadType, String mediaEncoding, int clockRate, int channelCount) {
+      return Util.formatInvariant(
+          RTP_MAP_ATTR_AUDIO_FMT, payloadType, mediaEncoding, clockRate, channelCount);
     }
   }
 
@@ -232,7 +282,6 @@ import java.lang.annotation.RetentionPolicy;
   public final int bitrate;
   /** The assigned media title. */
   @Nullable public final String mediaTitle;
-  // TODO(internal b/172331505) Parse the String representations into objects.
   /** The connection parameters. */
   @Nullable public final String connection;
   /** The encryption parameter. */
@@ -301,7 +350,7 @@ import java.lang.annotation.RetentionPolicy;
    * {@link MediaDescription} does not contain any FMTP attribute.
    *
    * <p>FMTP format reference: RFC2327 Page 27. The spaces around the FMTP attribute delimiters are
-   * removed. For example,
+   * removed.
    */
   public ImmutableMap<String, String> getFmtpParametersAsMap() {
     @Nullable String fmtpAttributeValue = attributes.get(ATTR_FMTP);
@@ -315,13 +364,14 @@ import java.lang.annotation.RetentionPolicy;
 
     // Format of the parameter: RFC3640 Section 4.4.1:
     //   <parameter name>=<value>[; <parameter name>=<value>].
-    String[] parameters = Util.split(fmtpComponents[1], ";\\s?");
+    // Split with an explicit limit of 0 to handle an optional trailing semicolon.
+    String[] parameters = fmtpComponents[1].split(";\\s?", /* limit= */ 0);
     ImmutableMap.Builder<String, String> formatParametersBuilder = new ImmutableMap.Builder<>();
     for (String parameter : parameters) {
       // The parameter values can bear equal signs, so splitAtFirst must be used.
       String[] parameterPair = Util.splitAtFirst(parameter, "=");
       formatParametersBuilder.put(parameterPair[0], parameterPair[1]);
     }
-    return formatParametersBuilder.build();
+    return formatParametersBuilder.buildOrThrow();
   }
 }

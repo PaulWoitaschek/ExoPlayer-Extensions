@@ -23,11 +23,14 @@ import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.drm.DrmInitData;
 import com.google.android.exoplayer2.drm.DrmInitData.SchemeData;
 import com.google.android.exoplayer2.source.dash.manifest.AdaptationSet;
+import com.google.android.exoplayer2.source.dash.manifest.BaseUrl;
 import com.google.android.exoplayer2.source.dash.manifest.Period;
+import com.google.android.exoplayer2.source.dash.manifest.RangedUri;
 import com.google.android.exoplayer2.source.dash.manifest.Representation;
 import com.google.android.exoplayer2.source.dash.manifest.SegmentBase.SingleSegmentBase;
-import com.google.android.exoplayer2.upstream.DummyDataSource;
+import com.google.android.exoplayer2.upstream.PlaceholderDataSource;
 import com.google.android.exoplayer2.util.MimeTypes;
+import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.Collections;
 import org.junit.Test;
@@ -40,29 +43,73 @@ public final class DashUtilTest {
   @Test
   public void loadDrmInitDataFromManifest() throws Exception {
     Period period = newPeriod(newAdaptationSet(newRepresentation(newDrmInitData())));
-    Format format = DashUtil.loadFormatWithDrmInitData(DummyDataSource.INSTANCE, period);
+    Format format = DashUtil.loadFormatWithDrmInitData(PlaceholderDataSource.INSTANCE, period);
     assertThat(format.drmInitData).isEqualTo(newDrmInitData());
   }
 
   @Test
   public void loadDrmInitDataMissing() throws Exception {
     Period period = newPeriod(newAdaptationSet(newRepresentation(null /* no init data */)));
-    Format format = DashUtil.loadFormatWithDrmInitData(DummyDataSource.INSTANCE, period);
+    Format format = DashUtil.loadFormatWithDrmInitData(PlaceholderDataSource.INSTANCE, period);
     assertThat(format.drmInitData).isNull();
   }
 
   @Test
   public void loadDrmInitDataNoRepresentations() throws Exception {
     Period period = newPeriod(newAdaptationSet(/* no representation */ ));
-    Format format = DashUtil.loadFormatWithDrmInitData(DummyDataSource.INSTANCE, period);
+    Format format = DashUtil.loadFormatWithDrmInitData(PlaceholderDataSource.INSTANCE, period);
     assertThat(format).isNull();
   }
 
   @Test
   public void loadDrmInitDataNoAdaptationSets() throws Exception {
     Period period = newPeriod(/* no adaptation set */ );
-    Format format = DashUtil.loadFormatWithDrmInitData(DummyDataSource.INSTANCE, period);
+    Format format = DashUtil.loadFormatWithDrmInitData(PlaceholderDataSource.INSTANCE, period);
     assertThat(format).isNull();
+  }
+
+  @Test
+  public void resolveCacheKey_representationCacheKeyIsNull_resolvesRangedUriWithFirstBaseUrl() {
+    ImmutableList<BaseUrl> baseUrls =
+        ImmutableList.of(new BaseUrl("http://www.google.com"), new BaseUrl("http://www.foo.com"));
+    Representation.SingleSegmentRepresentation representation =
+        new Representation.SingleSegmentRepresentation(
+            /* revisionId= */ 1L,
+            new Format.Builder().build(),
+            baseUrls,
+            new SingleSegmentBase(),
+            /* inbandEventStreams= */ null,
+            /* essentialProperties= */ ImmutableList.of(),
+            /* supplementalProperties= */ ImmutableList.of(),
+            /* cacheKey= */ null,
+            /* contentLength= */ 1);
+    RangedUri rangedUri = new RangedUri("path/to/resource", /* start= */ 0, /* length= */ 1);
+
+    String cacheKey = DashUtil.resolveCacheKey(representation, rangedUri);
+
+    assertThat(cacheKey).isEqualTo("http://www.google.com/path/to/resource");
+  }
+
+  @Test
+  public void resolveCacheKey_representationCacheKeyDefined_usesRepresentationCacheKey() {
+    ImmutableList<BaseUrl> baseUrls =
+        ImmutableList.of(new BaseUrl("http://www.google.com"), new BaseUrl("http://www.foo.com"));
+    Representation.SingleSegmentRepresentation representation =
+        new Representation.SingleSegmentRepresentation(
+            /* revisionId= */ 1L,
+            new Format.Builder().build(),
+            baseUrls,
+            new SingleSegmentBase(),
+            /* inbandEventStreams= */ null,
+            /* essentialProperties= */ ImmutableList.of(),
+            /* supplementalProperties= */ ImmutableList.of(),
+            "cacheKey",
+            /* contentLength= */ 1);
+    RangedUri rangedUri = new RangedUri("path/to/resource", /* start= */ 0, /* length= */ 1);
+
+    String cacheKey = DashUtil.resolveCacheKey(representation, rangedUri);
+
+    assertThat(cacheKey).isEqualTo("cacheKey");
   }
 
   private static Period newPeriod(AdaptationSet... adaptationSets) {
@@ -86,7 +133,11 @@ public final class DashUtilTest {
             .setSampleMimeType(MimeTypes.VIDEO_H264)
             .setDrmInitData(drmInitData)
             .build();
-    return Representation.newInstance(0, format, "", new SingleSegmentBase());
+    return Representation.newInstance(
+        /* revisionId= */ 0,
+        format,
+        /* baseUrls= */ ImmutableList.of(new BaseUrl("")),
+        new SingleSegmentBase());
   }
 
   private static DrmInitData newDrmInitData() {

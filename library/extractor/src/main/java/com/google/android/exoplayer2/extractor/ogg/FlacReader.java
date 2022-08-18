@@ -26,15 +26,13 @@ import com.google.android.exoplayer2.extractor.FlacSeekTableSeekMap;
 import com.google.android.exoplayer2.extractor.FlacStreamMetadata;
 import com.google.android.exoplayer2.extractor.FlacStreamMetadata.SeekTable;
 import com.google.android.exoplayer2.extractor.SeekMap;
-import com.google.android.exoplayer2.util.FlacConstants;
+import com.google.android.exoplayer2.extractor.flac.FlacConstants;
 import com.google.android.exoplayer2.util.ParsableByteArray;
 import com.google.android.exoplayer2.util.Util;
 import java.util.Arrays;
 import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
 
-/**
- * {@link StreamReader} to extract Flac data out of Ogg byte stream.
- */
+/** {@link StreamReader} to extract Flac data out of Ogg byte stream. */
 /* package */ final class FlacReader extends StreamReader {
 
   private static final byte AUDIO_PACKET_TYPE = (byte) 0xFF;
@@ -45,7 +43,9 @@ import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
   @Nullable private FlacOggSeeker flacOggSeeker;
 
   public static boolean verifyBitstreamType(ParsableByteArray data) {
-    return data.bytesLeft() >= 5 && data.readUnsignedByte() == 0x7F && // packet type
+    return data.bytesLeft() >= 5
+        && data.readUnsignedByte() == 0x7F
+        && // packet type
         data.readUnsignedInt() == 0x464C4143; // ASCII signature "FLAC"
   }
 
@@ -157,7 +157,5 @@ import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
       checkState(firstFrameOffset != -1);
       return new FlacSeekTableSeekMap(streamMetadata, firstFrameOffset);
     }
-
   }
-
 }

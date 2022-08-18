@@ -22,7 +22,7 @@ import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.C;
 import java.util.ArrayDeque;
 import java.util.concurrent.CopyOnWriteArraySet;
-import javax.annotation.Nonnull;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
  * A set of listeners.
@@ -35,7 +35,7 @@ import javax.annotation.Nonnull;
  *
  * @param <T> The listener type.
  */
-public final class ListenerSet<T> {
+public final class ListenerSet<T extends @NonNull Object> {
 
   /**
    * An event sent to a listener.
@@ -60,14 +60,13 @@ public final class ListenerSet<T> {
      * Invokes the iteration finished event.
      *
      * @param listener The listener to invoke the event on.
-     * @param eventFlags The combined event {@link ExoFlags flags} of all events sent in this
+     * @param eventFlags The combined event {@link FlagSet flags} of all events sent in this
      *     iteration.
      */
-    void invoke(T listener, ExoFlags eventFlags);
+    void invoke(T listener, FlagSet eventFlags);
   }
 
   private static final int MSG_ITERATION_FINISHED = 0;
-  private static final int MSG_LAZY_RELEASE = 1;
 
   private final Clock clock;
   private final HandlerWrapper handler;
@@ -88,11 +87,7 @@ public final class ListenerSet<T> {
    *     during one {@link Looper} message queue iteration were handled by the listeners.
    */
   public ListenerSet(Looper looper, Clock clock, IterationFinishedEvent<T> iterationFinishedEvent) {
-    this(
-        /* listeners= */ new CopyOnWriteArraySet<>(),
-        looper,
-        clock,
-        iterationFinishedEvent);
+    this(/* listeners= */ new CopyOnWriteArraySet<>(), looper, clock, iterationFinishedEvent);
   }
 
   private ListenerSet(
@@ -106,7 +101,7 @@ public final class ListenerSet<T> {
     flushingEvents = new ArrayDeque<>();
     queuedEvents = new ArrayDeque<>();
     // It's safe to use "this" because we don't send a message before exiting the constructor.
-    @SuppressWarnings("methodref.receiver.bound.invalid")
+    @SuppressWarnings("nullness:methodref.receiver.bound")
     HandlerWrapper handler = clock.createHandler(looper, this::handleMessage);
     this.handler = handler;
   }
@@ -121,6 +116,21 @@ public final class ListenerSet<T> {
    */
   @CheckResult
   public ListenerSet<T> copy(Looper looper, IterationFinishedEvent<T> iterationFinishedEvent) {
+    return copy(looper, clock, iterationFinishedEvent);
+  }
+
+  /**
+   * Copies the listener set.
+   *
+   * @param looper The new {@link Looper} for the copied listener set.
+   * @param clock The new {@link Clock} for the copied listener set.
+   * @param iterationFinishedEvent The new {@link IterationFinishedEvent} sent when all other events
+   *     sent during one {@link Looper} message queue iteration were handled by the listeners.
+   * @return The copied listener set.
+   */
+  @CheckResult
+  public ListenerSet<T> copy(
+      Looper looper, Clock clock, IterationFinishedEvent<T> iterationFinishedEvent) {
     return new ListenerSet<>(listeners, looper, clock, iterationFinishedEvent);
   }
 
@@ -155,6 +165,16 @@ public final class ListenerSet<T> {
     }
   }
 
+  /** Removes all listeners from the set. */
+  public void clear() {
+    listeners.clear();
+  }
+
+  /** Returns the number of added listeners. */
+  public int size() {
+    return listeners.size();
+  }
+
   /**
    * Adds an event that is sent to the listeners when {@link #flushEvents} is called.
    *
@@ -178,7 +198,7 @@ public final class ListenerSet<T> {
       return;
     }
     if (!handler.hasMessages(MSG_ITERATION_FINISHED)) {
-      handler.obtainMessage(MSG_ITERATION_FINISHED).sendToTarget();
+      handler.sendMessageAtFrontOfQueue(handler.obtainMessage(MSG_ITERATION_FINISHED));
     }
     boolean recursiveFlushInProgress = !flushingEvents.isEmpty();
     flushingEvents.addAll(queuedEvents);
@@ -219,52 +239,30 @@ public final class ListenerSet<T> {
     released = true;
   }
 
-  /**
-   * Releases the set of listeners after all already scheduled {@link Looper} messages were able to
-   * trigger final events.
-   *
-   * <p>After the specified released callback event, no other events are sent to a listener.
-   *
-   * @param releaseEventFlag An integer flag indicating the type of the release event, or {@link
-   *     C#INDEX_UNSET} to report this event without a flag.
-   * @param releaseEvent The release event.
-   */
-  public void lazyRelease(int releaseEventFlag, Event<T> releaseEvent) {
-    handler.obtainMessage(MSG_LAZY_RELEASE, releaseEventFlag, 0, releaseEvent).sendToTarget();
-  }
-
   private boolean handleMessage(Message message) {
-    if (message.what == MSG_ITERATION_FINISHED) {
-      for (ListenerHolder<T> holder : listeners) {
-        holder.iterationFinished(iterationFinishedEvent);
-        if (handler.hasMessages(MSG_ITERATION_FINISHED)) {
-          // The invocation above triggered new events (and thus scheduled a new message). We need
-          // to stop here because this new message will take care of informing every listener about
-          // the new update (including the ones already called here).
-          break;
-        }
+    for (ListenerHolder<T> holder : listeners) {
+      holder.iterationFinished(iterationFinishedEvent);
+      if (handler.hasMessages(MSG_ITERATION_FINISHED)) {
+        // The invocation above triggered new events (and thus scheduled a new message). We need
+        // to stop here because this new message will take care of informing every listener about
+        // the new update (including the ones already called here).
+        break;
       }
-    } else if (message.what == MSG_LAZY_RELEASE) {
-      int releaseEventFlag = message.arg1;
-      @SuppressWarnings("unchecked")
-      Event<T> releaseEvent = (Event<T>) message.obj;
-      sendEvent(releaseEventFlag, releaseEvent);
-      release();
     }
     return true;
   }
 
-  private static final class ListenerHolder<T> {
+  private static final class ListenerHolder<T extends @NonNull Object> {
 
-    @Nonnull public final T listener;
+    public final T listener;
 
-    private ExoFlags.Builder flagsBuilder;
+    private FlagSet.Builder flagsBuilder;
     private boolean needsIterationFinishedEvent;
     private boolean released;
 
-    public ListenerHolder(@Nonnull T listener) {
+    public ListenerHolder(T listener) {
       this.listener = listener;
-      this.flagsBuilder = new ExoFlags.Builder();
+      this.flagsBuilder = new FlagSet.Builder();
     }
 
     public void release(IterationFinishedEvent<T> event) {
@@ -288,8 +286,8 @@ public final class ListenerSet<T> {
       if (!released && needsIterationFinishedEvent) {
         // Reset flags before invoking the listener to ensure we keep all new flags that are set by
         // recursive events triggered from this callback.
-        ExoFlags flagsToNotify = flagsBuilder.build();
-        flagsBuilder = new ExoFlags.Builder();
+        FlagSet flagsToNotify = flagsBuilder.build();
+        flagsBuilder = new FlagSet.Builder();
         needsIterationFinishedEvent = false;
         event.invoke(listener, flagsToNotify);
       }

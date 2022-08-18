@@ -21,56 +21,32 @@ import com.google.android.exoplayer2.util.ParsableByteArray;
 import java.io.IOException;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 
-/**
- * A holder for information corresponding to a single fragment of an mp4 file.
- */
+/** A holder for information corresponding to a single fragment of an mp4 file. */
 /* package */ final class TrackFragment {
 
   /** The default values for samples from the track fragment header. */
   public @MonotonicNonNull DefaultSampleValues header;
-  /**
-   * The position (byte offset) of the start of fragment.
-   */
+  /** The position (byte offset) of the start of fragment. */
   public long atomPosition;
-  /**
-   * The position (byte offset) of the start of data contained in the fragment.
-   */
+  /** The position (byte offset) of the start of data contained in the fragment. */
   public long dataPosition;
-  /**
-   * The position (byte offset) of the start of auxiliary data.
-   */
+  /** The position (byte offset) of the start of auxiliary data. */
   public long auxiliaryDataPosition;
-  /**
-   * The number of track runs of the fragment.
-   */
+  /** The number of track runs of the fragment. */
   public int trunCount;
-  /**
-   * The total number of samples in the fragment.
-   */
+  /** The total number of samples in the fragment. */
   public int sampleCount;
-  /**
-   * The position (byte offset) of the start of sample data of each track run in the fragment.
-   */
+  /** The position (byte offset) of the start of sample data of each track run in the fragment. */
   public long[] trunDataPosition;
-  /**
-   * The number of samples contained by each track run in the fragment.
-   */
+  /** The number of samples contained by each track run in the fragment. */
   public int[] trunLength;
-  /**
-   * The size of each sample in the fragment.
-   */
+  /** The size of each sample in the fragment. */
   public int[] sampleSizeTable;
-  /** The composition time offset of each sample in the fragment, in microseconds. */
-  public int[] sampleCompositionTimeOffsetUsTable;
-  /** The decoding time of each sample in the fragment, in microseconds. */
-  public long[] sampleDecodingTimeUsTable;
-  /**
-   * Indicates which samples are sync frames.
-   */
+  /** The presentation time of each sample in the fragment, in microseconds. */
+  public long[] samplePresentationTimesUs;
+  /** Indicates which samples are sync frames. */
   public boolean[] sampleIsSyncFrameTable;
-  /**
-   * Whether the fragment defines encryption data.
-   */
+  /** Whether the fragment defines encryption data. */
   public boolean definesEncryptionData;
   /**
    * If {@link #definesEncryptionData} is true, indicates which samples use sub-sample encryption.
@@ -84,9 +60,7 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
    * otherwise.
    */
   public final ParsableByteArray sampleEncryptionData;
-  /**
-   * Whether {@link #sampleEncryptionData} needs populating with the actual encryption data.
-   */
+  /** Whether {@link #sampleEncryptionData} needs populating with the actual encryption data. */
   public boolean sampleEncryptionDataNeedsFill;
   /**
    * The duration of all the samples defined in the fragments up to and including this one, plus the
@@ -104,8 +78,7 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
     trunDataPosition = new long[0];
     trunLength = new int[0];
     sampleSizeTable = new int[0];
-    sampleCompositionTimeOffsetUsTable = new int[0];
-    sampleDecodingTimeUsTable = new long[0];
+    samplePresentationTimesUs = new long[0];
     sampleIsSyncFrameTable = new boolean[0];
     sampleHasSubsampleEncryptionTable = new boolean[0];
     sampleEncryptionData = new ParsableByteArray();
@@ -113,10 +86,10 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 
   /**
    * Resets the fragment.
-   * <p>
-   * {@link #sampleCount} and {@link #nextFragmentDecodeTime} are set to 0, and both
-   * {@link #definesEncryptionData} and {@link #sampleEncryptionDataNeedsFill} is set to false,
-   * and {@link #trackEncryptionBox} is set to null.
+   *
+   * <p>{@link #sampleCount} and {@link #nextFragmentDecodeTime} are set to 0, and both {@link
+   * #definesEncryptionData} and {@link #sampleEncryptionDataNeedsFill} is set to false, and {@link
+   * #trackEncryptionBox} is set to null.
    */
   public void reset() {
     trunCount = 0;
@@ -129,8 +102,8 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 
   /**
    * Configures the fragment for the specified number of samples.
-   * <p>
-   * The {@link #sampleCount} of the fragment is set to the specified sample count, and the
+   *
+   * <p>The {@link #sampleCount} of the fragment is set to the specified sample count, and the
    * contained tables are resized if necessary such that they are at least this length.
    *
    * @param sampleCount The number of samples in the new run.
@@ -147,8 +120,7 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
       // likely. The choice of 25% is relatively arbitrary.
       int tableSize = (sampleCount * 125) / 100;
       sampleSizeTable = new int[tableSize];
-      sampleCompositionTimeOffsetUsTable = new int[tableSize];
-      sampleDecodingTimeUsTable = new long[tableSize];
+      samplePresentationTimesUs = new long[tableSize];
       sampleIsSyncFrameTable = new boolean[tableSize];
       sampleHasSubsampleEncryptionTable = new boolean[tableSize];
     }
@@ -197,7 +169,7 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
    * @return The presentation timestamps of this sample in microseconds.
    */
   public long getSamplePresentationTimeUs(int index) {
-    return sampleDecodingTimeUsTable[index] + sampleCompositionTimeOffsetUsTable[index];
+    return samplePresentationTimesUs[index];
   }
 
   /** Returns whether the sample at the given index has a subsample encryption table. */

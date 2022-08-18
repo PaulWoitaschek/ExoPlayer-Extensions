@@ -37,22 +37,24 @@
     <item quantity="one">%d секунд алға айналдыру</item>
     <item quantity="other">%d секунд алға айналдыру</item>
   </plurals>
-  <string name="exo_controls_repeat_off_description">Ешқайсысын қайталамау</string>
-  <string name="exo_controls_repeat_one_description">Біреуін қайталау</string>
-  <string name="exo_controls_repeat_all_description">Барлығын қайталау</string>
-  <string name="exo_controls_shuffle_on_description">Араластыру режимі қосулы.</string>
-  <string name="exo_controls_shuffle_off_description">Араластыру режимі өшірулі.</string>
+  <string name="exo_controls_repeat_off_description">Қазіргі режим: еш мазмұн қайталанбайды. Қайталау режимін ауыстыру.</string>
+  <string name="exo_controls_repeat_one_description">Қазіргі режим: бір мазмұн қайталанады. Қайталау режимін ауыстыру.</string>
+  <string name="exo_controls_repeat_all_description">Қазіргі режим: барлық мазмұн қайталанады Қайталау режимін ауыстыру.</string>
+  <string name="exo_controls_shuffle_on_description">Араластыру режимін өшіру</string>
+  <string name="exo_controls_shuffle_off_description">Араластыру режимін қосу</string>
   <string name="exo_controls_vr_description">VR режимі</string>
   <string name="exo_controls_cc_enabled_description">Субтитрді өшіру</string>
   <string name="exo_controls_cc_disabled_description">Субтитрді қосу</string>
   <string name="exo_controls_playback_speed">Жылдамдық</string>
-  <string name="exo_controls_playback_speed_normal">Қалыпты</string>
-  <string name="exo_download_description">Жүктеп алу</string>
-  <string name="exo_download_notification_channel_name">Жүктеп алынғандар</string>
-  <string name="exo_download_downloading">Жүктеп алынуда</string>
-  <string name="exo_download_completed">Жүктеп алынды</string>
-  <string name="exo_download_failed">Жүктеп алынбады</string>
-  <string name="exo_download_removing">Жүктеп алынғандар өшірілуде</string>
+  <string-array name="exo_controls_playback_speeds">
+    <item>0,25x</item>
+    <item>0,5x</item>
+    <item>0,75x</item>
+    <item>Қалыпты</item>
+    <item>1,25x</item>
+    <item>1,5x</item>
+    <item>2x</item>
+  </string-array>
   <string name="exo_track_selection_title_video">Бейне</string>
   <string name="exo_track_selection_title_audio">Aудиомазмұн</string>
   <string name="exo_track_selection_title_text">Мәтін</string>

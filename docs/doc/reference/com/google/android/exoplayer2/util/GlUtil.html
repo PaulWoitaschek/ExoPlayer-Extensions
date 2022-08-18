@@ -1,4 +1,4 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!DOCTYPE HTML>
 <!-- NewPage -->
 <html lang="en">
 <head><!-- start favicons snippet, use https://realfavicongenerator.net/ --><link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png"><link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png"><link rel="manifest" href="/assets/site.webmanifest"><link rel="mask-icon" href="/assets/safari-pinned-tab.svg" color="#fc4d50"><link rel="shortcut icon" href="/assets/favicon.ico"><meta name="msapplication-TileColor" content="#ffc40d"><meta name="msapplication-config" content="/assets/browserconfig.xml"><meta name="theme-color" content="#ffffff"><!-- end favicons snippet -->
@@ -12,7 +12,7 @@
 <!--[if IE]>
 <script type="text/javascript" src="../../../../../jquery/jszip-utils/dist/jszip-utils-ie.min.js"></script>
 <![endif]-->
-<script type="text/javascript" src="../../../../../jquery/jquery-1.10.2.js"></script>
+<script type="text/javascript" src="../../../../../jquery/jquery-3.5.1.js"></script>
 <script type="text/javascript" src="../../../../../jquery/jquery-ui.js"></script>
 </head>
 <body>
@@ -25,27 +25,31 @@
     catch(err) {
     }
 //-->
-var methods = {"i0":9,"i1":9,"i2":9,"i3":9,"i4":9,"i5":9,"i6":9,"i7":9,"i8":9,"i9":9};
+var data = {"i0":9,"i1":9,"i2":9,"i3":9,"i4":9,"i5":9,"i6":9,"i7":9,"i8":9,"i9":9,"i10":9,"i11":9,"i12":9,"i13":9,"i14":9,"i15":9,"i16":9,"i17":9,"i18":9,"i19":9,"i20":9,"i21":9,"i22":9,"i23":9,"i24":9,"i25":9};
 var tabs = {65535:["t0","All Methods"],1:["t1","Static Methods"],8:["t4","Concrete Methods"]};
 var altColor = "altColor";
 var rowColor = "rowColor";
 var tableTab = "tableTab";
 var activeTableTab = "activeTableTab";
-var pathtoroot = "../../../../../";loadScripts(document, 'script');</script>
+var pathtoroot = "../../../../../";
+var useModuleDirectories = false;
+loadScripts(document, 'script');</script>
 <noscript>
 <div>JavaScript is disabled on your browser.</div>
 </noscript>
+<header role="banner">
+<nav role="navigation">
 <div class="fixedNav">
 <!-- ========= START OF TOP NAVBAR ======= -->
-<div class="topNav"><a name="navbar.top">
+<div class="topNav"><a id="navbar.top">
 <!--   -->
 </a>
 <div class="skipNav"><a href="#skip.navbar.top" title="Skip navigation links">Skip navigation links</a></div>
-<a name="navbar.top.firstrow">
+<a id="navbar.top.firstrow">
 <!--   -->
 </a>
 <ul class="navList" title="Navigation">
-<li><a href="../../../../../overview-summary.html">Overview</a></li>
+<li><a href="../../../../../index.html">Overview</a></li>
 <li><a href="package-summary.html">Package</a></li>
 <li class="navBarCell1Rev">Class</li>
 <li><a href="package-tree.html">Tree</a></li>
@@ -55,16 +59,8 @@ var pathtoroot = "../../../../../";loadScripts(document, 'script');</script>
 </ul>
 </div>
 <div class="subNav">
-<ul class="navList">
-<li><a href="../../../../../com/google/android/exoplayer2/util/FlacConstants.html" title="class in com.google.android.exoplayer2.util"><span class="typeNameLink">Prev&nbsp;Class</span></a></li>
-<li><a href="../../../../../com/google/android/exoplayer2/util/GlUtil.Attribute.html" title="class in com.google.android.exoplayer2.util"><span class="typeNameLink">Next&nbsp;Class</span></a></li>
-</ul>
-<ul class="navList">
-<li><a href="../../../../../index.html?com/google/android/exoplayer2/util/GlUtil.html" target="_top">Frames</a></li>
-<li><a href="GlUtil.html" target="_top">No&nbsp;Frames</a></li>
-</ul>
 <ul class="navList" id="allclasses_navbar_top">
-<li><a href="../../../../../allclasses-noframe.html">All&nbsp;Classes</a></li>
+<li><a href="../../../../../allclasses.html">All&nbsp;Classes</a></li>
 </ul>
 <ul class="navListSearch">
 <li><label for="search">SEARCH:</label>
@@ -91,18 +87,18 @@ var pathtoroot = "../../../../../";loadScripts(document, 'script');</script>
 <ul class="subNavList">
 <li>Summary:&nbsp;</li>
 <li><a href="#nested.class.summary">Nested</a>&nbsp;|&nbsp;</li>
-<li>Field&nbsp;|&nbsp;</li>
+<li><a href="#field.summary">Field</a>&nbsp;|&nbsp;</li>
 <li>Constr&nbsp;|&nbsp;</li>
 <li><a href="#method.summary">Method</a></li>
 </ul>
 <ul class="subNavList">
 <li>Detail:&nbsp;</li>
-<li>Field&nbsp;|&nbsp;</li>
+<li><a href="#field.detail">Field</a>&nbsp;|&nbsp;</li>
 <li>Constr&nbsp;|&nbsp;</li>
 <li><a href="#method.detail">Method</a></li>
 </ul>
 </div>
-<a name="skip.navbar.top">
+<a id="skip.navbar.top">
 <!--   -->
 </a></div>
 <!-- ========= END OF TOP NAVBAR ========= -->
@@ -112,9 +108,12 @@ var pathtoroot = "../../../../../";loadScripts(document, 'script');</script>
 $('.navPadding').css('padding-top', $('.fixedNav').css("height"));
 //-->
 </script>
+</nav>
+</header>
 <!-- ======== START OF CLASS DATA ======== -->
+<main role="main">
 <div class="header">
-<div class="subTitle"><span class="packageLabelInType">Package</span>&nbsp;<a href="../../../../../com/google/android/exoplayer2/util/package-summary.html">com.google.android.exoplayer2.util</a></div>
+<div class="subTitle"><span class="packageLabelInType">Package</span>&nbsp;<a href="package-summary.html">com.google.android.exoplayer2.util</a></div>
 <h2 title="Class GlUtil" class="title">Class GlUtil</h2>
 </div>
 <div class="contentContainer">
@@ -132,7 +131,7 @@ $('.navPadding').css('padding-top', $('.fixedNav').css("height"));
 <hr>
 <pre>public final class <span class="typeNameLabel">GlUtil</span>
 extends <a href="https://developer.android.com/reference/java/lang/Object.html" title="class or interface in java.lang" class="externalLink" target="_top">Object</a></pre>
-<div class="block">GL utilities.</div>
+<div class="block">OpenGL ES utilities.</div>
 </li>
 </ul>
 </div>
@@ -140,12 +139,13 @@ extends <a href="https://developer.android.com/reference/java/lang/Object.html" 
 <ul class="blockList">
 <li class="blockList">
 <!-- ======== NESTED CLASS SUMMARY ======== -->
+<section role="region">
 <ul class="blockList">
-<li class="blockList"><a name="nested.class.summary">
+<li class="blockList"><a id="nested.class.summary">
 <!--   -->
 </a>
 <h3>Nested Class Summary</h3>
-<table class="memberSummary" summary="Nested Class Summary table, listing nested classes, and an explanation">
+<table class="memberSummary">
 <caption><span>Nested Classes</span><span class="tabEnd">&nbsp;</span></caption>
 <tr>
 <th class="colFirst" scope="col">Modifier and Type</th>
@@ -154,28 +154,62 @@ extends <a href="https://developer.android.com/reference/java/lang/Object.html" 
 </tr>
 <tr class="altColor">
 <td class="colFirst"><code>static class&nbsp;</code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="../../../../../com/google/android/exoplayer2/util/GlUtil.Attribute.html" title="class in com.google.android.exoplayer2.util">GlUtil.Attribute</a></span></code></th>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="GlUtil.GlException.html" title="class in com.google.android.exoplayer2.util">GlUtil.GlException</a></span></code></th>
 <td class="colLast">
-<div class="block">GL attribute, which can be attached to a buffer with <a href="../../../../../com/google/android/exoplayer2/util/GlUtil.Attribute.html#setBuffer-float:A-int-"><code>GlUtil.Attribute.setBuffer(float[], int)</code></a>.</div>
-</td>
-</tr>
-<tr class="rowColor">
-<td class="colFirst"><code>static class&nbsp;</code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="../../../../../com/google/android/exoplayer2/util/GlUtil.Uniform.html" title="class in com.google.android.exoplayer2.util">GlUtil.Uniform</a></span></code></th>
-<td class="colLast">
-<div class="block">GL uniform, which can be attached to a sampler using <a href="../../../../../com/google/android/exoplayer2/util/GlUtil.Uniform.html#setSamplerTexId-int-int-"><code>GlUtil.Uniform.setSamplerTexId(int, int)</code></a>.</div>
+<div class="block">Thrown when an OpenGL error occurs and <a href="#glAssertionsEnabled"><code>glAssertionsEnabled</code></a> is <code>true</code>.</div>
 </td>
 </tr>
 </table>
 </li>
 </ul>
-<!-- ========== METHOD SUMMARY =========== -->
+</section>
+<!-- =========== FIELD SUMMARY =========== -->
+<section role="region">
 <ul class="blockList">
-<li class="blockList"><a name="method.summary">
+<li class="blockList"><a id="field.summary">
+<!--   -->
+</a>
+<h3>Field Summary</h3>
+<table class="memberSummary">
+<caption><span>Fields</span><span class="tabEnd">&nbsp;</span></caption>
+<tr>
+<th class="colFirst" scope="col">Modifier and Type</th>
+<th class="colSecond" scope="col">Field</th>
+<th class="colLast" scope="col">Description</th>
+</tr>
+<tr class="altColor">
+<td class="colFirst"><code>static boolean</code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#glAssertionsEnabled">glAssertionsEnabled</a></span></code></th>
+<td class="colLast">
+<div class="block">Whether to throw a <a href="GlUtil.GlException.html" title="class in com.google.android.exoplayer2.util"><code>GlUtil.GlException</code></a> in case of an OpenGL error.</div>
+</td>
+</tr>
+<tr class="rowColor">
+<td class="colFirst"><code>static int</code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#HOMOGENEOUS_COORDINATE_VECTOR_SIZE">HOMOGENEOUS_COORDINATE_VECTOR_SIZE</a></span></code></th>
+<td class="colLast">
+<div class="block">Number of elements in a 3d homogeneous coordinate vector describing a vertex.</div>
+</td>
+</tr>
+<tr class="altColor">
+<td class="colFirst"><code>static float</code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#LENGTH_NDC">LENGTH_NDC</a></span></code></th>
+<td class="colLast">
+<div class="block">Length of the normalized device coordinate (NDC) space, which spans from -1 to 1.</div>
+</td>
+</tr>
+</table>
+</li>
+</ul>
+</section>
+<!-- ========== METHOD SUMMARY =========== -->
+<section role="region">
+<ul class="blockList">
+<li class="blockList"><a id="method.summary">
 <!--   -->
 </a>
 <h3>Method Summary</h3>
-<table class="memberSummary" summary="Method Summary table, listing methods, and an explanation">
+<table class="memberSummary">
 <caption><span id="t0" class="activeTableTab"><span>All Methods</span><span class="tabEnd">&nbsp;</span></span><span id="t1" class="tableTab"><span><a href="javascript:show(1);">Static Methods</a></span><span class="tabEnd">&nbsp;</span></span><span id="t4" class="tableTab"><span><a href="javascript:show(8);">Concrete Methods</a></span><span class="tabEnd">&nbsp;</span></span></caption>
 <tr>
 <th class="colFirst" scope="col">Modifier and Type</th>
@@ -184,195 +218,560 @@ extends <a href="https://developer.android.com/reference/java/lang/Object.html" 
 </tr>
 <tr id="i0" class="altColor">
 <td class="colFirst"><code>static void</code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="../../../../../com/google/android/exoplayer2/util/GlUtil.html#checkGlError--">checkGlError</a></span>()</code></th>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#assertValidTextureSize(int,int)">assertValidTextureSize</a></span>&#8203;(int&nbsp;width,
+                      int&nbsp;height)</code></th>
 <td class="colLast">
-<div class="block">If there is an OpenGl error, logs the error and if <a href="../../../../../com/google/android/exoplayer2/ExoPlayerLibraryInfo.html#GL_ASSERTIONS_ENABLED"><code>ExoPlayerLibraryInfo.GL_ASSERTIONS_ENABLED</code></a> is true throws a <a href="https://developer.android.com/reference/java/lang/RuntimeException.html" title="class or interface in java.lang" class="externalLink" target="_top"><code>RuntimeException</code></a>.</div>
+<div class="block">Asserts the texture size is valid.</div>
 </td>
 </tr>
 <tr id="i1" class="rowColor">
-<td class="colFirst"><code>static int</code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="../../../../../com/google/android/exoplayer2/util/GlUtil.html#compileProgram-java.lang.String:A-java.lang.String:A-">compileProgram</a></span>&#8203;(<a href="https://developer.android.com/reference/java/lang/String.html" title="class or interface in java.lang" class="externalLink" target="_top">String</a>[]&nbsp;vertexCode,
-              <a href="https://developer.android.com/reference/java/lang/String.html" title="class or interface in java.lang" class="externalLink" target="_top">String</a>[]&nbsp;fragmentCode)</code></th>
+<td class="colFirst"><code>static void</code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#bindTexture(int,int)">bindTexture</a></span>&#8203;(int&nbsp;textureTarget,
+           int&nbsp;texId)</code></th>
 <td class="colLast">
-<div class="block">Builds a GL shader program from vertex and fragment shader code.</div>
+<div class="block">Binds the texture of the given type with default configuration of GL_LINEAR filtering and
+ GL_CLAMP_TO_EDGE wrapping.</div>
 </td>
 </tr>
 <tr id="i2" class="altColor">
-<td class="colFirst"><code>static int</code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="../../../../../com/google/android/exoplayer2/util/GlUtil.html#compileProgram-java.lang.String-java.lang.String-">compileProgram</a></span>&#8203;(<a href="https://developer.android.com/reference/java/lang/String.html" title="class or interface in java.lang" class="externalLink" target="_top">String</a>&nbsp;vertexCode,
-              <a href="https://developer.android.com/reference/java/lang/String.html" title="class or interface in java.lang" class="externalLink" target="_top">String</a>&nbsp;fragmentCode)</code></th>
+<td class="colFirst"><code>static void</code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#checkGlError()">checkGlError</a></span>()</code></th>
 <td class="colLast">
-<div class="block">Builds a GL shader program from vertex and fragment shader code.</div>
+<div class="block">If there is an OpenGl error, logs the error and if <a href="#glAssertionsEnabled"><code>glAssertionsEnabled</code></a> is true throws
+ a <a href="GlUtil.GlException.html" title="class in com.google.android.exoplayer2.util"><code>GlUtil.GlException</code></a>.</div>
 </td>
 </tr>
 <tr id="i3" class="rowColor">
 <td class="colFirst"><code>static <a href="https://developer.android.com/reference/java/nio/FloatBuffer.html" title="class or interface in java.nio" class="externalLink" target="_top">FloatBuffer</a></code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="../../../../../com/google/android/exoplayer2/util/GlUtil.html#createBuffer-float:A-">createBuffer</a></span>&#8203;(float[]&nbsp;data)</code></th>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#createBuffer(float%5B%5D)">createBuffer</a></span>&#8203;(float[]&nbsp;data)</code></th>
 <td class="colLast">
 <div class="block">Allocates a FloatBuffer with the given data.</div>
 </td>
 </tr>
 <tr id="i4" class="altColor">
 <td class="colFirst"><code>static <a href="https://developer.android.com/reference/java/nio/FloatBuffer.html" title="class or interface in java.nio" class="externalLink" target="_top">FloatBuffer</a></code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="../../../../../com/google/android/exoplayer2/util/GlUtil.html#createBuffer-int-">createBuffer</a></span>&#8203;(int&nbsp;capacity)</code></th>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#createBuffer(int)">createBuffer</a></span>&#8203;(int&nbsp;capacity)</code></th>
 <td class="colLast">
 <div class="block">Allocates a FloatBuffer.</div>
 </td>
 </tr>
 <tr id="i5" class="rowColor">
+<td class="colFirst"><code>static <a href="https://developer.android.com/reference/android/opengl/EGLContext.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLContext</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#createEglContext(android.opengl.EGLDisplay)">createEglContext</a></span>&#8203;(<a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLDisplay</a>&nbsp;eglDisplay)</code></th>
+<td class="colLast">
+<div class="block">Returns a new <a href="https://developer.android.com/reference/android/opengl/EGLContext.html" title="class or interface in android.opengl" class="externalLink"><code>EGLContext</code></a> for the specified <a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html?is-external=true" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGLDisplay</code></a>.</div>
+</td>
+</tr>
+<tr id="i6" class="altColor">
+<td class="colFirst"><code>static <a href="https://developer.android.com/reference/android/opengl/EGLContext.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLContext</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#createEglContextEs3Rgba1010102(android.opengl.EGLDisplay)">createEglContextEs3Rgba1010102</a></span>&#8203;(<a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLDisplay</a>&nbsp;eglDisplay)</code></th>
+<td class="colLast">
+<div class="block">Returns a new <a href="https://developer.android.com/reference/android/opengl/EGLContext.html" title="class or interface in android.opengl" class="externalLink"><code>EGLContext</code></a> for the specified <a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html?is-external=true" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGLDisplay</code></a>, requesting ES 3 and an
+ RGBA 1010102 config.</div>
+</td>
+</tr>
+<tr id="i7" class="rowColor">
+<td class="colFirst"><code>static <a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLDisplay</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#createEglDisplay()">createEglDisplay</a></span>()</code></th>
+<td class="colLast">
+<div class="block">Returns an initialized default <a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGLDisplay</code></a>.</div>
+</td>
+</tr>
+<tr id="i8" class="altColor">
 <td class="colFirst"><code>static int</code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="../../../../../com/google/android/exoplayer2/util/GlUtil.html#createExternalTexture--">createExternalTexture</a></span>()</code></th>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#createExternalTexture()">createExternalTexture</a></span>()</code></th>
 <td class="colLast">
 <div class="block">Creates a GL_TEXTURE_EXTERNAL_OES with default configuration of GL_LINEAR filtering and
  GL_CLAMP_TO_EDGE wrapping.</div>
 </td>
 </tr>
-<tr id="i6" class="altColor">
-<td class="colFirst"><code>static <a href="../../../../../com/google/android/exoplayer2/util/GlUtil.Attribute.html" title="class in com.google.android.exoplayer2.util">GlUtil.Attribute</a>[]</code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="../../../../../com/google/android/exoplayer2/util/GlUtil.html#getAttributes-int-">getAttributes</a></span>&#8203;(int&nbsp;program)</code></th>
-<td class="colLast">
-<div class="block">Returns the <a href="../../../../../com/google/android/exoplayer2/util/GlUtil.Attribute.html" title="class in com.google.android.exoplayer2.util"><code>GlUtil.Attribute</code></a>s in the specified <code>program</code>.</div>
-</td>
-</tr>
-<tr id="i7" class="rowColor">
-<td class="colFirst"><code>static <a href="../../../../../com/google/android/exoplayer2/util/GlUtil.Uniform.html" title="class in com.google.android.exoplayer2.util">GlUtil.Uniform</a>[]</code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="../../../../../com/google/android/exoplayer2/util/GlUtil.html#getUniforms-int-">getUniforms</a></span>&#8203;(int&nbsp;program)</code></th>
-<td class="colLast">
-<div class="block">Returns the <a href="../../../../../com/google/android/exoplayer2/util/GlUtil.Uniform.html" title="class in com.google.android.exoplayer2.util"><code>GlUtil.Uniform</code></a>s in the specified <code>program</code>.</div>
-</td>
-</tr>
-<tr id="i8" class="altColor">
-<td class="colFirst"><code>static boolean</code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="../../../../../com/google/android/exoplayer2/util/GlUtil.html#isProtectedContentExtensionSupported-android.content.Context-">isProtectedContentExtensionSupported</a></span>&#8203;(<a href="https://developer.android.com/reference/android/content/Context.html" title="class or interface in android.content" class="externalLink" target="_top">Context</a>&nbsp;context)</code></th>
-<td class="colLast">
-<div class="block">Returns whether creating a GL context with <a href="../../../../../com/google/android/exoplayer2/util/GlUtil.html#EXTENSION_PROTECTED_CONTENT">"EGL_EXT_protected_content"</a> is possible.</div>
-</td>
-</tr>
 <tr id="i9" class="rowColor">
-<td class="colFirst"><code>static boolean</code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="../../../../../com/google/android/exoplayer2/util/GlUtil.html#isSurfacelessContextExtensionSupported--">isSurfacelessContextExtensionSupported</a></span>()</code></th>
+<td class="colFirst"><code>static int</code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#createFboForTexture(int)">createFboForTexture</a></span>&#8203;(int&nbsp;texId)</code></th>
 <td class="colLast">
-<div class="block">Returns whether creating a GL context with <a href="../../../../../com/google/android/exoplayer2/util/GlUtil.html#EXTENSION_SURFACELESS_CONTEXT">"EGL_KHR_surfaceless_context"</a> is possible.</div>
+<div class="block">Returns a new framebuffer for the texture.</div>
+</td>
+</tr>
+<tr id="i10" class="altColor">
+<td class="colFirst"><code>static <a href="https://developer.android.com/reference/android/opengl/EGLSurface.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLSurface</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#createPlaceholderEglSurface(android.opengl.EGLDisplay)">createPlaceholderEglSurface</a></span>&#8203;(<a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLDisplay</a>&nbsp;eglDisplay)</code></th>
+<td class="colLast">
+<div class="block">Returns a placeholder <a href="https://developer.android.com/reference/android/opengl/EGLSurface.html" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGLSurface</code></a> to use when reading and writing to the surface is not
+ required.</div>
+</td>
+</tr>
+<tr id="i11" class="rowColor">
+<td class="colFirst"><code>static int</code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#createTexture(int,int)">createTexture</a></span>&#8203;(int&nbsp;width,
+             int&nbsp;height)</code></th>
+<td class="colLast">
+<div class="block">Returns the texture identifier for a newly-allocated texture with the specified dimensions.</div>
+</td>
+</tr>
+<tr id="i12" class="altColor">
+<td class="colFirst"><code>static float[]</code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#createVertexBuffer(java.util.List)">createVertexBuffer</a></span>&#8203;(<a href="https://developer.android.com/reference/java/util/List.html" title="class or interface in java.util" class="externalLink" target="_top">List</a>&lt;float[]&gt;&nbsp;vertexList)</code></th>
+<td class="colLast">
+<div class="block">Flattens the list of 4 element NDC coordinate vectors into a buffer.</div>
+</td>
+</tr>
+<tr id="i13" class="rowColor">
+<td class="colFirst"><code>static void</code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#deleteTexture(int)">deleteTexture</a></span>&#8203;(int&nbsp;textureId)</code></th>
+<td class="colLast">
+<div class="block">Deletes a GL texture.</div>
+</td>
+</tr>
+<tr id="i14" class="altColor">
+<td class="colFirst"><code>static void</code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#destroyEglContext(android.opengl.EGLDisplay,android.opengl.EGLContext)">destroyEglContext</a></span>&#8203;(<a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLDisplay</a>&nbsp;eglDisplay,
+                 <a href="https://developer.android.com/reference/android/opengl/EGLContext.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLContext</a>&nbsp;eglContext)</code></th>
+<td class="colLast">
+<div class="block">Destroys the <a href="https://developer.android.com/reference/android/opengl/EGLContext.html" title="class or interface in android.opengl" class="externalLink"><code>EGLContext</code></a> identified by the provided <a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html?is-external=true" title="class or interface in android.opengl" class="externalLink"><code>EGLDisplay</code></a> and <a href="https://developer.android.com/reference/android/opengl/EGLContext.html?is-external=true" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGLContext</code></a>.</div>
+</td>
+</tr>
+<tr id="i15" class="rowColor">
+<td class="colFirst"><code>static void</code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#focusEglSurface(android.opengl.EGLDisplay,android.opengl.EGLContext,android.opengl.EGLSurface,int,int)">focusEglSurface</a></span>&#8203;(<a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLDisplay</a>&nbsp;eglDisplay,
+               <a href="https://developer.android.com/reference/android/opengl/EGLContext.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLContext</a>&nbsp;eglContext,
+               <a href="https://developer.android.com/reference/android/opengl/EGLSurface.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLSurface</a>&nbsp;eglSurface,
+               int&nbsp;width,
+               int&nbsp;height)</code></th>
+<td class="colLast">
+<div class="block">Makes the specified <code>eglSurface</code> the render target, using a viewport of <code>width</code> by
+ <code>height</code> pixels.</div>
+</td>
+</tr>
+<tr id="i16" class="altColor">
+<td class="colFirst"><code>static void</code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#focusFramebuffer(android.opengl.EGLDisplay,android.opengl.EGLContext,android.opengl.EGLSurface,int,int,int)">focusFramebuffer</a></span>&#8203;(<a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLDisplay</a>&nbsp;eglDisplay,
+                <a href="https://developer.android.com/reference/android/opengl/EGLContext.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLContext</a>&nbsp;eglContext,
+                <a href="https://developer.android.com/reference/android/opengl/EGLSurface.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLSurface</a>&nbsp;eglSurface,
+                int&nbsp;framebuffer,
+                int&nbsp;width,
+                int&nbsp;height)</code></th>
+<td class="colLast">
+<div class="block">Makes the specified <code>framebuffer</code> the render target, using a viewport of <code>width</code> by
+ <code>height</code> pixels.</div>
+</td>
+</tr>
+<tr id="i17" class="rowColor">
+<td class="colFirst"><code>static void</code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#focusPlaceholderEglSurface(android.opengl.EGLContext,android.opengl.EGLDisplay)">focusPlaceholderEglSurface</a></span>&#8203;(<a href="https://developer.android.com/reference/android/opengl/EGLContext.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLContext</a>&nbsp;eglContext,
+                          <a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLDisplay</a>&nbsp;eglDisplay)</code></th>
+<td class="colLast">
+<div class="block">Creates and focuses a new <a href="https://developer.android.com/reference/android/opengl/EGLSurface.html" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGLSurface</code></a> wrapping a 1x1 pixel buffer.</div>
+</td>
+</tr>
+<tr id="i18" class="altColor">
+<td class="colFirst"><code>static void</code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#focusPlaceholderEglSurfaceBt2020Pq(android.opengl.EGLContext,android.opengl.EGLDisplay)">focusPlaceholderEglSurfaceBt2020Pq</a></span>&#8203;(<a href="https://developer.android.com/reference/android/opengl/EGLContext.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLContext</a>&nbsp;eglContext,
+                                  <a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLDisplay</a>&nbsp;eglDisplay)</code></th>
+<td class="colLast">
+<div class="block">Creates and focuses a new <a href="https://developer.android.com/reference/android/opengl/EGLSurface.html" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGLSurface</code></a> wrapping a 1x1 pixel buffer, for HDR rendering
+ with Rec.</div>
+</td>
+</tr>
+<tr id="i19" class="rowColor">
+<td class="colFirst"><code>static <a href="https://developer.android.com/reference/android/opengl/EGLSurface.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLSurface</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getEglSurface(android.opengl.EGLDisplay,java.lang.Object)">getEglSurface</a></span>&#8203;(<a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLDisplay</a>&nbsp;eglDisplay,
+             <a href="https://developer.android.com/reference/java/lang/Object.html" title="class or interface in java.lang" class="externalLink" target="_top">Object</a>&nbsp;surface)</code></th>
+<td class="colLast">
+<div class="block">Returns a new <a href="https://developer.android.com/reference/android/opengl/EGLSurface.html" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGLSurface</code></a> wrapping the specified <code>surface</code>.</div>
+</td>
+</tr>
+<tr id="i20" class="altColor">
+<td class="colFirst"><code>static <a href="https://developer.android.com/reference/android/opengl/EGLSurface.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLSurface</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getEglSurfaceBt2020Pq(android.opengl.EGLDisplay,java.lang.Object)">getEglSurfaceBt2020Pq</a></span>&#8203;(<a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLDisplay</a>&nbsp;eglDisplay,
+                     <a href="https://developer.android.com/reference/java/lang/Object.html" title="class or interface in java.lang" class="externalLink" target="_top">Object</a>&nbsp;surface)</code></th>
+<td class="colLast">
+<div class="block">Returns a new <a href="https://developer.android.com/reference/android/opengl/EGLSurface.html" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGLSurface</code></a> wrapping the specified <code>surface</code>, for HDR rendering with
+ Rec.</div>
+</td>
+</tr>
+<tr id="i21" class="rowColor">
+<td class="colFirst"><code>static float[]</code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getNormalizedCoordinateBounds()">getNormalizedCoordinateBounds</a></span>()</code></th>
+<td class="colLast">
+<div class="block">Bounds of normalized device coordinates, commonly used for defining viewport boundaries.</div>
+</td>
+</tr>
+<tr id="i22" class="altColor">
+<td class="colFirst"><code>static float[]</code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getTextureCoordinateBounds()">getTextureCoordinateBounds</a></span>()</code></th>
+<td class="colLast">
+<div class="block">Typical bounds used for sampling from textures.</div>
+</td>
+</tr>
+<tr id="i23" class="rowColor">
+<td class="colFirst"><code>static boolean</code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#isProtectedContentExtensionSupported(android.content.Context)">isProtectedContentExtensionSupported</a></span>&#8203;(<a href="https://developer.android.com/reference/android/content/Context.html" title="class or interface in android.content" class="externalLink" target="_top">Context</a>&nbsp;context)</code></th>
+<td class="colLast">
+<div class="block">Returns whether creating a GL context with <a href="#EXTENSION_PROTECTED_CONTENT">"EGL_EXT_protected_content"</a> is possible.</div>
+</td>
+</tr>
+<tr id="i24" class="altColor">
+<td class="colFirst"><code>static boolean</code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#isSurfacelessContextExtensionSupported()">isSurfacelessContextExtensionSupported</a></span>()</code></th>
+<td class="colLast">
+<div class="block">Returns whether the <a href="#EXTENSION_SURFACELESS_CONTEXT">"EGL_KHR_surfaceless_context"</a> extension is supported.</div>
+</td>
+</tr>
+<tr id="i25" class="rowColor">
+<td class="colFirst"><code>static <a href="https://developer.android.com/reference/java/lang/String.html" title="class or interface in java.lang" class="externalLink" target="_top">String</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#loadAsset(android.content.Context,java.lang.String)">loadAsset</a></span>&#8203;(<a href="https://developer.android.com/reference/android/content/Context.html" title="class or interface in android.content" class="externalLink" target="_top">Context</a>&nbsp;context,
+         <a href="https://developer.android.com/reference/java/lang/String.html" title="class or interface in java.lang" class="externalLink" target="_top">String</a>&nbsp;assetPath)</code></th>
+<td class="colLast">
+<div class="block">Loads a file from the assets folder.</div>
 </td>
 </tr>
 </table>
 <ul class="blockList">
-<li class="blockList"><a name="methods.inherited.from.class.java.lang.Object">
+<li class="blockList"><a id="methods.inherited.from.class.java.lang.Object">
 <!--   -->
 </a>
 <h3>Methods inherited from class&nbsp;java.lang.<a href="https://developer.android.com/reference/java/lang/Object.html" title="class or interface in java.lang" class="externalLink" target="_top">Object</a></h3>
-<code><a href="https://developer.android.com/reference/java/lang/Object.html#clone--" title="class or interface in java.lang" class="externalLink">clone</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#equals-java.lang.Object-" title="class or interface in java.lang" class="externalLink">equals</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#finalize--" title="class or interface in java.lang" class="externalLink">finalize</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#getClass--" title="class or interface in java.lang" class="externalLink">getClass</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#hashCode--" title="class or interface in java.lang" class="externalLink">hashCode</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#notify--" title="class or interface in java.lang" class="externalLink">notify</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#notifyAll--" title="class or interface in java.lang" class="externalLink">notifyAll</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#toString--" title="class or interface in java.lang" class="externalLink">toString</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#wait--" title="class or interface in java.lang" class="externalLink">wait</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#wait-long-" title="class or interface in java.lang" class="externalLink">wait</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#wait-long-int-" title="class or interface in java.lang" class="externalLink" target="_top">wait</a></code></li>
+<code><a href="https://developer.android.com/reference/java/lang/Object.html#clone()" title="class or interface in java.lang" class="externalLink">clone</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#equals(java.lang.Object)" title="class or interface in java.lang" class="externalLink">equals</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#finalize()" title="class or interface in java.lang" class="externalLink">finalize</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#getClass()" title="class or interface in java.lang" class="externalLink">getClass</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#hashCode()" title="class or interface in java.lang" class="externalLink">hashCode</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#notify()" title="class or interface in java.lang" class="externalLink">notify</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#notifyAll()" title="class or interface in java.lang" class="externalLink">notifyAll</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#toString()" title="class or interface in java.lang" class="externalLink">toString</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#wait()" title="class or interface in java.lang" class="externalLink">wait</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#wait(long)" title="class or interface in java.lang" class="externalLink">wait</a>, <a href="https://developer.android.com/reference/java/lang/Object.html?is-external=true#wait(long,int)" title="class or interface in java.lang" class="externalLink" target="_top">wait</a></code></li>
 </ul>
 </li>
 </ul>
+</section>
 </li>
 </ul>
 </div>
 <div class="details">
 <ul class="blockList">
 <li class="blockList">
-<!-- ============ METHOD DETAIL ========== -->
+<!-- ============ FIELD DETAIL =========== -->
+<section role="region">
 <ul class="blockList">
-<li class="blockList"><a name="method.detail">
+<li class="blockList"><a id="field.detail">
+<!--   -->
+</a>
+<h3>Field Detail</h3>
+<a id="glAssertionsEnabled">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>glAssertionsEnabled</h4>
+<pre>public static&nbsp;boolean glAssertionsEnabled</pre>
+<div class="block">Whether to throw a <a href="GlUtil.GlException.html" title="class in com.google.android.exoplayer2.util"><code>GlUtil.GlException</code></a> in case of an OpenGL error.</div>
+</li>
+</ul>
+<a id="HOMOGENEOUS_COORDINATE_VECTOR_SIZE">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>HOMOGENEOUS_COORDINATE_VECTOR_SIZE</h4>
+<pre>public static final&nbsp;int HOMOGENEOUS_COORDINATE_VECTOR_SIZE</pre>
+<div class="block">Number of elements in a 3d homogeneous coordinate vector describing a vertex.</div>
+<dl>
+<dt><span class="seeLabel">See Also:</span></dt>
+<dd><a href="../../../../../constant-values.html#com.google.android.exoplayer2.util.GlUtil.HOMOGENEOUS_COORDINATE_VECTOR_SIZE">Constant Field Values</a></dd>
+</dl>
+</li>
+</ul>
+<a id="LENGTH_NDC">
+<!--   -->
+</a>
+<ul class="blockListLast">
+<li class="blockList">
+<h4>LENGTH_NDC</h4>
+<pre>public static final&nbsp;float LENGTH_NDC</pre>
+<div class="block">Length of the normalized device coordinate (NDC) space, which spans from -1 to 1.</div>
+<dl>
+<dt><span class="seeLabel">See Also:</span></dt>
+<dd><a href="../../../../../constant-values.html#com.google.android.exoplayer2.util.GlUtil.LENGTH_NDC">Constant Field Values</a></dd>
+</dl>
+</li>
+</ul>
+</li>
+</ul>
+</section>
+<!-- ============ METHOD DETAIL ========== -->
+<section role="region">
+<ul class="blockList">
+<li class="blockList"><a id="method.detail">
 <!--   -->
 </a>
 <h3>Method Detail</h3>
-<a name="isProtectedContentExtensionSupported-android.content.Context-">
+<a id="getNormalizedCoordinateBounds()">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>getNormalizedCoordinateBounds</h4>
+<pre class="methodSignature">public static&nbsp;float[]&nbsp;getNormalizedCoordinateBounds()</pre>
+<div class="block">Bounds of normalized device coordinates, commonly used for defining viewport boundaries.</div>
+</li>
+</ul>
+<a id="getTextureCoordinateBounds()">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>getTextureCoordinateBounds</h4>
+<pre class="methodSignature">public static&nbsp;float[]&nbsp;getTextureCoordinateBounds()</pre>
+<div class="block">Typical bounds used for sampling from textures.</div>
+</li>
+</ul>
+<a id="createVertexBuffer(java.util.List)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>createVertexBuffer</h4>
+<pre class="methodSignature">public static&nbsp;float[]&nbsp;createVertexBuffer&#8203;(<a href="https://developer.android.com/reference/java/util/List.html" title="class or interface in java.util" class="externalLink" target="_top">List</a>&lt;float[]&gt;&nbsp;vertexList)</pre>
+<div class="block">Flattens the list of 4 element NDC coordinate vectors into a buffer.</div>
+</li>
+</ul>
+<a id="isProtectedContentExtensionSupported(android.content.Context)">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
 <h4>isProtectedContentExtensionSupported</h4>
-<pre>public static&nbsp;boolean&nbsp;isProtectedContentExtensionSupported&#8203;(<a href="https://developer.android.com/reference/android/content/Context.html" title="class or interface in android.content" class="externalLink" target="_top">Context</a>&nbsp;context)</pre>
-<div class="block">Returns whether creating a GL context with <a href="../../../../../com/google/android/exoplayer2/util/GlUtil.html#EXTENSION_PROTECTED_CONTENT">"EGL_EXT_protected_content"</a> is possible.
- If <code>true</code>, the device supports a protected output path for DRM content when using GL.</div>
+<pre class="methodSignature">public static&nbsp;boolean&nbsp;isProtectedContentExtensionSupported&#8203;(<a href="https://developer.android.com/reference/android/content/Context.html" title="class or interface in android.content" class="externalLink" target="_top">Context</a>&nbsp;context)</pre>
+<div class="block">Returns whether creating a GL context with <a href="#EXTENSION_PROTECTED_CONTENT">"EGL_EXT_protected_content"</a> is possible.
+
+ <p>If <code>true</code>, the device supports a protected output path for DRM content when using GL.</div>
 </li>
 </ul>
-<a name="isSurfacelessContextExtensionSupported--">
+<a id="isSurfacelessContextExtensionSupported()">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
 <h4>isSurfacelessContextExtensionSupported</h4>
-<pre>public static&nbsp;boolean&nbsp;isSurfacelessContextExtensionSupported()</pre>
-<div class="block">Returns whether creating a GL context with <a href="../../../../../com/google/android/exoplayer2/util/GlUtil.html#EXTENSION_SURFACELESS_CONTEXT">"EGL_KHR_surfaceless_context"</a> is possible.</div>
+<pre class="methodSignature">public static&nbsp;boolean&nbsp;isSurfacelessContextExtensionSupported()</pre>
+<div class="block">Returns whether the <a href="#EXTENSION_SURFACELESS_CONTEXT">"EGL_KHR_surfaceless_context"</a> extension is supported.
+
+ <p>This extension allows passing <a href="https://developer.android.com/reference/android/opengl/EGL14.html#EGL_NO_SURFACE" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGL14.EGL_NO_SURFACE</code></a> for both the write and read
+ surfaces in a call to <a href="https://developer.android.com/reference/android/opengl/EGL14.html#eglMakeCurrent(android.opengl.EGLDisplay,android.opengl.EGLSurface,android.opengl.EGLSurface,android.opengl.EGLContext)" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGL14.eglMakeCurrent(EGLDisplay, EGLSurface, EGLSurface,
+ EGLContext)</code></a>.</div>
 </li>
 </ul>
-<a name="checkGlError--">
+<a id="createEglDisplay()">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>createEglDisplay</h4>
+<pre class="methodSignature">@RequiresApi(17)
+public static&nbsp;<a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLDisplay</a>&nbsp;createEglDisplay()</pre>
+<div class="block">Returns an initialized default <a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGLDisplay</code></a>.</div>
+</li>
+</ul>
+<a id="createEglContext(android.opengl.EGLDisplay)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>createEglContext</h4>
+<pre class="methodSignature">@RequiresApi(17)
+public static&nbsp;<a href="https://developer.android.com/reference/android/opengl/EGLContext.html" title="class or interface in android.opengl" class="externalLink">EGLContext</a>&nbsp;createEglContext&#8203;(<a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html?is-external=true" title="class or interface in android.opengl" class="externalLink" target="_top">EGLDisplay</a>&nbsp;eglDisplay)</pre>
+<div class="block">Returns a new <a href="https://developer.android.com/reference/android/opengl/EGLContext.html" title="class or interface in android.opengl" class="externalLink"><code>EGLContext</code></a> for the specified <a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html?is-external=true" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGLDisplay</code></a>.</div>
+</li>
+</ul>
+<a id="createEglContextEs3Rgba1010102(android.opengl.EGLDisplay)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>createEglContextEs3Rgba1010102</h4>
+<pre class="methodSignature">@RequiresApi(17)
+public static&nbsp;<a href="https://developer.android.com/reference/android/opengl/EGLContext.html" title="class or interface in android.opengl" class="externalLink">EGLContext</a>&nbsp;createEglContextEs3Rgba1010102&#8203;(<a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html?is-external=true" title="class or interface in android.opengl" class="externalLink" target="_top">EGLDisplay</a>&nbsp;eglDisplay)</pre>
+<div class="block">Returns a new <a href="https://developer.android.com/reference/android/opengl/EGLContext.html" title="class or interface in android.opengl" class="externalLink"><code>EGLContext</code></a> for the specified <a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html?is-external=true" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGLDisplay</code></a>, requesting ES 3 and an
+ RGBA 1010102 config.</div>
+</li>
+</ul>
+<a id="getEglSurface(android.opengl.EGLDisplay,java.lang.Object)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>getEglSurface</h4>
+<pre class="methodSignature">@RequiresApi(17)
+public static&nbsp;<a href="https://developer.android.com/reference/android/opengl/EGLSurface.html" title="class or interface in android.opengl" class="externalLink">EGLSurface</a>&nbsp;getEglSurface&#8203;(<a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html?is-external=true" title="class or interface in android.opengl" class="externalLink" target="_top">EGLDisplay</a>&nbsp;eglDisplay,
+                                       <a href="https://developer.android.com/reference/java/lang/Object.html" title="class or interface in java.lang" class="externalLink" target="_top">Object</a>&nbsp;surface)</pre>
+<div class="block">Returns a new <a href="https://developer.android.com/reference/android/opengl/EGLSurface.html" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGLSurface</code></a> wrapping the specified <code>surface</code>.</div>
+<dl>
+<dt><span class="paramLabel">Parameters:</span></dt>
+<dd><code>eglDisplay</code> - The <a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGLDisplay</code></a> to attach the surface to.</dd>
+<dd><code>surface</code> - The surface to wrap; must be a surface, surface texture or surface holder.</dd>
+</dl>
+</li>
+</ul>
+<a id="getEglSurfaceBt2020Pq(android.opengl.EGLDisplay,java.lang.Object)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>getEglSurfaceBt2020Pq</h4>
+<pre class="methodSignature">@RequiresApi(17)
+public static&nbsp;<a href="https://developer.android.com/reference/android/opengl/EGLSurface.html" title="class or interface in android.opengl" class="externalLink">EGLSurface</a>&nbsp;getEglSurfaceBt2020Pq&#8203;(<a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html?is-external=true" title="class or interface in android.opengl" class="externalLink" target="_top">EGLDisplay</a>&nbsp;eglDisplay,
+                                               <a href="https://developer.android.com/reference/java/lang/Object.html" title="class or interface in java.lang" class="externalLink" target="_top">Object</a>&nbsp;surface)</pre>
+<div class="block">Returns a new <a href="https://developer.android.com/reference/android/opengl/EGLSurface.html" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGLSurface</code></a> wrapping the specified <code>surface</code>, for HDR rendering with
+ Rec. 2020 color primaries and using the PQ transfer function.</div>
+<dl>
+<dt><span class="paramLabel">Parameters:</span></dt>
+<dd><code>eglDisplay</code> - The <a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGLDisplay</code></a> to attach the surface to.</dd>
+<dd><code>surface</code> - The surface to wrap; must be a surface, surface texture or surface holder.</dd>
+</dl>
+</li>
+</ul>
+<a id="createPlaceholderEglSurface(android.opengl.EGLDisplay)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>createPlaceholderEglSurface</h4>
+<pre class="methodSignature">@RequiresApi(17)
+public static&nbsp;<a href="https://developer.android.com/reference/android/opengl/EGLSurface.html" title="class or interface in android.opengl" class="externalLink">EGLSurface</a>&nbsp;createPlaceholderEglSurface&#8203;(<a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html?is-external=true" title="class or interface in android.opengl" class="externalLink" target="_top">EGLDisplay</a>&nbsp;eglDisplay)</pre>
+<div class="block">Returns a placeholder <a href="https://developer.android.com/reference/android/opengl/EGLSurface.html" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGLSurface</code></a> to use when reading and writing to the surface is not
+ required.</div>
+<dl>
+<dt><span class="paramLabel">Parameters:</span></dt>
+<dd><code>eglDisplay</code> - The <a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGLDisplay</code></a> to attach the surface to.</dd>
+<dt><span class="returnLabel">Returns:</span></dt>
+<dd><a href="https://developer.android.com/reference/android/opengl/EGL14.html#EGL_NO_SURFACE" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGL14.EGL_NO_SURFACE</code></a> if supported and a 1x1 pixel buffer surface otherwise.</dd>
+</dl>
+</li>
+</ul>
+<a id="focusPlaceholderEglSurface(android.opengl.EGLContext,android.opengl.EGLDisplay)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>focusPlaceholderEglSurface</h4>
+<pre class="methodSignature">@RequiresApi(17)
+public static&nbsp;void&nbsp;focusPlaceholderEglSurface&#8203;(<a href="https://developer.android.com/reference/android/opengl/EGLContext.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLContext</a>&nbsp;eglContext,
+                                              <a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLDisplay</a>&nbsp;eglDisplay)</pre>
+<div class="block">Creates and focuses a new <a href="https://developer.android.com/reference/android/opengl/EGLSurface.html" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGLSurface</code></a> wrapping a 1x1 pixel buffer.</div>
+<dl>
+<dt><span class="paramLabel">Parameters:</span></dt>
+<dd><code>eglContext</code> - The <a href="https://developer.android.com/reference/android/opengl/EGLContext.html" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGLContext</code></a> to make current.</dd>
+<dd><code>eglDisplay</code> - The <a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGLDisplay</code></a> to attach the surface to.</dd>
+</dl>
+</li>
+</ul>
+<a id="focusPlaceholderEglSurfaceBt2020Pq(android.opengl.EGLContext,android.opengl.EGLDisplay)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>focusPlaceholderEglSurfaceBt2020Pq</h4>
+<pre class="methodSignature">@RequiresApi(17)
+public static&nbsp;void&nbsp;focusPlaceholderEglSurfaceBt2020Pq&#8203;(<a href="https://developer.android.com/reference/android/opengl/EGLContext.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLContext</a>&nbsp;eglContext,
+                                                      <a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLDisplay</a>&nbsp;eglDisplay)</pre>
+<div class="block">Creates and focuses a new <a href="https://developer.android.com/reference/android/opengl/EGLSurface.html" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGLSurface</code></a> wrapping a 1x1 pixel buffer, for HDR rendering
+ with Rec. 2020 color primaries and using the PQ transfer function.</div>
+<dl>
+<dt><span class="paramLabel">Parameters:</span></dt>
+<dd><code>eglContext</code> - The <a href="https://developer.android.com/reference/android/opengl/EGLContext.html" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGLContext</code></a> to make current.</dd>
+<dd><code>eglDisplay</code> - The <a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGLDisplay</code></a> to attach the surface to.</dd>
+</dl>
+</li>
+</ul>
+<a id="checkGlError()">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
 <h4>checkGlError</h4>
-<pre>public static&nbsp;void&nbsp;checkGlError()</pre>
-<div class="block">If there is an OpenGl error, logs the error and if <a href="../../../../../com/google/android/exoplayer2/ExoPlayerLibraryInfo.html#GL_ASSERTIONS_ENABLED"><code>ExoPlayerLibraryInfo.GL_ASSERTIONS_ENABLED</code></a> is true throws a <a href="https://developer.android.com/reference/java/lang/RuntimeException.html" title="class or interface in java.lang" class="externalLink" target="_top"><code>RuntimeException</code></a>.</div>
+<pre class="methodSignature">public static&nbsp;void&nbsp;checkGlError()</pre>
+<div class="block">If there is an OpenGl error, logs the error and if <a href="#glAssertionsEnabled"><code>glAssertionsEnabled</code></a> is true throws
+ a <a href="GlUtil.GlException.html" title="class in com.google.android.exoplayer2.util"><code>GlUtil.GlException</code></a>.</div>
 </li>
 </ul>
-<a name="compileProgram-java.lang.String:A-java.lang.String:A-">
+<a id="assertValidTextureSize(int,int)">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
-<h4>compileProgram</h4>
-<pre>public static&nbsp;int&nbsp;compileProgram&#8203;(<a href="https://developer.android.com/reference/java/lang/String.html" title="class or interface in java.lang" class="externalLink" target="_top">String</a>[]&nbsp;vertexCode,
-                                 <a href="https://developer.android.com/reference/java/lang/String.html" title="class or interface in java.lang" class="externalLink" target="_top">String</a>[]&nbsp;fragmentCode)</pre>
-<div class="block">Builds a GL shader program from vertex and fragment shader code.</div>
+<h4>assertValidTextureSize</h4>
+<pre class="methodSignature">public static&nbsp;void&nbsp;assertValidTextureSize&#8203;(int&nbsp;width,
+                                          int&nbsp;height)</pre>
+<div class="block">Asserts the texture size is valid.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
-<dd><code>vertexCode</code> - GLES20 vertex shader program as arrays of strings. Strings are joined by
-     adding a new line character in between each of them.</dd>
-<dd><code>fragmentCode</code> - GLES20 fragment shader program as arrays of strings. Strings are joined by
-     adding a new line character in between each of them.</dd>
-<dt><span class="returnLabel">Returns:</span></dt>
-<dd>GLES20 program id.</dd>
+<dd><code>width</code> - The width for a texture.</dd>
+<dd><code>height</code> - The height for a texture.</dd>
+<dt><span class="throwsLabel">Throws:</span></dt>
+<dd><code><a href="GlUtil.GlException.html" title="class in com.google.android.exoplayer2.util">GlUtil.GlException</a></code> - If the texture width or height is invalid.</dd>
 </dl>
 </li>
 </ul>
-<a name="compileProgram-java.lang.String-java.lang.String-">
+<a id="focusEglSurface(android.opengl.EGLDisplay,android.opengl.EGLContext,android.opengl.EGLSurface,int,int)">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
-<h4>compileProgram</h4>
-<pre>public static&nbsp;int&nbsp;compileProgram&#8203;(<a href="https://developer.android.com/reference/java/lang/String.html" title="class or interface in java.lang" class="externalLink" target="_top">String</a>&nbsp;vertexCode,
-                                 <a href="https://developer.android.com/reference/java/lang/String.html" title="class or interface in java.lang" class="externalLink" target="_top">String</a>&nbsp;fragmentCode)</pre>
-<div class="block">Builds a GL shader program from vertex and fragment shader code.</div>
+<h4>focusEglSurface</h4>
+<pre class="methodSignature">@RequiresApi(17)
+public static&nbsp;void&nbsp;focusEglSurface&#8203;(<a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLDisplay</a>&nbsp;eglDisplay,
+                                   <a href="https://developer.android.com/reference/android/opengl/EGLContext.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLContext</a>&nbsp;eglContext,
+                                   <a href="https://developer.android.com/reference/android/opengl/EGLSurface.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLSurface</a>&nbsp;eglSurface,
+                                   int&nbsp;width,
+                                   int&nbsp;height)</pre>
+<div class="block">Makes the specified <code>eglSurface</code> the render target, using a viewport of <code>width</code> by
+ <code>height</code> pixels.</div>
+</li>
+</ul>
+<a id="focusFramebuffer(android.opengl.EGLDisplay,android.opengl.EGLContext,android.opengl.EGLSurface,int,int,int)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>focusFramebuffer</h4>
+<pre class="methodSignature">@RequiresApi(17)
+public static&nbsp;void&nbsp;focusFramebuffer&#8203;(<a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLDisplay</a>&nbsp;eglDisplay,
+                                    <a href="https://developer.android.com/reference/android/opengl/EGLContext.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLContext</a>&nbsp;eglContext,
+                                    <a href="https://developer.android.com/reference/android/opengl/EGLSurface.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLSurface</a>&nbsp;eglSurface,
+                                    int&nbsp;framebuffer,
+                                    int&nbsp;width,
+                                    int&nbsp;height)</pre>
+<div class="block">Makes the specified <code>framebuffer</code> the render target, using a viewport of <code>width</code> by
+ <code>height</code> pixels.</div>
+</li>
+</ul>
+<a id="deleteTexture(int)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>deleteTexture</h4>
+<pre class="methodSignature">public static&nbsp;void&nbsp;deleteTexture&#8203;(int&nbsp;textureId)</pre>
+<div class="block">Deletes a GL texture.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
-<dd><code>vertexCode</code> - GLES20 vertex shader program.</dd>
-<dd><code>fragmentCode</code> - GLES20 fragment shader program.</dd>
-<dt><span class="returnLabel">Returns:</span></dt>
-<dd>GLES20 program id.</dd>
+<dd><code>textureId</code> - The ID of the texture to delete.</dd>
 </dl>
 </li>
 </ul>
-<a name="getAttributes-int-">
+<a id="destroyEglContext(android.opengl.EGLDisplay,android.opengl.EGLContext)">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
-<h4>getAttributes</h4>
-<pre>public static&nbsp;<a href="../../../../../com/google/android/exoplayer2/util/GlUtil.Attribute.html" title="class in com.google.android.exoplayer2.util">GlUtil.Attribute</a>[]&nbsp;getAttributes&#8203;(int&nbsp;program)</pre>
-<div class="block">Returns the <a href="../../../../../com/google/android/exoplayer2/util/GlUtil.Attribute.html" title="class in com.google.android.exoplayer2.util"><code>GlUtil.Attribute</code></a>s in the specified <code>program</code>.</div>
+<h4>destroyEglContext</h4>
+<pre class="methodSignature">@RequiresApi(17)
+public static&nbsp;void&nbsp;destroyEglContext&#8203;(@Nullable
+                                     <a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLDisplay</a>&nbsp;eglDisplay,
+                                     @Nullable
+                                     <a href="https://developer.android.com/reference/android/opengl/EGLContext.html" title="class or interface in android.opengl" class="externalLink" target="_top">EGLContext</a>&nbsp;eglContext)</pre>
+<div class="block">Destroys the <a href="https://developer.android.com/reference/android/opengl/EGLContext.html" title="class or interface in android.opengl" class="externalLink"><code>EGLContext</code></a> identified by the provided <a href="https://developer.android.com/reference/android/opengl/EGLDisplay.html?is-external=true" title="class or interface in android.opengl" class="externalLink"><code>EGLDisplay</code></a> and <a href="https://developer.android.com/reference/android/opengl/EGLContext.html?is-external=true" title="class or interface in android.opengl" class="externalLink" target="_top"><code>EGLContext</code></a>.</div>
 </li>
 </ul>
-<a name="getUniforms-int-">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>getUniforms</h4>
-<pre>public static&nbsp;<a href="../../../../../com/google/android/exoplayer2/util/GlUtil.Uniform.html" title="class in com.google.android.exoplayer2.util">GlUtil.Uniform</a>[]&nbsp;getUniforms&#8203;(int&nbsp;program)</pre>
-<div class="block">Returns the <a href="../../../../../com/google/android/exoplayer2/util/GlUtil.Uniform.html" title="class in com.google.android.exoplayer2.util"><code>GlUtil.Uniform</code></a>s in the specified <code>program</code>.</div>
-</li>
-</ul>
-<a name="createBuffer-float:A-">
+<a id="createBuffer(float[])">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
 <h4>createBuffer</h4>
-<pre>public static&nbsp;<a href="https://developer.android.com/reference/java/nio/FloatBuffer.html" title="class or interface in java.nio" class="externalLink" target="_top">FloatBuffer</a>&nbsp;createBuffer&#8203;(float[]&nbsp;data)</pre>
+<pre class="methodSignature">public static&nbsp;<a href="https://developer.android.com/reference/java/nio/FloatBuffer.html" title="class or interface in java.nio" class="externalLink" target="_top">FloatBuffer</a>&nbsp;createBuffer&#8203;(float[]&nbsp;data)</pre>
 <div class="block">Allocates a FloatBuffer with the given data.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
@@ -380,13 +779,13 @@ extends <a href="https://developer.android.com/reference/java/lang/Object.html" 
 </dl>
 </li>
 </ul>
-<a name="createBuffer-int-">
+<a id="createBuffer(int)">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
 <h4>createBuffer</h4>
-<pre>public static&nbsp;<a href="https://developer.android.com/reference/java/nio/FloatBuffer.html" title="class or interface in java.nio" class="externalLink" target="_top">FloatBuffer</a>&nbsp;createBuffer&#8203;(int&nbsp;capacity)</pre>
+<pre class="methodSignature">public static&nbsp;<a href="https://developer.android.com/reference/java/nio/FloatBuffer.html" title="class or interface in java.nio" class="externalLink" target="_top">FloatBuffer</a>&nbsp;createBuffer&#8203;(int&nbsp;capacity)</pre>
 <div class="block">Allocates a FloatBuffer.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
@@ -394,34 +793,106 @@ extends <a href="https://developer.android.com/reference/java/lang/Object.html" 
 </dl>
 </li>
 </ul>
-<a name="createExternalTexture--">
+<a id="loadAsset(android.content.Context,java.lang.String)">
 <!--   -->
 </a>
-<ul class="blockListLast">
+<ul class="blockList">
+<li class="blockList">
+<h4>loadAsset</h4>
+<pre class="methodSignature">public static&nbsp;<a href="https://developer.android.com/reference/java/lang/String.html" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;loadAsset&#8203;(<a href="https://developer.android.com/reference/android/content/Context.html?is-external=true" title="class or interface in android.content" class="externalLink" target="_top">Context</a>&nbsp;context,
+                               <a href="https://developer.android.com/reference/java/lang/String.html" title="class or interface in java.lang" class="externalLink" target="_top">String</a>&nbsp;assetPath)
+                        throws <a href="https://developer.android.com/reference/java/io/IOException.html" title="class or interface in java.io" class="externalLink" target="_top">IOException</a></pre>
+<div class="block">Loads a file from the assets folder.</div>
+<dl>
+<dt><span class="paramLabel">Parameters:</span></dt>
+<dd><code>context</code> - The <a href="https://developer.android.com/reference/android/content/Context.html" title="class or interface in android.content" class="externalLink" target="_top"><code>Context</code></a>.</dd>
+<dd><code>assetPath</code> - The path to the file to load, from the assets folder.</dd>
+<dt><span class="returnLabel">Returns:</span></dt>
+<dd>The content of the file to load.</dd>
+<dt><span class="throwsLabel">Throws:</span></dt>
+<dd><code><a href="https://developer.android.com/reference/java/io/IOException.html" title="class or interface in java.io" class="externalLink" target="_top">IOException</a></code> - If the file couldn't be read.</dd>
+</dl>
+</li>
+</ul>
+<a id="createExternalTexture()">
+<!--   -->
+</a>
+<ul class="blockList">
 <li class="blockList">
 <h4>createExternalTexture</h4>
-<pre>public static&nbsp;int&nbsp;createExternalTexture()</pre>
+<pre class="methodSignature">public static&nbsp;int&nbsp;createExternalTexture()</pre>
 <div class="block">Creates a GL_TEXTURE_EXTERNAL_OES with default configuration of GL_LINEAR filtering and
  GL_CLAMP_TO_EDGE wrapping.</div>
 </li>
 </ul>
+<a id="createTexture(int,int)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>createTexture</h4>
+<pre class="methodSignature">public static&nbsp;int&nbsp;createTexture&#8203;(int&nbsp;width,
+                                int&nbsp;height)</pre>
+<div class="block">Returns the texture identifier for a newly-allocated texture with the specified dimensions.</div>
+<dl>
+<dt><span class="paramLabel">Parameters:</span></dt>
+<dd><code>width</code> - of the new texture in pixels</dd>
+<dd><code>height</code> - of the new texture in pixels</dd>
+</dl>
+</li>
+</ul>
+<a id="bindTexture(int,int)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>bindTexture</h4>
+<pre class="methodSignature">public static&nbsp;void&nbsp;bindTexture&#8203;(int&nbsp;textureTarget,
+                               int&nbsp;texId)</pre>
+<div class="block">Binds the texture of the given type with default configuration of GL_LINEAR filtering and
+ GL_CLAMP_TO_EDGE wrapping.</div>
+<dl>
+<dt><span class="paramLabel">Parameters:</span></dt>
+<dd><code>texId</code> - The texture identifier.</dd>
+<dd><code>textureTarget</code> - The target to which the texture is bound, e.g. <a href="https://developer.android.com/reference/android/opengl/GLES20.html#GL_TEXTURE_2D" title="class or interface in android.opengl" class="externalLink"><code>GLES20.GL_TEXTURE_2D</code></a> for a two-dimensional texture or <a href="https://developer.android.com/reference/android/opengl/GLES11Ext.html?is-external=true#GL_TEXTURE_EXTERNAL_OES" title="class or interface in android.opengl" class="externalLink" target="_top"><code>GLES11Ext.GL_TEXTURE_EXTERNAL_OES</code></a> for an external texture.</dd>
+</dl>
+</li>
+</ul>
+<a id="createFboForTexture(int)">
+<!--   -->
+</a>
+<ul class="blockListLast">
+<li class="blockList">
+<h4>createFboForTexture</h4>
+<pre class="methodSignature">public static&nbsp;int&nbsp;createFboForTexture&#8203;(int&nbsp;texId)</pre>
+<div class="block">Returns a new framebuffer for the texture.</div>
+<dl>
+<dt><span class="paramLabel">Parameters:</span></dt>
+<dd><code>texId</code> - The identifier of the texture to attach to the framebuffer.</dd>
+</dl>
 </li>
 </ul>
 </li>
 </ul>
+</section>
+</li>
+</ul>
 </div>
 </div>
+</main>
 <!-- ========= END OF CLASS DATA ========= -->
+<footer role="contentinfo">
+<nav role="navigation">
 <!-- ======= START OF BOTTOM NAVBAR ====== -->
-<div class="bottomNav"><a name="navbar.bottom">
+<div class="bottomNav"><a id="navbar.bottom">
 <!--   -->
 </a>
 <div class="skipNav"><a href="#skip.navbar.bottom" title="Skip navigation links">Skip navigation links</a></div>
-<a name="navbar.bottom.firstrow">
+<a id="navbar.bottom.firstrow">
 <!--   -->
 </a>
 <ul class="navList" title="Navigation">
-<li><a href="../../../../../overview-summary.html">Overview</a></li>
+<li><a href="../../../../../index.html">Overview</a></li>
 <li><a href="package-summary.html">Package</a></li>
 <li class="navBarCell1Rev">Class</li>
 <li><a href="package-tree.html">Tree</a></li>
@@ -431,16 +902,8 @@ extends <a href="https://developer.android.com/reference/java/lang/Object.html" 
 </ul>
 </div>
 <div class="subNav">
-<ul class="navList">
-<li><a href="../../../../../com/google/android/exoplayer2/util/FlacConstants.html" title="class in com.google.android.exoplayer2.util"><span class="typeNameLink">Prev&nbsp;Class</span></a></li>
-<li><a href="../../../../../com/google/android/exoplayer2/util/GlUtil.Attribute.html" title="class in com.google.android.exoplayer2.util"><span class="typeNameLink">Next&nbsp;Class</span></a></li>
-</ul>
-<ul class="navList">
-<li><a href="../../../../../index.html?com/google/android/exoplayer2/util/GlUtil.html" target="_top">Frames</a></li>
-<li><a href="GlUtil.html" target="_top">No&nbsp;Frames</a></li>
-</ul>
 <ul class="navList" id="allclasses_navbar_bottom">
-<li><a href="../../../../../allclasses-noframe.html">All&nbsp;Classes</a></li>
+<li><a href="../../../../../allclasses.html">All&nbsp;Classes</a></li>
 </ul>
 <div>
 <script type="text/javascript"><!--
@@ -461,20 +924,22 @@ extends <a href="https://developer.android.com/reference/java/lang/Object.html" 
 <ul class="subNavList">
 <li>Summary:&nbsp;</li>
 <li><a href="#nested.class.summary">Nested</a>&nbsp;|&nbsp;</li>
-<li>Field&nbsp;|&nbsp;</li>
+<li><a href="#field.summary">Field</a>&nbsp;|&nbsp;</li>
 <li>Constr&nbsp;|&nbsp;</li>
 <li><a href="#method.summary">Method</a></li>
 </ul>
 <ul class="subNavList">
 <li>Detail:&nbsp;</li>
-<li>Field&nbsp;|&nbsp;</li>
+<li><a href="#field.detail">Field</a>&nbsp;|&nbsp;</li>
 <li>Constr&nbsp;|&nbsp;</li>
 <li><a href="#method.detail">Method</a></li>
 </ul>
 </div>
-<a name="skip.navbar.bottom">
+<a id="skip.navbar.bottom">
 <!--   -->
 </a></div>
 <!-- ======== END OF BOTTOM NAVBAR ======= -->
+</nav>
+</footer>
 </body>
 </html>

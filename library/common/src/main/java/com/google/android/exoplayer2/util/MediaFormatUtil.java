@@ -32,17 +32,32 @@ public final class MediaFormatUtil {
    * Custom {@link MediaFormat} key associated with a float representing the ratio between a pixel's
    * width and height.
    */
-  public static final String KEY_EXO_PIXEL_WIDTH_HEIGHT_RATIO_FLOAT =
+  // The constant value must not be changed, because it's also set by the framework MediaParser API.
+  public static final String KEY_PIXEL_WIDTH_HEIGHT_RATIO_FLOAT =
       "exo-pixel-width-height-ratio-float";
 
   /**
    * Custom {@link MediaFormat} key associated with an integer representing the PCM encoding.
    *
-   * <p>Equivalent to {@link MediaFormat#KEY_PCM_ENCODING}, except it allows additional
-   * ExoPlayer-specific values including {@link C#ENCODING_PCM_16BIT_BIG_ENDIAN}, {@link
+   * <p>Equivalent to {@link MediaFormat#KEY_PCM_ENCODING}, except it allows additional values
+   * defined by {@link C.PcmEncoding}, including {@link C#ENCODING_PCM_16BIT_BIG_ENDIAN}, {@link
    * C#ENCODING_PCM_24BIT}, and {@link C#ENCODING_PCM_32BIT}.
    */
-  public static final String KEY_EXO_PCM_ENCODING = "exo-pcm-encoding-int";
+  // The constant value must not be changed, because it's also set by the framework MediaParser API.
+  public static final String KEY_PCM_ENCODING_EXTENDED = "exo-pcm-encoding-int";
+
+  /**
+   * The {@link MediaFormat} key for the maximum bitrate in bits per second.
+   *
+   * <p>The associated value is an integer.
+   *
+   * <p>The key string constant is the same as {@code MediaFormat#KEY_MAX_BITRATE}. Values for it
+   * are already returned by the framework MediaExtractor; the key is a hidden field in {@code
+   * MediaFormat} though, which is why it's being replicated here.
+   */
+  // The constant value must not be changed, because it's also set by the framework MediaParser and
+  // MediaExtractor APIs.
+  public static final String KEY_MAX_BIT_RATE = "max-bitrate";
 
   private static final int MAX_POWER_OF_TWO_INT = 1 << 30;
 
@@ -52,14 +67,15 @@ public final class MediaFormatUtil {
    * <p>May include the following custom keys:
    *
    * <ul>
-   *   <li>{@link #KEY_EXO_PIXEL_WIDTH_HEIGHT_RATIO_FLOAT}.
-   *   <li>{@link #KEY_EXO_PCM_ENCODING}.
+   *   <li>{@link #KEY_PIXEL_WIDTH_HEIGHT_RATIO_FLOAT}.
+   *   <li>{@link #KEY_PCM_ENCODING_EXTENDED}.
    * </ul>
    */
   @SuppressLint("InlinedApi") // Inlined MediaFormat keys.
   public static MediaFormat createMediaFormatFromFormat(Format format) {
     MediaFormat result = new MediaFormat();
     maybeSetInteger(result, MediaFormat.KEY_BIT_RATE, format.bitrate);
+    maybeSetInteger(result, KEY_MAX_BIT_RATE, format.peakBitrate);
     maybeSetInteger(result, MediaFormat.KEY_CHANNEL_COUNT, format.channelCount);
 
     maybeSetColorInfo(result, format.colorInfo);
@@ -184,7 +200,7 @@ public final class MediaFormatUtil {
   @SuppressLint("InlinedApi")
   private static void maybeSetPixelAspectRatio(
       MediaFormat mediaFormat, float pixelWidthHeightRatio) {
-    mediaFormat.setFloat(KEY_EXO_PIXEL_WIDTH_HEIGHT_RATIO_FLOAT, pixelWidthHeightRatio);
+    mediaFormat.setFloat(KEY_PIXEL_WIDTH_HEIGHT_RATIO_FLOAT, pixelWidthHeightRatio);
     int pixelAspectRatioWidth = 1;
     int pixelAspectRatioHeight = 1;
     // ExoPlayer extractors output the pixel aspect ratio as a float. Do our best to recreate the
@@ -207,7 +223,7 @@ public final class MediaFormatUtil {
       return;
     }
     int mediaFormatPcmEncoding;
-    maybeSetInteger(mediaFormat, KEY_EXO_PCM_ENCODING, exoPcmEncoding);
+    maybeSetInteger(mediaFormat, KEY_PCM_ENCODING_EXTENDED, exoPcmEncoding);
     switch (exoPcmEncoding) {
       case C.ENCODING_PCM_8BIT:
         mediaFormatPcmEncoding = AudioFormat.ENCODING_PCM_8BIT;
@@ -218,6 +234,17 @@ public final class MediaFormatUtil {
       case C.ENCODING_PCM_FLOAT:
         mediaFormatPcmEncoding = AudioFormat.ENCODING_PCM_FLOAT;
         break;
+      case C.ENCODING_PCM_24BIT:
+        mediaFormatPcmEncoding = AudioFormat.ENCODING_PCM_24BIT_PACKED;
+        break;
+      case C.ENCODING_PCM_32BIT:
+        mediaFormatPcmEncoding = AudioFormat.ENCODING_PCM_32BIT;
+        break;
+      case C.ENCODING_INVALID:
+        mediaFormatPcmEncoding = AudioFormat.ENCODING_INVALID;
+        break;
+      case Format.NO_VALUE:
+      case C.ENCODING_PCM_16BIT_BIG_ENDIAN:
       default:
         // No matching value. Do nothing.
         return;

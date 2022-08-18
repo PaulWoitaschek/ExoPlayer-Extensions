@@ -17,12 +17,12 @@ package com.google.android.exoplayer2.robolectric;
 
 import android.graphics.Bitmap;
 import androidx.annotation.Nullable;
-import com.google.android.exoplayer2.SimpleExoPlayer;
+import com.google.android.exoplayer2.ExoPlayer;
+import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.metadata.Metadata;
 import com.google.android.exoplayer2.metadata.dvbsi.AppInfoTable;
 import com.google.android.exoplayer2.metadata.emsg.EventMessage;
 import com.google.android.exoplayer2.metadata.flac.PictureFrame;
-import com.google.android.exoplayer2.metadata.flac.VorbisComment;
 import com.google.android.exoplayer2.metadata.icy.IcyHeaders;
 import com.google.android.exoplayer2.metadata.icy.IcyInfo;
 import com.google.android.exoplayer2.metadata.id3.Id3Frame;
@@ -31,9 +31,11 @@ import com.google.android.exoplayer2.metadata.mp4.MotionPhotoMetadata;
 import com.google.android.exoplayer2.metadata.mp4.SlowMotionData;
 import com.google.android.exoplayer2.metadata.mp4.SmtaMetadataEntry;
 import com.google.android.exoplayer2.metadata.scte35.SpliceCommand;
+import com.google.android.exoplayer2.metadata.vorbis.VorbisComment;
 import com.google.android.exoplayer2.testutil.CapturingRenderersFactory;
 import com.google.android.exoplayer2.testutil.Dumper;
 import com.google.android.exoplayer2.text.Cue;
+import com.google.android.exoplayer2.text.CueGroup;
 import com.google.android.exoplayer2.util.Util;
 import com.google.common.collect.ImmutableList;
 import java.nio.ByteBuffer;
@@ -53,18 +55,34 @@ public final class PlaybackOutput implements Dumper.Dumpable {
 
   private final List<Metadata> metadatas;
   private final List<List<Cue>> subtitles;
+  private final List<List<Cue>> subtitlesFromDeprecatedTextOutput;
 
-  private PlaybackOutput(
-      SimpleExoPlayer player, CapturingRenderersFactory capturingRenderersFactory) {
+  private PlaybackOutput(ExoPlayer player, CapturingRenderersFactory capturingRenderersFactory) {
     this.capturingRenderersFactory = capturingRenderersFactory;
 
     metadatas = Collections.synchronizedList(new ArrayList<>());
     subtitles = Collections.synchronizedList(new ArrayList<>());
+    subtitlesFromDeprecatedTextOutput = Collections.synchronizedList(new ArrayList<>());
     // TODO: Consider passing playback position into MetadataOutput and TextOutput. Calling
     // player.getCurrentPosition() inside onMetadata/Cues will likely be non-deterministic
     // because renderer-thread != playback-thread.
-    player.addMetadataOutput(metadatas::add);
-    // TODO(internal b/174661563): Output subtitle data when it's not flaky.
+    player.addListener(
+        new Player.Listener() {
+          @Override
+          public void onMetadata(Metadata metadata) {
+            metadatas.add(metadata);
+          }
+
+          @Override
+          public void onCues(List<Cue> cues) {
+            subtitlesFromDeprecatedTextOutput.add(cues);
+          }
+
+          @Override
+          public void onCues(CueGroup cueGroup) {
+            subtitles.add(cueGroup.cues);
+          }
+        });
   }
 
   /**
@@ -74,13 +92,13 @@ public final class PlaybackOutput implements Dumper.Dumpable {
    * <p>Must be called <b>before</b> playback to ensure metadata and text output is captured
    * correctly.
    *
-   * @param player The {@link SimpleExoPlayer} to capture metadata and text output from.
+   * @param player The {@link ExoPlayer} to capture metadata and text output from.
    * @param capturingRenderersFactory The {@link CapturingRenderersFactory} to capture audio and
    *     video output from.
    * @return A new instance that can be used to dump the playback output.
    */
   public static PlaybackOutput register(
-      SimpleExoPlayer player, CapturingRenderersFactory capturingRenderersFactory) {
+      ExoPlayer player, CapturingRenderersFactory capturingRenderersFactory) {
     return new PlaybackOutput(player, capturingRenderersFactory);
   }
 
@@ -125,7 +143,7 @@ public final class PlaybackOutput implements Dumper.Dumpable {
         || entry instanceof IcyHeaders
         || entry instanceof IcyInfo
         || entry instanceof SpliceCommand
-        || "com.google.android.exoplayer2.hls.HlsTrackMetadataEntry"
+        || "com.google.android.exoplayer2.source.hls.HlsTrackMetadataEntry"
             .equals(entry.getClass().getCanonicalName())) {
       return entry.toString();
     } else {
@@ -134,6 +152,11 @@ public final class PlaybackOutput implements Dumper.Dumpable {
   }
 
   private void dumpSubtitles(Dumper dumper) {
+    if (!subtitles.equals(subtitlesFromDeprecatedTextOutput)) {
+      throw new IllegalStateException(
+          "Expected subtitles to be equal from both implementations of onCues method.");
+    }
+
     if (subtitles.isEmpty()) {
       return;
     }

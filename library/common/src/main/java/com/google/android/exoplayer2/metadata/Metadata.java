@@ -83,9 +83,7 @@ public final class Metadata implements Parcelable {
     }
   }
 
-  /**
-   * Returns the number of metadata entries.
-   */
+  /** Returns the number of metadata entries. */
   public int length() {
     return entries.length;
   }

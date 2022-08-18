@@ -45,22 +45,24 @@
     <item quantity="many">تقديم سريع للفيديو بمقدار %d ثانية</item>
     <item quantity="other">تقديم سريع للفيديو بمقدار %d ثانية</item>
   </plurals>
-  <string name="exo_controls_repeat_off_description">عدم التكرار</string>
-  <string name="exo_controls_repeat_one_description">تكرار مقطع صوتي واحد</string>
-  <string name="exo_controls_repeat_all_description">تكرار الكل</string>
-  <string name="exo_controls_shuffle_on_description">تفعيل الترتيب العشوائي</string>
-  <string name="exo_controls_shuffle_off_description">إيقاف الترتيب العشوائي</string>
+  <string name="exo_controls_repeat_off_description">الوضع الحالي: عدم التكرار. تبديل وضع التكرار</string>
+  <string name="exo_controls_repeat_one_description">الوضع الحالي: التكرار مرة واحدة. تبديل وضع التكرار</string>
+  <string name="exo_controls_repeat_all_description">الوضع الحالي: تكرار الكل. تبديل وضع التكرار</string>
+  <string name="exo_controls_shuffle_on_description">إيقاف وضع الترتيب العشوائي</string>
+  <string name="exo_controls_shuffle_off_description">تفعيل وضع الترتيب العشوائي</string>
   <string name="exo_controls_vr_description">وضع VR</string>
   <string name="exo_controls_cc_enabled_description">إيقاف الترجمة</string>
   <string name="exo_controls_cc_disabled_description">تفعيل الترجمة</string>
   <string name="exo_controls_playback_speed">السرعة</string>
-  <string name="exo_controls_playback_speed_normal">عادية</string>
-  <string name="exo_download_description">تنزيل</string>
-  <string name="exo_download_notification_channel_name">عمليات التنزيل</string>
-  <string name="exo_download_downloading">جارٍ التنزيل.</string>
-  <string name="exo_download_completed">اكتمل التنزيل</string>
-  <string name="exo_download_failed">تعذّر التنزيل</string>
-  <string name="exo_download_removing">تجري إزالة المحتوى الذي تم تنزيله</string>
+  <string-array name="exo_controls_playback_speeds">
+    <item>أسرع بـ 0.25 مرة</item>
+    <item>أسرع بـ 0.5 مرات</item>
+    <item>أسرع بـ 0.75 مرة</item>
+    <item>عادية</item>
+    <item>أسرع بـ 1.25 مرة</item>
+    <item>أسرع بـ 1.5 مرة</item>
+    <item>أسرع بمرتين</item>
+  </string-array>
   <string name="exo_track_selection_title_video">فيديو</string>
   <string name="exo_track_selection_title_audio">صوت</string>
   <string name="exo_track_selection_title_text">نص</string>

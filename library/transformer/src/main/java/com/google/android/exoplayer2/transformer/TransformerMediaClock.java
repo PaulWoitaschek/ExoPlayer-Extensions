@@ -18,12 +18,10 @@ package com.google.android.exoplayer2.transformer;
 import static com.google.android.exoplayer2.util.Util.minValue;
 
 import android.util.SparseLongArray;
-import androidx.annotation.RequiresApi;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.util.MediaClock;
 
-@RequiresApi(18)
 /* package */ final class TransformerMediaClock implements MediaClock {
 
   private final SparseLongArray trackTypeToTimeUs;
@@ -37,7 +35,7 @@ import com.google.android.exoplayer2.util.MediaClock;
    * Updates the time for a given track type. The clock time is computed based on the different
    * track times.
    */
-  public void updateTimeForTrackType(int trackType, long timeUs) {
+  public void updateTimeForTrackType(@C.TrackType int trackType, long timeUs) {
     long previousTimeUs = trackTypeToTimeUs.get(trackType, /* valueIfKeyNotFound= */ C.TIME_UNSET);
     if (previousTimeUs != C.TIME_UNSET && timeUs <= previousTimeUs) {
       // Make sure that the track times are increasing and therefore that the clock time is

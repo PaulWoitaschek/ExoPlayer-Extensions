@@ -22,10 +22,10 @@ import android.media.AudioFormat;
 import android.media.MediaFormat;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
+import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.Player;
-import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.mediacodec.MediaCodecUtil;
 import com.google.android.exoplayer2.robolectric.RandomizedMp3Decoder;
 import com.google.android.exoplayer2.robolectric.TestPlayerRunHelper;
@@ -39,7 +39,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.annotation.Config;
 import org.robolectric.shadows.MediaCodecInfoBuilder;
 import org.robolectric.shadows.ShadowAudioTrack;
 import org.robolectric.shadows.ShadowMediaCodec;
@@ -47,7 +46,6 @@ import org.robolectric.shadows.ShadowMediaCodecList;
 
 /** End to end playback test for gapless audio playbacks. */
 @RunWith(AndroidJUnit4.class)
-@Config(sdk = 29)
 public class EndToEndGaplessTest {
   private static final int CODEC_INPUT_BUFFER_SIZE = 5120;
   private static final int CODEC_OUTPUT_BUFFER_SIZE = 5120;
@@ -88,8 +86,8 @@ public class EndToEndGaplessTest {
 
   @Test
   public void testPlayback_twoIdenticalMp3Files() throws Exception {
-    SimpleExoPlayer player =
-        new SimpleExoPlayer.Builder(ApplicationProvider.getApplicationContext())
+    ExoPlayer player =
+        new ExoPlayer.Builder(ApplicationProvider.getApplicationContext())
             .setClock(new FakeClock(/* isAutoAdvancing= */ true))
             .build();
 

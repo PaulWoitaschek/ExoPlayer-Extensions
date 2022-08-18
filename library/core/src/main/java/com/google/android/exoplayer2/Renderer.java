@@ -15,11 +15,14 @@
  */
 package com.google.android.exoplayer2;
 
+import static java.lang.annotation.ElementType.TYPE_USE;
+
 import android.media.MediaCodec;
 import android.view.Surface;
 import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;
-import com.google.android.exoplayer2.PlayerMessage.Target;
+import com.google.android.exoplayer2.analytics.PlayerId;
+import com.google.android.exoplayer2.audio.AudioAttributes;
 import com.google.android.exoplayer2.audio.AuxEffectInfo;
 import com.google.android.exoplayer2.source.SampleStream;
 import com.google.android.exoplayer2.util.MediaClock;
@@ -31,6 +34,7 @@ import java.io.IOException;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
  * Renders media read from a {@link SampleStream}.
@@ -58,11 +62,8 @@ public interface Renderer extends PlayerMessage.Target {
      * The renderer no longer needs to render until the next wakeup.
      *
      * <p>Must be called from the thread ExoPlayer invokes the renderer from.
-     *
-     * @param wakeupDeadlineMs Maximum time in milliseconds until {@link #onWakeup()} will be
-     *     called.
      */
-    void onSleep(long wakeupDeadlineMs);
+    void onSleep();
 
     /**
      * The renderer needs to render some frames. The client should call {@link #render(long, long)}
@@ -74,28 +75,54 @@ public interface Renderer extends PlayerMessage.Target {
   }
 
   /**
+   * Represents a type of message that can be passed to a renderer. May be one of {@link
+   * #MSG_SET_VIDEO_OUTPUT}, {@link #MSG_SET_VOLUME}, {@link #MSG_SET_AUDIO_ATTRIBUTES}, {@link
+   * #MSG_SET_SCALING_MODE}, {@link #MSG_SET_CHANGE_FRAME_RATE_STRATEGY}, {@link
+   * #MSG_SET_AUX_EFFECT_INFO}, {@link #MSG_SET_VIDEO_FRAME_METADATA_LISTENER}, {@link
+   * #MSG_SET_CAMERA_MOTION_LISTENER}, {@link #MSG_SET_SKIP_SILENCE_ENABLED}, {@link
+   * #MSG_SET_AUDIO_SESSION_ID} or {@link #MSG_SET_WAKEUP_LISTENER}. May also be an app-defined
+   * value (see {@link #MSG_CUSTOM_BASE}).
+   */
+  @Documented
+  @Retention(RetentionPolicy.SOURCE)
+  @Target(TYPE_USE)
+  @IntDef(
+      open = true,
+      value = {
+        MSG_SET_VIDEO_OUTPUT,
+        MSG_SET_VOLUME,
+        MSG_SET_AUDIO_ATTRIBUTES,
+        MSG_SET_SCALING_MODE,
+        MSG_SET_CHANGE_FRAME_RATE_STRATEGY,
+        MSG_SET_AUX_EFFECT_INFO,
+        MSG_SET_VIDEO_FRAME_METADATA_LISTENER,
+        MSG_SET_CAMERA_MOTION_LISTENER,
+        MSG_SET_SKIP_SILENCE_ENABLED,
+        MSG_SET_AUDIO_SESSION_ID,
+        MSG_SET_WAKEUP_LISTENER
+      })
+  public @interface MessageType {}
+  /**
    * The type of a message that can be passed to a video renderer via {@link
-   * ExoPlayer#createMessage(Target)}. The message payload is normally a {@link Surface}, however
-   * some video renderers may accept other outputs (e.g., {@link VideoDecoderOutputBufferRenderer}).
+   * ExoPlayer#createMessage(PlayerMessage.Target)}. The message payload is normally a {@link
+   * Surface}, however some video renderers may accept other outputs (e.g., {@link
+   * VideoDecoderOutputBufferRenderer}).
    *
    * <p>If the receiving renderer does not support the payload type as an output, then it will clear
    * any existing output that it has.
    */
-  @SuppressWarnings("deprecation")
-  int MSG_SET_VIDEO_OUTPUT = C.MSG_SET_SURFACE;
+  int MSG_SET_VIDEO_OUTPUT = 1;
   /**
    * A type of a message that can be passed to an audio renderer via {@link
-   * ExoPlayer#createMessage(Target)}. The message payload should be a {@link Float} with 0 being
-   * silence and 1 being unity gain.
+   * ExoPlayer#createMessage(PlayerMessage.Target)}. The message payload should be a {@link Float}
+   * with 0 being silence and 1 being unity gain.
    */
-  @SuppressWarnings("deprecation")
-  int MSG_SET_VOLUME = C.MSG_SET_VOLUME;
+  int MSG_SET_VOLUME = 2;
   /**
    * A type of a message that can be passed to an audio renderer via {@link
-   * ExoPlayer#createMessage(Target)}. The message payload should be an {@link
-   * com.google.android.exoplayer2.audio.AudioAttributes} instance that will configure the
-   * underlying audio track. If not set, the default audio attributes will be used. They are
-   * suitable for general media playback.
+   * ExoPlayer#createMessage(PlayerMessage.Target)}. The message payload should be an {@link
+   * AudioAttributes} instance that will configure the underlying audio track. If not set, the
+   * default audio attributes will be used. They are suitable for general media playback.
    *
    * <p>Setting the audio attributes during playback may introduce a short gap in audio output as
    * the audio track is recreated. A new audio session id will also be generated.
@@ -111,88 +138,67 @@ public interface Renderer extends PlayerMessage.Target {
    * {@link Util#getAudioUsageForStreamType(int)} and use the returned {@link C.AudioUsage} to build
    * an audio attributes instance.
    */
-  @SuppressWarnings("deprecation")
-  int MSG_SET_AUDIO_ATTRIBUTES = C.MSG_SET_AUDIO_ATTRIBUTES;
+  int MSG_SET_AUDIO_ATTRIBUTES = 3;
   /**
    * The type of a message that can be passed to a {@link MediaCodec}-based video renderer via
-   * {@link ExoPlayer#createMessage(Target)}. The message payload should be one of the integer
-   * scaling modes in {@link C.VideoScalingMode}.
+   * {@link ExoPlayer#createMessage(PlayerMessage.Target)}. The message payload should be one of the
+   * integer scaling modes in {@link C.VideoScalingMode}.
    *
    * <p>Note that the scaling mode only applies if the {@link Surface} targeted by the renderer is
    * owned by a {@link android.view.SurfaceView}.
    */
-  @SuppressWarnings("deprecation")
-  int MSG_SET_SCALING_MODE = C.MSG_SET_SCALING_MODE;
-  /**
-   * A type of a message that can be passed to an audio renderer via {@link
-   * ExoPlayer#createMessage(Target)}. The message payload should be an {@link AuxEffectInfo}
-   * instance representing an auxiliary audio effect for the underlying audio track.
-   */
-  @SuppressWarnings("deprecation")
-  int MSG_SET_AUX_EFFECT_INFO = C.MSG_SET_AUX_EFFECT_INFO;
+  int MSG_SET_SCALING_MODE = 4;
   /**
    * The type of a message that can be passed to a video renderer via {@link
-   * ExoPlayer#createMessage(Target)}. The message payload should be a {@link
+   * ExoPlayer#createMessage(PlayerMessage.Target)}. The message payload should be one of the
+   * integer strategy constants in {@link C.VideoChangeFrameRateStrategy}.
+   */
+  int MSG_SET_CHANGE_FRAME_RATE_STRATEGY = 5;
+  /**
+   * A type of a message that can be passed to an audio renderer via {@link
+   * ExoPlayer#createMessage(PlayerMessage.Target)}. The message payload should be an {@link
+   * AuxEffectInfo} instance representing an auxiliary audio effect for the underlying audio track.
+   */
+  int MSG_SET_AUX_EFFECT_INFO = 6;
+  /**
+   * The type of a message that can be passed to a video renderer via {@link
+   * ExoPlayer#createMessage(PlayerMessage.Target)}. The message payload should be a {@link
    * VideoFrameMetadataListener} instance, or null.
    */
-  @SuppressWarnings("deprecation")
-  int MSG_SET_VIDEO_FRAME_METADATA_LISTENER = C.MSG_SET_VIDEO_FRAME_METADATA_LISTENER;
+  int MSG_SET_VIDEO_FRAME_METADATA_LISTENER = 7;
   /**
    * The type of a message that can be passed to a camera motion renderer via {@link
-   * ExoPlayer#createMessage(Target)}. The message payload should be a {@link CameraMotionListener}
-   * instance, or null.
+   * ExoPlayer#createMessage(PlayerMessage.Target)}. The message payload should be a {@link
+   * CameraMotionListener} instance, or null.
    */
-  @SuppressWarnings("deprecation")
-  int MSG_SET_CAMERA_MOTION_LISTENER = C.MSG_SET_CAMERA_MOTION_LISTENER;
+  int MSG_SET_CAMERA_MOTION_LISTENER = 8;
   /**
    * The type of a message that can be passed to an audio renderer via {@link
-   * ExoPlayer#createMessage(Target)}. The message payload should be a {@link Boolean} instance
-   * telling whether to enable or disable skipping silences in the audio stream.
+   * ExoPlayer#createMessage(PlayerMessage.Target)}. The message payload should be a {@link Boolean}
+   * instance telling whether to enable or disable skipping silences in the audio stream.
    */
-  int MSG_SET_SKIP_SILENCE_ENABLED = 101;
+  int MSG_SET_SKIP_SILENCE_ENABLED = 9;
   /**
    * The type of a message that can be passed to audio and video renderers via {@link
-   * ExoPlayer#createMessage(Target)}. The message payload should be an {@link Integer} instance
-   * representing the audio session ID that will be attached to the underlying audio track. Video
-   * renderers that support tunneling will use the audio session ID when tunneling is enabled.
+   * ExoPlayer#createMessage(PlayerMessage.Target)}. The message payload should be an {@link
+   * Integer} instance representing the audio session ID that will be attached to the underlying
+   * audio track. Video renderers that support tunneling will use the audio session ID when
+   * tunneling is enabled.
    */
-  int MSG_SET_AUDIO_SESSION_ID = 102;
+  int MSG_SET_AUDIO_SESSION_ID = 10;
   /**
    * The type of a message that can be passed to a {@link Renderer} via {@link
-   * ExoPlayer#createMessage(Target)}, to inform the renderer that it can schedule waking up another
-   * component.
+   * ExoPlayer#createMessage(PlayerMessage.Target)}, to inform the renderer that it can schedule
+   * waking up another component.
    *
    * <p>The message payload must be a {@link WakeupListener} instance.
    */
-  int MSG_SET_WAKEUP_LISTENER = 103;
+  int MSG_SET_WAKEUP_LISTENER = 11;
   /**
    * Applications or extensions may define custom {@code MSG_*} constants that can be passed to
    * renderers. These custom constants must be greater than or equal to this value.
    */
-  @SuppressWarnings("deprecation")
-  int MSG_CUSTOM_BASE = C.MSG_CUSTOM_BASE;
-
-  /** @deprecated Use {@link C.VideoScalingMode}. */
-  // VIDEO_SCALING_MODE_DEFAULT is an intentionally duplicated constant.
-  @SuppressWarnings({"UniqueConstants", "Deprecation"})
-  @Documented
-  @Retention(RetentionPolicy.SOURCE)
-  @IntDef(
-      value = {
-        VIDEO_SCALING_MODE_DEFAULT,
-        VIDEO_SCALING_MODE_SCALE_TO_FIT,
-        VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
-      })
-  @Deprecated
-  @interface VideoScalingMode {}
-  /** @deprecated Use {@link C#VIDEO_SCALING_MODE_SCALE_TO_FIT}. */
-  @Deprecated int VIDEO_SCALING_MODE_SCALE_TO_FIT = C.VIDEO_SCALING_MODE_SCALE_TO_FIT;
-  /** @deprecated Use {@link C#VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING}. */
-  @Deprecated
-  int VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING =
-      C.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING;
-  /** @deprecated Use {@code C.VIDEO_SCALING_MODE_DEFAULT}. */
-  @Deprecated int VIDEO_SCALING_MODE_DEFAULT = C.VIDEO_SCALING_MODE_DEFAULT;
+  int MSG_CUSTOM_BASE = 10000;
 
   /**
    * The renderer states. One of {@link #STATE_DISABLED}, {@link #STATE_ENABLED} or {@link
@@ -200,6 +206,7 @@ public interface Renderer extends PlayerMessage.Target {
    */
   @Documented
   @Retention(RetentionPolicy.SOURCE)
+  @Target(TYPE_USE)
   @IntDef({STATE_DISABLED, STATE_ENABLED, STATE_STARTED})
   @interface State {}
   /**
@@ -232,8 +239,9 @@ public interface Renderer extends PlayerMessage.Target {
    * Returns the track type that the renderer handles.
    *
    * @see ExoPlayer#getRendererType(int)
-   * @return One of the {@code TRACK_TYPE_*} constants defined in {@link C}.
+   * @return The {@link C.TrackType track type}.
    */
+  @C.TrackType
   int getTrackType();
 
   /**
@@ -244,11 +252,12 @@ public interface Renderer extends PlayerMessage.Target {
   RendererCapabilities getCapabilities();
 
   /**
-   * Sets the index of this renderer within the player.
+   * Initializes the renderer for playback with a player.
    *
-   * @param index The renderer index.
+   * @param index The renderer index within the player.
+   * @param playerId The {@link PlayerId} of the player.
    */
-  void setIndex(int index);
+  void init(int index, PlayerId playerId);
 
   /**
    * If the renderer advances its own playback position then this method returns a corresponding
@@ -302,9 +311,9 @@ public interface Renderer extends PlayerMessage.Target {
   /**
    * Starts the renderer, meaning that calls to {@link #render(long, long)} will cause media to be
    * rendered.
-   * <p>
-   * This method may be called when the renderer is in the following states:
-   * {@link #STATE_ENABLED}.
+   *
+   * <p>This method may be called when the renderer is in the following states: {@link
+   * #STATE_ENABLED}.
    *
    * @throws ExoPlaybackException If an error occurs.
    */
@@ -332,16 +341,15 @@ public interface Renderer extends PlayerMessage.Target {
 
   /**
    * Returns whether the renderer has read the current {@link SampleStream} to the end.
-   * <p>
-   * This method may be called when the renderer is in the following states:
-   * {@link #STATE_ENABLED}, {@link #STATE_STARTED}.
+   *
+   * <p>This method may be called when the renderer is in the following states: {@link
+   * #STATE_ENABLED}, {@link #STATE_STARTED}.
    */
   boolean hasReadStreamToEnd();
 
   /**
-   * Returns the renderer time up to which the renderer has read samples from the current {@link
-   * SampleStream}, in microseconds, or {@link C#TIME_END_OF_SOURCE} if the renderer has read the
-   * current {@link SampleStream} to the end.
+   * Returns the renderer time up to which the renderer has read samples, in microseconds, or {@link
+   * C#TIME_END_OF_SOURCE} if the renderer has read the current {@link SampleStream} to the end.
    *
    * <p>This method may be called when the renderer is in the following states: {@link
    * #STATE_ENABLED}, {@link #STATE_STARTED}.
@@ -351,9 +359,9 @@ public interface Renderer extends PlayerMessage.Target {
   /**
    * Signals to the renderer that the current {@link SampleStream} will be the final one supplied
    * before it is next disabled or reset.
-   * <p>
-   * This method may be called when the renderer is in the following states:
-   * {@link #STATE_ENABLED}, {@link #STATE_STARTED}.
+   *
+   * <p>This method may be called when the renderer is in the following states: {@link
+   * #STATE_ENABLED}, {@link #STATE_STARTED}.
    */
   void setCurrentStreamFinal();
 
@@ -366,9 +374,9 @@ public interface Renderer extends PlayerMessage.Target {
   /**
    * Throws an error that's preventing the renderer from reading from its {@link SampleStream}. Does
    * nothing if no such error exists.
-   * <p>
-   * This method may be called when the renderer is in the following states:
-   * {@link #STATE_ENABLED}, {@link #STATE_STARTED}.
+   *
+   * <p>This method may be called when the renderer is in the following states: {@link
+   * #STATE_ENABLED}, {@link #STATE_STARTED}.
    *
    * @throws IOException An error that's preventing the renderer from making progress or buffering
    *     more data.
@@ -377,12 +385,12 @@ public interface Renderer extends PlayerMessage.Target {
 
   /**
    * Signals to the renderer that a position discontinuity has occurred.
-   * <p>
-   * After a position discontinuity, the renderer's {@link SampleStream} is guaranteed to provide
+   *
+   * <p>After a position discontinuity, the renderer's {@link SampleStream} is guaranteed to provide
    * samples starting from a key frame.
-   * <p>
-   * This method may be called when the renderer is in the following states:
-   * {@link #STATE_ENABLED}, {@link #STATE_STARTED}.
+   *
+   * <p>This method may be called when the renderer is in the following states: {@link
+   * #STATE_ENABLED}, {@link #STATE_STARTED}.
    *
    * @param positionUs The new playback position in microseconds.
    * @throws ExoPlaybackException If an error occurs handling the reset.
@@ -433,16 +441,16 @@ public interface Renderer extends PlayerMessage.Target {
 
   /**
    * Whether the renderer is able to immediately render media from the current position.
-   * <p>
-   * If the renderer is in the {@link #STATE_STARTED} state then returning true indicates that the
-   * renderer has everything that it needs to continue playback. Returning false indicates that
+   *
+   * <p>If the renderer is in the {@link #STATE_STARTED} state then returning true indicates that
+   * the renderer has everything that it needs to continue playback. Returning false indicates that
    * the player should pause until the renderer is ready.
-   * <p>
-   * If the renderer is in the {@link #STATE_ENABLED} state then returning true indicates that the
-   * renderer is ready for playback to be started. Returning false indicates that it is not.
-   * <p>
-   * This method may be called when the renderer is in the following states:
-   * {@link #STATE_ENABLED}, {@link #STATE_STARTED}.
+   *
+   * <p>If the renderer is in the {@link #STATE_ENABLED} state then returning true indicates that
+   * the renderer is ready for playback to be started. Returning false indicates that it is not.
+   *
+   * <p>This method may be called when the renderer is in the following states: {@link
+   * #STATE_ENABLED}, {@link #STATE_STARTED}.
    *
    * @return Whether the renderer is ready to render media.
    */
@@ -470,9 +478,9 @@ public interface Renderer extends PlayerMessage.Target {
 
   /**
    * Disable the renderer, transitioning it to the {@link #STATE_DISABLED} state.
-   * <p>
-   * This method may be called when the renderer is in the following states:
-   * {@link #STATE_ENABLED}.
+   *
+   * <p>This method may be called when the renderer is in the following states: {@link
+   * #STATE_ENABLED}.
    */
   void disable();
 

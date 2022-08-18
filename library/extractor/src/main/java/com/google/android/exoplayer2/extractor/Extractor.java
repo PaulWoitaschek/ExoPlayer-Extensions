@@ -15,12 +15,15 @@
  */
 package com.google.android.exoplayer2.extractor;
 
+import static java.lang.annotation.ElementType.TYPE_USE;
+
 import androidx.annotation.IntDef;
 import com.google.android.exoplayer2.C;
 import java.io.IOException;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /** Extracts media data from a container format. */
 public interface Extractor {
@@ -38,8 +41,8 @@ public interface Extractor {
    */
   int RESULT_SEEK = 1;
   /**
-   * Returned by {@link #read(ExtractorInput, PositionHolder)} if the end of the
-   * {@link ExtractorInput} was reached. Equal to {@link C#RESULT_END_OF_INPUT}.
+   * Returned by {@link #read(ExtractorInput, PositionHolder)} if the end of the {@link
+   * ExtractorInput} was reached. Equal to {@link C#RESULT_END_OF_INPUT}.
    */
   int RESULT_END_OF_INPUT = C.RESULT_END_OF_INPUT;
 
@@ -49,6 +52,7 @@ public interface Extractor {
    */
   @Documented
   @Retention(RetentionPolicy.SOURCE)
+  @Target(TYPE_USE)
   @IntDef(value = {RESULT_CONTINUE, RESULT_SEEK, RESULT_END_OF_INPUT})
   @interface ReadResult {}
 
@@ -101,8 +105,8 @@ public interface Extractor {
 
   /**
    * Notifies the extractor that a seek has occurred.
-   * <p>
-   * Following a call to this method, the {@link ExtractorInput} passed to the next invocation of
+   *
+   * <p>Following a call to this method, the {@link ExtractorInput} passed to the next invocation of
    * {@link #read(ExtractorInput, PositionHolder)} is required to provide data starting from {@code
    * position} in the stream. Valid random access positions are the start of the stream and
    * positions that can be obtained from any {@link SeekMap} passed to the {@link ExtractorOutput}.
@@ -112,9 +116,6 @@ public interface Extractor {
    */
   void seek(long position, long timeUs);
 
-  /**
-   * Releases all kept resources.
-   */
+  /** Releases all kept resources. */
   void release();
-
 }

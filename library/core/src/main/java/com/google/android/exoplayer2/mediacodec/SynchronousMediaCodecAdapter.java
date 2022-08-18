@@ -23,6 +23,7 @@ import android.media.MediaCodec;
 import android.media.MediaFormat;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.PersistableBundle;
 import android.view.Surface;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -36,7 +37,7 @@ import java.nio.ByteBuffer;
 /**
  * A {@link MediaCodecAdapter} that operates the underlying {@link MediaCodec} in synchronous mode.
  */
-public class SynchronousMediaCodecAdapter implements MediaCodecAdapter {
+public final class SynchronousMediaCodecAdapter implements MediaCodecAdapter {
 
   /** A factory for {@link SynchronousMediaCodecAdapter} instances. */
   public static class Factory implements MediaCodecAdapter.Factory {
@@ -86,6 +87,11 @@ public class SynchronousMediaCodecAdapter implements MediaCodecAdapter {
       inputByteBuffers = codec.getInputBuffers();
       outputByteBuffers = codec.getOutputBuffers();
     }
+  }
+
+  @Override
+  public boolean needsReconfiguration() {
+    return false;
   }
 
   @Override
@@ -192,5 +198,11 @@ public class SynchronousMediaCodecAdapter implements MediaCodecAdapter {
   @Override
   public void setVideoScalingMode(@C.VideoScalingMode int scalingMode) {
     codec.setVideoScalingMode(scalingMode);
+  }
+
+  @Override
+  @RequiresApi(26)
+  public PersistableBundle getMetrics() {
+    return codec.getMetrics();
   }
 }

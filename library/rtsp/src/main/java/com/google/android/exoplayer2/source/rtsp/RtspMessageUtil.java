@@ -30,6 +30,7 @@ import static com.google.android.exoplayer2.source.rtsp.RtspRequest.METHOD_TEARD
 import static com.google.android.exoplayer2.source.rtsp.RtspRequest.METHOD_UNSET;
 import static com.google.android.exoplayer2.util.Assertions.checkArgument;
 import static com.google.android.exoplayer2.util.Assertions.checkNotNull;
+import static com.google.common.base.Strings.nullToEmpty;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
 
 import android.net.Uri;
@@ -37,10 +38,10 @@ import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ParserException;
 import com.google.android.exoplayer2.util.Util;
-import com.google.common.base.Charsets;
+import com.google.common.base.Ascii;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableListMultimap;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -64,6 +65,20 @@ import java.util.regex.Pattern;
     }
   }
 
+  /** Wraps username and password for authentication purposes. */
+  public static final class RtspAuthUserInfo {
+    /** The username. */
+    public final String username;
+    /** The password. */
+    public final String password;
+
+    /** Creates a new instance. */
+    public RtspAuthUserInfo(String username, String password) {
+      this.username = username;
+      this.password = password;
+    }
+  }
+
   /** The default timeout, in milliseconds, defined for RTSP (RFC2326 Section 12.37). */
   public static final long DEFAULT_RTSP_TIMEOUT_MS = 60_000;
 
@@ -77,29 +92,49 @@ import java.util.regex.Pattern;
   private static final Pattern CONTENT_LENGTH_HEADER_PATTERN =
       Pattern.compile("Content-Length:\\s?(\\d+)", CASE_INSENSITIVE);
 
-  // Session header pattern, see RFC2326 Section 12.37.
+  // Session header pattern, see RFC2326 Sections 3.4 and 12.37.
   private static final Pattern SESSION_HEADER_PATTERN =
-      Pattern.compile("(\\w+)(?:;\\s?timeout=(\\d+))?");
+      Pattern.compile("([\\w$\\-_.+]+)(?:;\\s?timeout=(\\d+))?");
+
+  // WWW-Authenticate header pattern, see RFC2068 Sections 14.46 and RFC2069.
+  private static final Pattern WWW_AUTHENTICATION_HEADER_DIGEST_PATTERN =
+      Pattern.compile(
+          "Digest realm=\"([^\"\\x00-\\x08\\x0A-\\x1f\\x7f]+)\""
+              + ",\\s?(?:domain=\"(.+)\""
+              + ",\\s?)?nonce=\"([^\"\\x00-\\x08\\x0A-\\x1f\\x7f]+)\""
+              + "(?:,\\s?opaque=\"([^\"\\x00-\\x08\\x0A-\\x1f\\x7f]+)\")?");
+  // WWW-Authenticate header pattern, see RFC2068 Section 11.1 and RFC2069.
+  private static final Pattern WWW_AUTHENTICATION_HEADER_BASIC_PATTERN =
+      Pattern.compile("Basic realm=\"([^\"\\x00-\\x08\\x0A-\\x1f\\x7f]+)\"");
 
   private static final String RTSP_VERSION = "RTSP/1.0";
+  private static final String LF = new String(new byte[] {Ascii.LF});
+  private static final String CRLF = new String(new byte[] {Ascii.CR, Ascii.LF});
 
   /**
    * Serializes an {@link RtspRequest} to an {@link ImmutableList} of strings.
+   *
+   * <p>The {@link RtspRequest} must include the {@link RtspHeaders#CSEQ} header, or this method
+   * throws {@link IllegalArgumentException}.
    *
    * @param request The {@link RtspRequest}.
    * @return A list of the lines of the {@link RtspRequest}, without line terminators (CRLF).
    */
   public static ImmutableList<String> serializeRequest(RtspRequest request) {
+    checkArgument(request.headers.get(RtspHeaders.CSEQ) != null);
+
     ImmutableList.Builder<String> builder = new ImmutableList.Builder<>();
     // Request line.
     builder.add(
         Util.formatInvariant(
             "%s %s %s", toMethodString(request.method), request.uri, RTSP_VERSION));
-    ImmutableMap<String, String> headers = request.headers.asMap();
+
+    ImmutableListMultimap<String, String> headers = request.headers.asMultiMap();
     for (String headerName : headers.keySet()) {
-      builder.add(
-          Util.formatInvariant(
-              "%s: %s", headerName, checkNotNull(request.headers.get(headerName))));
+      ImmutableList<String> headerValuesForName = headers.get(headerName);
+      for (int i = 0; i < headerValuesForName.size(); i++) {
+        builder.add(Util.formatInvariant("%s: %s", headerName, headerValuesForName.get(i)));
+      }
     }
     // Empty line after headers.
     builder.add("");
@@ -110,21 +145,27 @@ import java.util.regex.Pattern;
   /**
    * Serializes an {@link RtspResponse} to an {@link ImmutableList} of strings.
    *
+   * <p>The {@link RtspResponse} must include the {@link RtspHeaders#CSEQ} header, or this method
+   * throws {@link IllegalArgumentException}.
+   *
    * @param response The {@link RtspResponse}.
    * @return A list of the lines of the {@link RtspResponse}, without line terminators (CRLF).
    */
   public static ImmutableList<String> serializeResponse(RtspResponse response) {
+    checkArgument(response.headers.get(RtspHeaders.CSEQ) != null);
+
     ImmutableList.Builder<String> builder = new ImmutableList.Builder<>();
     // Request line.
     builder.add(
         Util.formatInvariant(
             "%s %s %s", RTSP_VERSION, response.status, getRtspStatusReasonPhrase(response.status)));
 
-    ImmutableMap<String, String> headers = response.headers.asMap();
+    ImmutableListMultimap<String, String> headers = response.headers.asMultiMap();
     for (String headerName : headers.keySet()) {
-      builder.add(
-          Util.formatInvariant(
-              "%s: %s", headerName, checkNotNull(response.headers.get(headerName))));
+      ImmutableList<String> headerValuesForName = headers.get(headerName);
+      for (int i = 0; i < headerValuesForName.size(); i++) {
+        builder.add(Util.formatInvariant("%s: %s", headerName, headerValuesForName.get(i)));
+      }
     }
     // Empty line after headers.
     builder.add("");
@@ -139,7 +180,7 @@ import java.util.regex.Pattern;
    *     removed.
    */
   public static byte[] convertMessageToByteArray(List<String> message) {
-    return Joiner.on("\r\n").join(message).getBytes(Charsets.UTF_8);
+    return Joiner.on(CRLF).join(message).getBytes(RtspMessageChannel.CHARSET);
   }
 
   /** Removes the user info from the supplied {@link Uri}. */
@@ -155,10 +196,35 @@ import java.util.regex.Pattern;
     return uri.buildUpon().encodedAuthority(authority).build();
   }
 
+  /**
+   * Parses the user info encapsulated in the RTSP {@link Uri}.
+   *
+   * @param uri The {@link Uri}.
+   * @return The extracted {@link RtspAuthUserInfo}, {@code null} if the argument {@link Uri} does
+   *     not contain userinfo, or it's not properly formatted.
+   */
+  @Nullable
+  public static RtspAuthUserInfo parseUserInfo(Uri uri) {
+    @Nullable String userInfo = uri.getUserInfo();
+    if (userInfo == null) {
+      return null;
+    }
+    if (userInfo.contains(":")) {
+      String[] userInfoStrings = Util.splitAtFirst(userInfo, ":");
+      return new RtspAuthUserInfo(userInfoStrings[0], userInfoStrings[1]);
+    }
+    return null;
+  }
+
+  /** Returns the byte array representation of a string, using RTSP's character encoding. */
+  public static byte[] getStringBytes(String s) {
+    return s.getBytes(RtspMessageChannel.CHARSET);
+  }
+
   /** Returns the corresponding String representation of the {@link RtspRequest.Method} argument. */
   public static String toMethodString(@RtspRequest.Method int method) {
     switch (method) {
-      case RtspRequest.METHOD_ANNOUNCE:
+      case METHOD_ANNOUNCE:
         return "ANNOUNCE";
       case METHOD_DESCRIBE:
         return "DESCRIBE";
@@ -188,8 +254,7 @@ import java.util.regex.Pattern;
     }
   }
 
-  @RtspRequest.Method
-  private static int parseMethodString(String method) {
+  private static @RtspRequest.Method int parseMethodString(String method) {
     switch (method) {
       case "ANNOUNCE":
         return METHOD_ANNOUNCE;
@@ -238,7 +303,7 @@ import java.util.regex.Pattern;
     List<String> headerLines = lines.subList(1, messageBodyOffset);
     RtspHeaders headers = new RtspHeaders.Builder().addAll(headerLines).build();
 
-    String messageBody = Joiner.on("\r\n").join(lines.subList(messageBodyOffset + 1, lines.size()));
+    String messageBody = Joiner.on(CRLF).join(lines.subList(messageBodyOffset + 1, lines.size()));
     return new RtspResponse(statusCode, headers, messageBody);
   }
 
@@ -261,7 +326,7 @@ import java.util.regex.Pattern;
     List<String> headerLines = lines.subList(1, messageBodyOffset);
     RtspHeaders headers = new RtspHeaders.Builder().addAll(headerLines).build();
 
-    String messageBody = Joiner.on("\r\n").join(lines.subList(messageBodyOffset + 1, lines.size()));
+    String messageBody = Joiner.on(CRLF).join(lines.subList(messageBodyOffset + 1, lines.size()));
     return new RtspRequest(requestUri, method, headers, messageBody);
   }
 
@@ -269,6 +334,21 @@ import java.util.regex.Pattern;
   public static boolean isRtspStartLine(String line) {
     return REQUEST_LINE_PATTERN.matcher(line).matches()
         || STATUS_LINE_PATTERN.matcher(line).matches();
+  }
+
+  /**
+   * Returns whether the RTSP message is an RTSP response.
+   *
+   * @param lines The non-empty list of received lines, with line terminators removed.
+   * @return Whether the lines represent an RTSP response.
+   */
+  public static boolean isRtspResponse(List<String> lines) {
+    return STATUS_LINE_PATTERN.matcher(lines.get(0)).matches();
+  }
+
+  /** Returns the lines in an RTSP message body split by the line terminator used in body. */
+  public static String[] splitRtspMessageBody(String body) {
+    return Util.split(body, body.contains(CRLF) ? CRLF : LF);
   }
 
   /**
@@ -286,7 +366,7 @@ import java.util.regex.Pattern;
         return C.LENGTH_UNSET;
       }
     } catch (NumberFormatException e) {
-      throw new ParserException(e);
+      throw ParserException.createForMalformedManifest(line, e);
     }
   }
 
@@ -325,7 +405,7 @@ import java.util.regex.Pattern;
   public static RtspSessionHeader parseSessionHeader(String headerValue) throws ParserException {
     Matcher matcher = SESSION_HEADER_PATTERN.matcher(headerValue);
     if (!matcher.matches()) {
-      throw new ParserException(headerValue);
+      throw ParserException.createForMalformedManifest(headerValue, /* cause= */ null);
     }
 
     String sessionId = checkNotNull(matcher.group(1));
@@ -336,17 +416,70 @@ import java.util.regex.Pattern;
       try {
         timeoutMs = Integer.parseInt(timeoutString) * C.MILLIS_PER_SECOND;
       } catch (NumberFormatException e) {
-        throw new ParserException(e);
+        throw ParserException.createForMalformedManifest(headerValue, e);
       }
     }
 
     return new RtspSessionHeader(sessionId, timeoutMs);
   }
 
+  /**
+   * Parses a WWW-Authenticate header.
+   *
+   * <p>Reference RFC2068 Section 14.46 for WWW-Authenticate header. Only digest and basic
+   * authentication mechanisms are supported.
+   *
+   * @param headerValue The string representation of the content, without the header name
+   *     (WWW-Authenticate: ).
+   * @return The parsed {@link RtspAuthenticationInfo}.
+   * @throws ParserException When the input header value does not follow the WWW-Authenticate header
+   *     format, or is not using either Basic or Digest mechanisms.
+   */
+  public static RtspAuthenticationInfo parseWwwAuthenticateHeader(String headerValue)
+      throws ParserException {
+    Matcher matcher = WWW_AUTHENTICATION_HEADER_DIGEST_PATTERN.matcher(headerValue);
+    if (matcher.find()) {
+      return new RtspAuthenticationInfo(
+          RtspAuthenticationInfo.DIGEST,
+          /* realm= */ checkNotNull(matcher.group(1)),
+          /* nonce= */ checkNotNull(matcher.group(3)),
+          /* opaque= */ nullToEmpty(matcher.group(4)));
+    }
+    matcher = WWW_AUTHENTICATION_HEADER_BASIC_PATTERN.matcher(headerValue);
+    if (matcher.matches()) {
+      return new RtspAuthenticationInfo(
+          RtspAuthenticationInfo.BASIC,
+          /* realm= */ checkNotNull(matcher.group(1)),
+          /* nonce= */ "",
+          /* opaque= */ "");
+    }
+    throw ParserException.createForMalformedManifest(
+        "Invalid WWW-Authenticate header " + headerValue, /* cause= */ null);
+  }
+
+  /**
+   * Throws {@link ParserException#createForMalformedManifest ParserException} if {@code expression}
+   * evaluates to false.
+   *
+   * @param expression The expression to evaluate.
+   * @param message The error message.
+   * @throws ParserException If {@code expression} is false.
+   */
+  public static void checkManifestExpression(boolean expression, @Nullable String message)
+      throws ParserException {
+    if (!expression) {
+      throw ParserException.createForMalformedManifest(message, /* cause= */ null);
+    }
+  }
+
   private static String getRtspStatusReasonPhrase(int statusCode) {
     switch (statusCode) {
       case 200:
         return "OK";
+      case 301:
+        return "Move Permanently";
+      case 302:
+        return "Move Temporarily";
       case 400:
         return "Bad Request";
       case 401:
@@ -382,7 +515,7 @@ import java.util.regex.Pattern;
     try {
       return Integer.parseInt(intString);
     } catch (NumberFormatException e) {
-      throw new ParserException(e);
+      throw ParserException.createForMalformedManifest(intString, e);
     }
   }
 

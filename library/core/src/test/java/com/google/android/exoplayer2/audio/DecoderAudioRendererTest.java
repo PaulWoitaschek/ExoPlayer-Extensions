@@ -17,10 +17,16 @@ package com.google.android.exoplayer2.audio;
 
 import static com.google.android.exoplayer2.C.FORMAT_HANDLED;
 import static com.google.android.exoplayer2.RendererCapabilities.ADAPTIVE_NOT_SEAMLESS;
+import static com.google.android.exoplayer2.RendererCapabilities.DECODER_SUPPORT_PRIMARY;
 import static com.google.android.exoplayer2.RendererCapabilities.TUNNELING_NOT_SUPPORTED;
 import static com.google.android.exoplayer2.RendererCapabilities.TUNNELING_SUPPORTED;
 import static com.google.android.exoplayer2.testutil.FakeSampleStream.FakeSampleStreamItem.END_OF_STREAM_ITEM;
+import static com.google.android.exoplayer2.testutil.FakeSampleStream.FakeSampleStreamItem.oneByteSample;
 import static com.google.common.truth.Truth.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -30,13 +36,14 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.RendererConfiguration;
+import com.google.android.exoplayer2.analytics.PlayerId;
+import com.google.android.exoplayer2.decoder.CryptoConfig;
 import com.google.android.exoplayer2.decoder.DecoderException;
 import com.google.android.exoplayer2.decoder.DecoderInputBuffer;
 import com.google.android.exoplayer2.decoder.SimpleDecoder;
-import com.google.android.exoplayer2.decoder.SimpleOutputBuffer;
+import com.google.android.exoplayer2.decoder.SimpleDecoderOutputBuffer;
 import com.google.android.exoplayer2.drm.DrmSessionEventListener;
 import com.google.android.exoplayer2.drm.DrmSessionManager;
-import com.google.android.exoplayer2.drm.ExoMediaCrypto;
 import com.google.android.exoplayer2.testutil.FakeSampleStream;
 import com.google.android.exoplayer2.upstream.DefaultAllocator;
 import com.google.android.exoplayer2.util.MimeTypes;
@@ -44,6 +51,7 @@ import com.google.common.collect.ImmutableList;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.robolectric.annotation.Config;
@@ -69,13 +77,12 @@ public class DecoderAudioRendererTest {
           }
 
           @Override
-          @C.FormatSupport
-          protected int supportsFormatInternal(Format format) {
+          protected @C.FormatSupport int supportsFormatInternal(Format format) {
             return FORMAT_HANDLED;
           }
 
           @Override
-          protected FakeDecoder createDecoder(Format format, @Nullable ExoMediaCrypto mediaCrypto) {
+          protected FakeDecoder createDecoder(Format format, @Nullable CryptoConfig cryptoConfig) {
             return new FakeDecoder();
           }
 
@@ -84,13 +91,18 @@ public class DecoderAudioRendererTest {
             return FORMAT;
           }
         };
+    audioRenderer.init(/* index= */ 0, PlayerId.UNSET);
   }
 
   @Config(sdk = 19)
   @Test
   public void supportsFormatAtApi19() {
     assertThat(audioRenderer.supportsFormat(FORMAT))
-        .isEqualTo(ADAPTIVE_NOT_SEAMLESS | TUNNELING_NOT_SUPPORTED | FORMAT_HANDLED);
+        .isEqualTo(
+            ADAPTIVE_NOT_SEAMLESS
+                | TUNNELING_NOT_SUPPORTED
+                | FORMAT_HANDLED
+                | DECODER_SUPPORT_PRIMARY);
   }
 
   @Config(sdk = 21)
@@ -98,7 +110,8 @@ public class DecoderAudioRendererTest {
   public void supportsFormatAtApi21() {
     // From API 21, tunneling is supported.
     assertThat(audioRenderer.supportsFormat(FORMAT))
-        .isEqualTo(ADAPTIVE_NOT_SEAMLESS | TUNNELING_SUPPORTED | FORMAT_HANDLED);
+        .isEqualTo(
+            ADAPTIVE_NOT_SEAMLESS | TUNNELING_SUPPORTED | FORMAT_HANDLED | DECODER_SUPPORT_PRIMARY);
   }
 
   @Test
@@ -132,11 +145,105 @@ public class DecoderAudioRendererTest {
     verify(mockAudioSink, times(1)).reset();
   }
 
+  @Test
+  public void firstSampleOfStreamSignalsDiscontinuityToAudioSink() throws Exception {
+    when(mockAudioSink.handleBuffer(any(), anyLong(), anyInt())).thenReturn(true);
+    when(mockAudioSink.isEnded()).thenReturn(true);
+    InOrder inOrderAudioSink = inOrder(mockAudioSink);
+    FakeSampleStream fakeSampleStream =
+        new FakeSampleStream(
+            new DefaultAllocator(/* trimOnReset= */ true, /* individualAllocationSize= */ 1024),
+            /* mediaSourceEventDispatcher= */ null,
+            DrmSessionManager.DRM_UNSUPPORTED,
+            new DrmSessionEventListener.EventDispatcher(),
+            FORMAT,
+            ImmutableList.of(
+                oneByteSample(/* timeUs= */ 0, C.BUFFER_FLAG_KEY_FRAME),
+                oneByteSample(/* timeUs= */ 1_000),
+                END_OF_STREAM_ITEM));
+    fakeSampleStream.writeData(/* startPositionUs= */ 0);
+    audioRenderer.enable(
+        RendererConfiguration.DEFAULT,
+        new Format[] {FORMAT},
+        fakeSampleStream,
+        /* positionUs= */ 0,
+        /* joining= */ false,
+        /* mayRenderStartOfStream= */ true,
+        /* startPositionUs= */ 0,
+        /* offsetUs= */ 0);
+
+    audioRenderer.setCurrentStreamFinal();
+    while (!audioRenderer.isEnded()) {
+      audioRenderer.render(/* positionUs= */ 0, /* elapsedRealtimeUs= */ 0);
+    }
+
+    inOrderAudioSink.verify(mockAudioSink, times(1)).handleDiscontinuity();
+    inOrderAudioSink.verify(mockAudioSink, times(2)).handleBuffer(any(), anyLong(), anyInt());
+  }
+
+  @Test
+  public void firstSampleOfReplacementStreamSignalsDiscontinuityToAudioSink() throws Exception {
+    when(mockAudioSink.handleBuffer(any(), anyLong(), anyInt())).thenReturn(true);
+    when(mockAudioSink.isEnded()).thenReturn(true);
+    InOrder inOrderAudioSink = inOrder(mockAudioSink);
+    FakeSampleStream fakeSampleStream1 =
+        new FakeSampleStream(
+            new DefaultAllocator(/* trimOnReset= */ true, /* individualAllocationSize= */ 1024),
+            /* mediaSourceEventDispatcher= */ null,
+            DrmSessionManager.DRM_UNSUPPORTED,
+            new DrmSessionEventListener.EventDispatcher(),
+            FORMAT,
+            ImmutableList.of(
+                oneByteSample(/* timeUs= */ 0, C.BUFFER_FLAG_KEY_FRAME),
+                oneByteSample(/* timeUs= */ 1_000),
+                END_OF_STREAM_ITEM));
+    fakeSampleStream1.writeData(/* startPositionUs= */ 0);
+    FakeSampleStream fakeSampleStream2 =
+        new FakeSampleStream(
+            new DefaultAllocator(/* trimOnReset= */ true, /* individualAllocationSize= */ 1024),
+            /* mediaSourceEventDispatcher= */ null,
+            DrmSessionManager.DRM_UNSUPPORTED,
+            new DrmSessionEventListener.EventDispatcher(),
+            FORMAT,
+            ImmutableList.of(
+                oneByteSample(/* timeUs= */ 1_000_000, C.BUFFER_FLAG_KEY_FRAME),
+                oneByteSample(/* timeUs= */ 1_001_000),
+                END_OF_STREAM_ITEM));
+    fakeSampleStream2.writeData(/* startPositionUs= */ 0);
+    audioRenderer.enable(
+        RendererConfiguration.DEFAULT,
+        new Format[] {FORMAT},
+        fakeSampleStream1,
+        /* positionUs= */ 0,
+        /* joining= */ false,
+        /* mayRenderStartOfStream= */ true,
+        /* startPositionUs= */ 0,
+        /* offsetUs= */ 0);
+
+    while (!audioRenderer.hasReadStreamToEnd()) {
+      audioRenderer.render(/* positionUs= */ 0, /* elapsedRealtimeUs= */ 0);
+    }
+    audioRenderer.replaceStream(
+        new Format[] {FORMAT},
+        fakeSampleStream2,
+        /* startPositionUs= */ 1_000_000,
+        /* offsetUs= */ 1_000_000);
+    audioRenderer.setCurrentStreamFinal();
+    while (!audioRenderer.isEnded()) {
+      audioRenderer.render(/* positionUs= */ 0, /* elapsedRealtimeUs= */ 0);
+    }
+
+    inOrderAudioSink.verify(mockAudioSink, times(1)).handleDiscontinuity();
+    inOrderAudioSink.verify(mockAudioSink, times(2)).handleBuffer(any(), anyLong(), anyInt());
+    inOrderAudioSink.verify(mockAudioSink, times(1)).handleDiscontinuity();
+    inOrderAudioSink.verify(mockAudioSink, times(2)).handleBuffer(any(), anyLong(), anyInt());
+  }
+
   private static final class FakeDecoder
-      extends SimpleDecoder<DecoderInputBuffer, SimpleOutputBuffer, DecoderException> {
+      extends SimpleDecoder<DecoderInputBuffer, SimpleDecoderOutputBuffer, DecoderException> {
 
     public FakeDecoder() {
-      super(new DecoderInputBuffer[1], new SimpleOutputBuffer[1]);
+      super(new DecoderInputBuffer[1], new SimpleDecoderOutputBuffer[1]);
     }
 
     @Override
@@ -150,8 +257,8 @@ public class DecoderAudioRendererTest {
     }
 
     @Override
-    protected SimpleOutputBuffer createOutputBuffer() {
-      return new SimpleOutputBuffer(this::releaseOutputBuffer);
+    protected SimpleDecoderOutputBuffer createOutputBuffer() {
+      return new SimpleDecoderOutputBuffer(this::releaseOutputBuffer);
     }
 
     @Override
@@ -161,13 +268,11 @@ public class DecoderAudioRendererTest {
 
     @Override
     protected DecoderException decode(
-        DecoderInputBuffer inputBuffer, SimpleOutputBuffer outputBuffer, boolean reset) {
+        DecoderInputBuffer inputBuffer, SimpleDecoderOutputBuffer outputBuffer, boolean reset) {
       if (inputBuffer.isEndOfStream()) {
         outputBuffer.setFlags(C.BUFFER_FLAG_END_OF_STREAM);
       }
       return null;
     }
-
   }
-
 }

@@ -17,6 +17,7 @@ package com.google.android.exoplayer2.source;
 
 import static com.google.android.exoplayer2.util.Assertions.checkNotNull;
 import static java.lang.Math.min;
+import static java.lang.annotation.ElementType.TYPE_USE;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;
@@ -31,6 +32,7 @@ import java.io.IOException;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -44,25 +46,20 @@ import java.util.Map;
  */
 public final class MergingMediaSource extends CompositeMediaSource<Integer> {
 
-  /**
-   * Thrown when a {@link MergingMediaSource} cannot merge its sources.
-   */
+  /** Thrown when a {@link MergingMediaSource} cannot merge its sources. */
   public static final class IllegalMergeException extends IOException {
 
     /** The reason the merge failed. One of {@link #REASON_PERIOD_COUNT_MISMATCH}. */
     @Documented
     @Retention(RetentionPolicy.SOURCE)
+    @Target(TYPE_USE)
     @IntDef({REASON_PERIOD_COUNT_MISMATCH})
     public @interface Reason {}
-    /**
-     * The sources have different period counts.
-     */
+    /** The sources have different period counts. */
     public static final int REASON_PERIOD_COUNT_MISMATCH = 0;
 
-    /**
-     * The reason the merge failed.
-     */
-    @Reason public final int reason;
+    /** The reason the merge failed. */
+    public final @Reason int reason;
 
     /**
      * @param reason The reason the merge failed.
@@ -70,7 +67,6 @@ public final class MergingMediaSource extends CompositeMediaSource<Integer> {
     public IllegalMergeException(@Reason int reason) {
       this.reason = reason;
     }
-
   }
 
   private static final int PERIOD_COUNT_UNSET = -1;
@@ -161,17 +157,6 @@ public final class MergingMediaSource extends CompositeMediaSource<Integer> {
     periodTimeOffsetsUs = new long[0][];
     clippedDurationsUs = new HashMap<>();
     clippedMediaPeriods = MultimapBuilder.hashKeys().arrayListValues().build();
-  }
-
-  /**
-   * @deprecated Use {@link #getMediaItem()} and {@link MediaItem.PlaybackProperties#tag} instead.
-   */
-  @SuppressWarnings("deprecation")
-  @Deprecated
-  @Override
-  @Nullable
-  public Object getTag() {
-    return mediaSources.length > 0 ? mediaSources[0].getTag() : null;
   }
 
   @Override

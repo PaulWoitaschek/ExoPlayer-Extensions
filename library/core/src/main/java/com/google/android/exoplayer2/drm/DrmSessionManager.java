@@ -17,7 +17,10 @@ package com.google.android.exoplayer2.drm;
 
 import android.os.Looper;
 import androidx.annotation.Nullable;
+import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Format;
+import com.google.android.exoplayer2.PlaybackException;
+import com.google.android.exoplayer2.analytics.PlayerId;
 
 /** Manages a DRM session. */
 public interface DrmSessionManager {
@@ -44,25 +47,25 @@ public interface DrmSessionManager {
       new DrmSessionManager() {
 
         @Override
+        public void setPlayer(Looper playbackLooper, PlayerId playerId) {}
+
+        @Override
         @Nullable
         public DrmSession acquireSession(
-            Looper playbackLooper,
-            @Nullable DrmSessionEventListener.EventDispatcher eventDispatcher,
-            Format format) {
+            @Nullable DrmSessionEventListener.EventDispatcher eventDispatcher, Format format) {
           if (format.drmInitData == null) {
             return null;
           } else {
             return new ErrorStateDrmSession(
                 new DrmSession.DrmSessionException(
-                    new UnsupportedDrmException(
-                        UnsupportedDrmException.REASON_UNSUPPORTED_SCHEME)));
+                    new UnsupportedDrmException(UnsupportedDrmException.REASON_UNSUPPORTED_SCHEME),
+                    PlaybackException.ERROR_CODE_DRM_SCHEME_UNSUPPORTED));
           }
         }
 
         @Override
-        @Nullable
-        public Class<UnsupportedMediaCrypto> getExoMediaCryptoType(Format format) {
-          return format.drmInitData != null ? UnsupportedMediaCrypto.class : null;
+        public @C.CryptoType int getCryptoType(Format format) {
+          return format.drmInitData != null ? C.CRYPTO_TYPE_UNSUPPORTED : C.CRYPTO_TYPE_NONE;
         }
       };
 
@@ -99,24 +102,32 @@ public interface DrmSessionManager {
   }
 
   /**
+   * Sets information about the player using this DRM session manager.
+   *
+   * @param playbackLooper The {@link Looper} associated with the player's playback thread.
+   * @param playerId The {@link PlayerId} of the player.
+   */
+  void setPlayer(Looper playbackLooper, PlayerId playerId);
+
+  /**
    * Pre-acquires a DRM session for the specified {@link Format}.
    *
-   * <p>This notifies the manager that a subsequent call to {@link #acquireSession(Looper,
+   * <p>This notifies the manager that a subsequent call to {@link #acquireSession(
    * DrmSessionEventListener.EventDispatcher, Format)} with the same {@link Format} is likely,
    * allowing a manager that supports pre-acquisition to get the required {@link DrmSession} ready
    * in the background.
    *
    * <p>The caller must call {@link DrmSessionReference#release()} on the returned instance when
    * they no longer require the pre-acquisition (i.e. they know they won't be making a matching call
-   * to {@link #acquireSession(Looper, DrmSessionEventListener.EventDispatcher, Format)} in the near
+   * to {@link #acquireSession(DrmSessionEventListener.EventDispatcher, Format)} in the near
    * future).
    *
    * <p>This manager may silently release the underlying session in order to allow another operation
-   * to complete. This will result in a subsequent call to {@link #acquireSession(Looper,
+   * to complete. This will result in a subsequent call to {@link #acquireSession(
    * DrmSessionEventListener.EventDispatcher, Format)} re-initializing a new session, including
    * repeating key loads and other async initialization steps.
    *
-   * <p>The caller must separately call {@link #acquireSession(Looper,
+   * <p>The caller must separately call {@link #acquireSession(
    * DrmSessionEventListener.EventDispatcher, Format)} in order to obtain a session suitable for
    * playback. The pre-acquired {@link DrmSessionReference} and full {@link DrmSession} instances
    * are distinct. The caller must release both, and can release the {@link DrmSessionReference}
@@ -127,19 +138,15 @@ public interface DrmSessionManager {
    * <p>Implementations that do not support pre-acquisition always return an empty {@link
    * DrmSessionReference} instance.
    *
-   * @param playbackLooper The looper associated with the media playback thread.
    * @param eventDispatcher The {@link DrmSessionEventListener.EventDispatcher} used to distribute
    *     events, and passed on to {@link
    *     DrmSession#acquire(DrmSessionEventListener.EventDispatcher)}.
    * @param format The {@link Format} for which to pre-acquire a {@link DrmSession}.
    * @return A releaser for the pre-acquired session. Guaranteed to be non-null even if the matching
-   *     {@link #acquireSession(Looper, DrmSessionEventListener.EventDispatcher, Format)} would
-   *     return null.
+   *     {@link #acquireSession(DrmSessionEventListener.EventDispatcher, Format)} would return null.
    */
   default DrmSessionReference preacquireSession(
-      Looper playbackLooper,
-      @Nullable DrmSessionEventListener.EventDispatcher eventDispatcher,
-      Format format) {
+      @Nullable DrmSessionEventListener.EventDispatcher eventDispatcher, Format format) {
     return DrmSessionReference.EMPTY;
   }
 
@@ -156,7 +163,6 @@ public interface DrmSessionManager {
    * used to configure secure decoders for playback of clear content periods, which can reduce the
    * cost of transitioning between clear and encrypted content.
    *
-   * @param playbackLooper The looper associated with the media playback thread.
    * @param eventDispatcher The {@link DrmSessionEventListener.EventDispatcher} used to distribute
    *     events, and passed on to {@link
    *     DrmSession#acquire(DrmSessionEventListener.EventDispatcher)}.
@@ -165,24 +171,21 @@ public interface DrmSessionManager {
    */
   @Nullable
   DrmSession acquireSession(
-      Looper playbackLooper,
-      @Nullable DrmSessionEventListener.EventDispatcher eventDispatcher,
-      Format format);
+      @Nullable DrmSessionEventListener.EventDispatcher eventDispatcher, Format format);
 
   /**
-   * Returns the {@link ExoMediaCrypto} type associated to sessions acquired for the given {@link
-   * Format}. Returns the {@link UnsupportedMediaCrypto} type if this DRM session manager does not
-   * support any of the DRM schemes defined in the given {@link Format}. Returns null if {@link
-   * Format#drmInitData} is null and {@link #acquireSession} would return null for the given {@link
-   * Format}.
+   * Returns the {@link C.CryptoType} that the DRM session manager will use for a given {@link
+   * Format}. Returns {@link C#CRYPTO_TYPE_UNSUPPORTED} if the manager does not support any of the
+   * DRM schemes defined in the {@link Format}. Returns {@link C#CRYPTO_TYPE_NONE} if {@link
+   * Format#drmInitData} is null and {@link #acquireSession} will return {@code null} for the given
+   * {@link Format}.
    *
-   * @param format The {@link Format} for which to return the {@link ExoMediaCrypto} type.
-   * @return The {@link ExoMediaCrypto} type associated to sessions acquired using the given {@link
-   *     Format}, or {@link UnsupportedMediaCrypto} if this DRM session manager does not support any
-   *     of the DRM schemes defined in the given {@link Format}. May be null if {@link
-   *     Format#drmInitData} is null and {@link #acquireSession} would return null for the given
-   *     {@link Format}.
+   * @param format The {@link Format}.
+   * @return The {@link C.CryptoType} that the manager will use, or @link C#CRYPTO_TYPE_UNSUPPORTED}
+   *     if the manager does not support any of the DRM schemes defined in the {@link Format}. Will
+   *     be {@link C#CRYPTO_TYPE_NONE} if {@link Format#drmInitData} is null and {@link
+   *     #acquireSession} will return null for the given {@link Format}.
    */
-  @Nullable
-  Class<? extends ExoMediaCrypto> getExoMediaCryptoType(Format format);
+  @C.CryptoType
+  int getCryptoType(Format format);
 }

@@ -23,13 +23,13 @@ import static com.google.common.truth.Truth.assertThat;
 import android.os.Handler;
 import android.os.Looper;
 import androidx.test.core.app.ApplicationProvider;
+import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.DefaultRenderersFactory;
 import com.google.android.exoplayer2.Renderer;
 import com.google.android.exoplayer2.audio.AudioRendererEventListener;
 import com.google.android.exoplayer2.metadata.Metadata;
-import com.google.android.exoplayer2.text.Cue;
+import com.google.android.exoplayer2.text.CueGroup;
 import com.google.android.exoplayer2.video.VideoRendererEventListener;
-import java.util.List;
 
 /** Assertions for {@link DefaultRenderersFactory}. */
 public final class DefaultRenderersFactoryAsserts {
@@ -45,7 +45,8 @@ public final class DefaultRenderersFactoryAsserts {
    * @param clazz The extension renderer class.
    * @param type The type of the renderer.
    */
-  public static void assertExtensionRendererCreated(Class<? extends Renderer> clazz, int type) {
+  public static void assertExtensionRendererCreated(
+      Class<? extends Renderer> clazz, @C.TrackType int type) {
     // In EXTENSION_RENDERER_MODE_OFF the renderer should not be created.
     Renderer[] renderers = createRenderers(EXTENSION_RENDERER_MODE_OFF);
     for (Renderer renderer : renderers) {
@@ -92,7 +93,7 @@ public final class DefaultRenderersFactoryAsserts {
         new Handler(Looper.getMainLooper()),
         new VideoRendererEventListener() {},
         new AudioRendererEventListener() {},
-        (List<Cue> cues) -> {},
+        (CueGroup cueGroup) -> {},
         (Metadata metadata) -> {});
   }
 }

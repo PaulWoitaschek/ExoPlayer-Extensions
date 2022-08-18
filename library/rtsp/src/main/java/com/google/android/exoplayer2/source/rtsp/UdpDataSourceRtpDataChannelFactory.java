@@ -15,16 +15,28 @@
  */
 package com.google.android.exoplayer2.source.rtsp;
 
-import com.google.android.exoplayer2.util.Util;
+import com.google.android.exoplayer2.upstream.DataSourceUtil;
 import java.io.IOException;
 
 /** Factory for {@link UdpDataSourceRtpDataChannel}. */
 /* package */ final class UdpDataSourceRtpDataChannelFactory implements RtpDataChannel.Factory {
 
+  private final long socketTimeoutMs;
+
+  /**
+   * Creates a new instance.
+   *
+   * @param socketTimeoutMs A positive number of milliseconds to wait before lack of received RTP
+   *     packets is treated as the end of input.
+   */
+  public UdpDataSourceRtpDataChannelFactory(long socketTimeoutMs) {
+    this.socketTimeoutMs = socketTimeoutMs;
+  }
+
   @Override
   public RtpDataChannel createAndOpenDataChannel(int trackId) throws IOException {
-    UdpDataSourceRtpDataChannel firstChannel = new UdpDataSourceRtpDataChannel();
-    UdpDataSourceRtpDataChannel secondChannel = new UdpDataSourceRtpDataChannel();
+    UdpDataSourceRtpDataChannel firstChannel = new UdpDataSourceRtpDataChannel(socketTimeoutMs);
+    UdpDataSourceRtpDataChannel secondChannel = new UdpDataSourceRtpDataChannel(socketTimeoutMs);
 
     try {
       // From RFC3550 Section 11: "For UDP and similar protocols, RTP SHOULD use an even destination
@@ -48,9 +60,14 @@ import java.io.IOException;
         return secondChannel;
       }
     } catch (IOException e) {
-      Util.closeQuietly(firstChannel);
-      Util.closeQuietly(secondChannel);
+      DataSourceUtil.closeQuietly(firstChannel);
+      DataSourceUtil.closeQuietly(secondChannel);
       throw e;
     }
+  }
+
+  @Override
+  public RtpDataChannel.Factory createFallbackDataChannelFactory() {
+    return new TransferRtpDataChannelFactory(/* timeoutMs= */ socketTimeoutMs);
   }
 }

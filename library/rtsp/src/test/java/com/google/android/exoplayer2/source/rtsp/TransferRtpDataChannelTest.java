@@ -19,6 +19,7 @@ import static com.google.android.exoplayer2.testutil.TestUtil.buildTestData;
 import static com.google.common.truth.Truth.assertThat;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
+import com.google.android.exoplayer2.C;
 import com.google.common.primitives.Bytes;
 import java.util.Arrays;
 import org.junit.Test;
@@ -28,12 +29,31 @@ import org.junit.runner.RunWith;
 @RunWith(AndroidJUnit4.class)
 public class TransferRtpDataChannelTest {
 
+  private static final long POLL_TIMEOUT_MS = 8000;
+
   @Test
-  public void read_withLargeEnoughBuffer_reads() throws Exception {
+  public void getInterleavedBinaryDataListener_returnsAnInterleavedBinaryDataListener() {
+    TransferRtpDataChannel transferRtpDataChannel = new TransferRtpDataChannel(POLL_TIMEOUT_MS);
+
+    assertThat(transferRtpDataChannel.getInterleavedBinaryDataListener())
+        .isEqualTo(transferRtpDataChannel);
+  }
+
+  @Test
+  public void read_withoutReceivingInterleavedData_returnsEndOfInput() {
+    TransferRtpDataChannel transferRtpDataChannel = new TransferRtpDataChannel(POLL_TIMEOUT_MS);
+    byte[] buffer = new byte[1];
+
+    assertThat(transferRtpDataChannel.read(buffer, /* offset= */ 0, buffer.length))
+        .isEqualTo(C.RESULT_END_OF_INPUT);
+  }
+
+  @Test
+  public void read_withLargeEnoughBuffer_reads() {
     byte[] randomBytes = buildTestData(20);
     byte[] buffer = new byte[40];
-    TransferRtpDataChannel transferRtpDataChannel = new TransferRtpDataChannel();
-    transferRtpDataChannel.write(randomBytes);
+    TransferRtpDataChannel transferRtpDataChannel = new TransferRtpDataChannel(POLL_TIMEOUT_MS);
+    transferRtpDataChannel.onInterleavedBinaryDataReceived(randomBytes);
 
     transferRtpDataChannel.read(buffer, /* offset= */ 0, buffer.length);
 
@@ -41,11 +61,11 @@ public class TransferRtpDataChannelTest {
   }
 
   @Test
-  public void read_withSmallBufferEnoughBuffer_readsThreeTimes() throws Exception {
+  public void read_withSmallBufferEnoughBuffer_readsThreeTimes() {
     byte[] randomBytes = buildTestData(20);
     byte[] buffer = new byte[8];
-    TransferRtpDataChannel transferRtpDataChannel = new TransferRtpDataChannel();
-    transferRtpDataChannel.write(randomBytes);
+    TransferRtpDataChannel transferRtpDataChannel = new TransferRtpDataChannel(POLL_TIMEOUT_MS);
+    transferRtpDataChannel.onInterleavedBinaryDataReceived(randomBytes);
 
     transferRtpDataChannel.read(buffer, /* offset= */ 0, buffer.length);
     assertThat(buffer).isEqualTo(Arrays.copyOfRange(randomBytes, /* from= */ 0, /* to= */ 8));
@@ -57,11 +77,11 @@ public class TransferRtpDataChannelTest {
   }
 
   @Test
-  public void read_withSmallBuffer_reads() throws Exception {
+  public void read_withSmallBuffer_reads() {
     byte[] randomBytes = buildTestData(40);
     byte[] buffer = new byte[20];
-    TransferRtpDataChannel transferRtpDataChannel = new TransferRtpDataChannel();
-    transferRtpDataChannel.write(randomBytes);
+    TransferRtpDataChannel transferRtpDataChannel = new TransferRtpDataChannel(POLL_TIMEOUT_MS);
+    transferRtpDataChannel.onInterleavedBinaryDataReceived(randomBytes);
 
     transferRtpDataChannel.read(buffer, /* offset= */ 0, buffer.length);
     assertThat(buffer).isEqualTo(Arrays.copyOfRange(randomBytes, /* from= */ 0, /* to= */ 20));
@@ -71,19 +91,19 @@ public class TransferRtpDataChannelTest {
   }
 
   @Test
-  public void read_withSmallAndModerateBufferAndSubsequentProducerWrite_reads() throws Exception {
+  public void read_withSmallAndModerateBufferAndSubsequentProducerWrite_reads() {
     byte[] randomBytes1 = buildTestData(40);
     byte[] randomBytes2 = buildTestData(40);
     byte[] smallBuffer = new byte[20];
     byte[] bigBuffer = new byte[40];
-    TransferRtpDataChannel transferRtpDataChannel = new TransferRtpDataChannel();
-    transferRtpDataChannel.write(randomBytes1);
+    TransferRtpDataChannel transferRtpDataChannel = new TransferRtpDataChannel(POLL_TIMEOUT_MS);
+    transferRtpDataChannel.onInterleavedBinaryDataReceived(randomBytes1);
 
     transferRtpDataChannel.read(smallBuffer, /* offset= */ 0, smallBuffer.length);
     assertThat(smallBuffer)
         .isEqualTo(Arrays.copyOfRange(randomBytes1, /* from= */ 0, /* to= */ 20));
 
-    transferRtpDataChannel.write(randomBytes2);
+    transferRtpDataChannel.onInterleavedBinaryDataReceived(randomBytes2);
 
     // Read the remaining 20 bytes in randomBytes1, and 20 bytes from randomBytes2.
     transferRtpDataChannel.read(bigBuffer, /* offset= */ 0, bigBuffer.length);
@@ -100,20 +120,19 @@ public class TransferRtpDataChannelTest {
   }
 
   @Test
-  public void read_withSmallAndBigBufferWithPartialReadAndSubsequentProducerWrite_reads()
-      throws Exception {
+  public void read_withSmallAndBigBufferWithPartialReadAndSubsequentProducerWrite_reads() {
     byte[] randomBytes1 = buildTestData(40);
     byte[] randomBytes2 = buildTestData(40);
     byte[] smallBuffer = new byte[30];
     byte[] bigBuffer = new byte[30];
-    TransferRtpDataChannel transferRtpDataChannel = new TransferRtpDataChannel();
-    transferRtpDataChannel.write(randomBytes1);
+    TransferRtpDataChannel transferRtpDataChannel = new TransferRtpDataChannel(POLL_TIMEOUT_MS);
+    transferRtpDataChannel.onInterleavedBinaryDataReceived(randomBytes1);
 
     transferRtpDataChannel.read(smallBuffer, /* offset= */ 0, smallBuffer.length);
     assertThat(smallBuffer)
         .isEqualTo(Arrays.copyOfRange(randomBytes1, /* from= */ 0, /* to= */ 30));
 
-    transferRtpDataChannel.write(randomBytes2);
+    transferRtpDataChannel.onInterleavedBinaryDataReceived(randomBytes2);
 
     // Read 30 bytes to big buffer.
     transferRtpDataChannel.read(bigBuffer, /* offset= */ 0, bigBuffer.length);
@@ -130,19 +149,19 @@ public class TransferRtpDataChannelTest {
   }
 
   @Test
-  public void read_withSmallAndBigBufferAndSubsequentProducerWrite_reads() throws Exception {
+  public void read_withSmallAndBigBufferAndSubsequentProducerWrite_reads() {
     byte[] randomBytes1 = buildTestData(40);
     byte[] randomBytes2 = buildTestData(40);
     byte[] smallBuffer = new byte[20];
     byte[] bigBuffer = new byte[70];
-    TransferRtpDataChannel transferRtpDataChannel = new TransferRtpDataChannel();
-    transferRtpDataChannel.write(randomBytes1);
+    TransferRtpDataChannel transferRtpDataChannel = new TransferRtpDataChannel(POLL_TIMEOUT_MS);
+    transferRtpDataChannel.onInterleavedBinaryDataReceived(randomBytes1);
 
     transferRtpDataChannel.read(smallBuffer, /* offset= */ 0, smallBuffer.length);
     assertThat(smallBuffer)
         .isEqualTo(Arrays.copyOfRange(randomBytes1, /* from= */ 0, /* to= */ 20));
 
-    transferRtpDataChannel.write(randomBytes2);
+    transferRtpDataChannel.onInterleavedBinaryDataReceived(randomBytes2);
 
     transferRtpDataChannel.read(bigBuffer, /* offset= */ 0, bigBuffer.length);
     assertThat(Arrays.copyOfRange(bigBuffer, /* from= */ 0, /* to= */ 60))

@@ -41,22 +41,24 @@
     <item quantity="many">Prasukti pirmyn %d sekundės</item>
     <item quantity="other">Prasukti pirmyn %d sekundžių</item>
   </plurals>
-  <string name="exo_controls_repeat_off_description">Nekartoti nieko</string>
-  <string name="exo_controls_repeat_one_description">Kartoti vieną</string>
-  <string name="exo_controls_repeat_all_description">Kartoti viską</string>
-  <string name="exo_controls_shuffle_on_description">Maišymas įjungtas</string>
-  <string name="exo_controls_shuffle_off_description">Maišymas išjungtas</string>
+  <string name="exo_controls_repeat_off_description">Dabart. rež.: nekart. nieko. Perj. pakart. r.</string>
+  <string name="exo_controls_repeat_one_description">Dabart. rež.: kart. vieną. Perj. pakart. r.</string>
+  <string name="exo_controls_repeat_all_description">Dabart. rež.: kart. viską. Perj. pakart. r.</string>
+  <string name="exo_controls_shuffle_on_description">Išjungti maišymo režimą</string>
+  <string name="exo_controls_shuffle_off_description">Įgalinti maišymo režimą</string>
   <string name="exo_controls_vr_description">VR režimas</string>
   <string name="exo_controls_cc_enabled_description">Išjungti subtitrus</string>
   <string name="exo_controls_cc_disabled_description">Įgalinti subtitrus</string>
   <string name="exo_controls_playback_speed">Sparta</string>
-  <string name="exo_controls_playback_speed_normal">Įprasta</string>
-  <string name="exo_download_description">Atsisiųsti</string>
-  <string name="exo_download_notification_channel_name">Atsisiuntimai</string>
-  <string name="exo_download_downloading">Atsisiunčiama</string>
-  <string name="exo_download_completed">Atsisiuntimo procesas baigtas</string>
-  <string name="exo_download_failed">Nepavyko atsisiųsti</string>
-  <string name="exo_download_removing">Pašalinami atsisiuntimai</string>
+  <string-array name="exo_controls_playback_speeds">
+    <item>0,25 k.</item>
+    <item>0,5 k.</item>
+    <item>0,75 k.</item>
+    <item>Įprasta</item>
+    <item>1,25 k.</item>
+    <item>1,5 k.</item>
+    <item>2 k.</item>
+  </string-array>
   <string name="exo_track_selection_title_video">Vaizdo įrašas</string>
   <string name="exo_track_selection_title_audio">Garso įrašas</string>
   <string name="exo_track_selection_title_text">Tekstas</string>

@@ -21,8 +21,10 @@ import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
 import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.C;
+import com.google.android.exoplayer2.util.GlProgram;
 import com.google.android.exoplayer2.util.GlUtil;
 import java.nio.FloatBuffer;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 
 /**
  * Utility class to render spherical meshes for video or images. Call {@link #init()} on the GL
@@ -44,33 +46,27 @@ import java.nio.FloatBuffer;
   }
 
   // Basic vertex & fragment shaders to render a mesh with 3D position & 2D texture data.
-  private static final String[] VERTEX_SHADER_CODE =
-      new String[] {
-        "uniform mat4 uMvpMatrix;",
-        "uniform mat3 uTexMatrix;",
-        "attribute vec4 aPosition;",
-        "attribute vec2 aTexCoords;",
-        "varying vec2 vTexCoords;",
-
-        // Standard transformation.
-        "void main() {",
-        "  gl_Position = uMvpMatrix * aPosition;",
-        "  vTexCoords = (uTexMatrix * vec3(aTexCoords, 1)).xy;",
-        "}"
-      };
-  private static final String[] FRAGMENT_SHADER_CODE =
-      new String[] {
-        // This is required since the texture data is GL_TEXTURE_EXTERNAL_OES.
-        "#extension GL_OES_EGL_image_external : require",
-        "precision mediump float;",
-
-        // Standard texture rendering shader.
-        "uniform samplerExternalOES uTexture;",
-        "varying vec2 vTexCoords;",
-        "void main() {",
-        "  gl_FragColor = texture2D(uTexture, vTexCoords);",
-        "}"
-      };
+  private static final String VERTEX_SHADER =
+      "uniform mat4 uMvpMatrix;\n"
+          + "uniform mat3 uTexMatrix;\n"
+          + "attribute vec4 aPosition;\n"
+          + "attribute vec2 aTexCoords;\n"
+          + "varying vec2 vTexCoords;\n"
+          + "// Standard transformation.\n"
+          + "void main() {\n"
+          + "  gl_Position = uMvpMatrix * aPosition;\n"
+          + "  vTexCoords = (uTexMatrix * vec3(aTexCoords, 1)).xy;\n"
+          + "}\n";
+  private static final String FRAGMENT_SHADER =
+      "// This is required since the texture data is GL_TEXTURE_EXTERNAL_OES.\n"
+          + "#extension GL_OES_EGL_image_external : require\n"
+          + "precision mediump float;\n"
+          + "// Standard texture rendering shader.\n"
+          + "uniform samplerExternalOES uTexture;\n"
+          + "varying vec2 vTexCoords;\n"
+          + "void main() {\n"
+          + "  gl_FragColor = texture2D(uTexture, vTexCoords);\n"
+          + "}\n";
 
   // Texture transform matrices.
   private static final float[] TEX_MATRIX_WHOLE = {
@@ -92,9 +88,9 @@ import java.nio.FloatBuffer;
   private int stereoMode;
   @Nullable private MeshData leftMeshData;
   @Nullable private MeshData rightMeshData;
+  private @MonotonicNonNull GlProgram program;
 
-  // Program related GL items. These are only valid if program != 0.
-  private int program;
+  // Program related GL items. These are only valid if Program is valid.
   private int mvpMatrixHandle;
   private int uTexMatrixHandle;
   private int positionHandle;
@@ -118,13 +114,13 @@ import java.nio.FloatBuffer;
   }
 
   /** Initializes of the GL components. */
-  /* package */ void init() {
-    program = GlUtil.compileProgram(VERTEX_SHADER_CODE, FRAGMENT_SHADER_CODE);
-    mvpMatrixHandle = GLES20.glGetUniformLocation(program, "uMvpMatrix");
-    uTexMatrixHandle = GLES20.glGetUniformLocation(program, "uTexMatrix");
-    positionHandle = GLES20.glGetAttribLocation(program, "aPosition");
-    texCoordsHandle = GLES20.glGetAttribLocation(program, "aTexCoords");
-    textureHandle = GLES20.glGetUniformLocation(program, "uTexture");
+  public void init() {
+    program = new GlProgram(VERTEX_SHADER, FRAGMENT_SHADER);
+    mvpMatrixHandle = program.getUniformLocation("uMvpMatrix");
+    uTexMatrixHandle = program.getUniformLocation("uTexMatrix");
+    positionHandle = program.getAttributeArrayLocationAndEnable("aPosition");
+    texCoordsHandle = program.getAttributeArrayLocationAndEnable("aTexCoords");
+    textureHandle = program.getUniformLocation("uTexture");
   }
 
   /**
@@ -136,20 +132,13 @@ import java.nio.FloatBuffer;
    * @param rightEye Whether the right eye view should be drawn. If {@code false}, the left eye view
    *     is drawn.
    */
-  /* package */ void draw(int textureId, float[] mvpMatrix, boolean rightEye) {
+  public void draw(int textureId, float[] mvpMatrix, boolean rightEye) {
     MeshData meshData = rightEye ? rightMeshData : leftMeshData;
     if (meshData == null) {
       return;
     }
 
     // Configure shader.
-    GLES20.glUseProgram(program);
-    checkGlError();
-
-    GLES20.glEnableVertexAttribArray(positionHandle);
-    GLES20.glEnableVertexAttribArray(texCoordsHandle);
-    checkGlError();
-
     float[] texMatrix;
     if (stereoMode == C.STEREO_MODE_TOP_BOTTOM) {
       texMatrix = rightEye ? TEX_MATRIX_BOTTOM : TEX_MATRIX_TOP;
@@ -160,6 +149,7 @@ import java.nio.FloatBuffer;
     }
     GLES20.glUniformMatrix3fv(uTexMatrixHandle, 1, false, texMatrix, 0);
 
+    // TODO(b/205002913): Update to use GlProgram.Uniform.bind().
     GLES20.glUniformMatrix4fv(mvpMatrixHandle, 1, false, mvpMatrix, 0);
     GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
     GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId);
@@ -187,17 +177,14 @@ import java.nio.FloatBuffer;
     checkGlError();
 
     // Render.
-    GLES20.glDrawArrays(meshData.drawMode, 0, meshData.vertexCount);
+    GLES20.glDrawArrays(meshData.drawMode, /* first= */ 0, meshData.vertexCount);
     checkGlError();
-
-    GLES20.glDisableVertexAttribArray(positionHandle);
-    GLES20.glDisableVertexAttribArray(texCoordsHandle);
   }
 
-  /** Cleans up the GL resources. */
-  /* package */ void shutdown() {
-    if (program != 0) {
-      GLES20.glDeleteProgram(program);
+  /** Cleans up GL resources. */
+  public void shutdown() {
+    if (program != null) {
+      program.delete();
     }
   }
 
@@ -205,7 +192,7 @@ import java.nio.FloatBuffer;
     private final int vertexCount;
     private final FloatBuffer vertexBuffer;
     private final FloatBuffer textureBuffer;
-    @Projection.DrawMode private final int drawMode;
+    private final int drawMode;
 
     public MeshData(Projection.SubMesh subMesh) {
       vertexCount = subMesh.getVertexCount();
